@@ -1049,33 +1049,40 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       color: theme.colorScheme.onSurfaceVariant,
     );
 
+    // 单行横向滚动：长目录名不再把面包屑撑成多行、挤压正文。
+    // 这里不能再用 Flexible（横向滚动给 Row 的是无界宽度，Flexible 会报错），
+    // 每段保持不换行，超长路径靠横向拖动查看。
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.folder_outlined,
-            size: 14,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 4),
-          // 仓库根
-          Flexible(
-            child: InkWell(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.folder_outlined,
+              size: 14,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 4),
+            // 仓库根
+            InkWell(
               borderRadius: BorderRadius.circular(4),
               onTap: () => _openRepoDir(''),
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-                child: Text(repoName, style: style),
+                child: Text(
+                  repoName,
+                  style: style,
+                  maxLines: 1,
+                  softWrap: false,
+                ),
               ),
             ),
-          ),
-          for (var i = 0; i < dirSegments.length; i++) ...[
-            Text(' / ', style: style),
-            Flexible(
-              child: InkWell(
+            for (var i = 0; i < dirSegments.length; i++) ...[
+              Text(' / ', style: style, maxLines: 1, softWrap: false),
+              InkWell(
                 borderRadius: BorderRadius.circular(4),
                 onTap: () =>
                     _openRepoDir(dirSegments.sublist(0, i + 1).join('/')),
@@ -1084,12 +1091,17 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                     horizontal: 2,
                     vertical: 4,
                   ),
-                  child: Text(dirSegments[i], style: style),
+                  child: Text(
+                    dirSegments[i],
+                    style: style,
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
