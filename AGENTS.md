@@ -37,6 +37,11 @@
 ETag/Last-Modified（`<key>.img` 旁 `.meta` sidecar），带
 If-None-Match/If-Modified-Since，304 直接用缓存并刷新 mtime 重置过期
 窗口，不重传图片本体；手动重试跳过条件头。
+  - **SVG**（`lib/src/ui/repo_image.dart` + `lib/src/notes/markdown_source.dart`）：
+    本地 `.svg` 走 `SvgPicture.file`，网络图按字节嗅探走 `SvgPicture.memory`，
+    按 viewBox 等比缩放到可用宽度；`normalizeHtmlImages` 只忽略 shields.io /
+    contrib.rocks / star-history 徽章，**不再按 `.svg` 后缀整体丢弃**。
+    保存/分享时 `svgToPng` 栅格化（最长边 ≤2048），相册与聊天软件可直接预览。
 - **存储占用页**（`lib/src/ui/storage_page.dart` + `lib/src/utils/dir_size.dart`）：
   设置「数据 → 存储占用」展示 `repos` / `local` / `imgcache` / `.meta`
   四类目录的磁盘体积（体积统计在后台 isolate 递归累加）；图片缓存可
@@ -124,6 +129,10 @@ If-None-Match/If-Modified-Since，304 直接用缓存并刷新 mtime 重置过�
     缓存缺失才后台扫描并回写（大仓库打开文章不卡首帧）
   - **正文图片解码宽度**按「屏宽 × devicePixelRatio」限制（320~2048），避免
     原图解码占几十 MB；图库仍按原图（可放大看细节）
+  - **图片保存/分享**（`lib/src/ui/image_actions.dart`）：正文图长按、图库右上角
+    菜单与长按共用同一入口（保存相册 / 分享 / 复制地址）；`loadRepoImageBytes`
+    统一读取本地文件、网络磁盘缓存/下载与 notebook 内存图，相册保存失败只提示、
+    不阻断分享；SVG 先转 PNG 再落地。
   - 从正文搜索结果进入时传 `initialFindQuery`：自动打开查找条、统计命中并
     定位到第一处（否则用户还要自己滚到命中位置）
 - **平台适配**：克隆只依赖用户给的**完整 URL**（GitHub / Gitee / GitCode / GitLab / 自建 Gitea 都可以），`GitPlatform` 枚举只用于展示与「用户名/仓库名 → URL」的短名拼接，禁止业务代码调用任何平台 REST API。原先的 `RepositoryAdapter` / adapter_factory / 四个平台 adapter 因无人调用已删除（2026-10）——新增平台只需补枚举与 `guessPlatform`，不要再引回 HTTP 抽象层。
