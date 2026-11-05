@@ -10,7 +10,7 @@
 
 [![Platform](https://img.shields.io/badge/platform-Android-4c8f56)](#-下载)
 [![Flutter](https://img.shields.io/badge/Flutter-3.47%2B-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
-[![Release](https://img.shields.io/badge/release-v1.11.1-f5b301)](https://github.com/interset-wq/pullread/releases)
+[![Release](https://img.shields.io/badge/release-v1.11.4-f5b301)](https://github.com/interset-wq/pullread/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 </div>
@@ -135,7 +135,7 @@ lib/
 ├── main.dart               # 入口（libgit2/SSL 初始化顺序见 AGENTS.md）
 └── src/
     ├── git/                # git 同步服务、仓库元数据（.meta/）
-    ├── platforms/          # RepositoryAdapter 抽象层 + GitHub/Gitee/GitCode 适配器
+    ├── platforms/          # 平台识别（GitHub / Gitee / GitCode / GitLab / 自建）与仓库展示信息
     ├── notes/              # 笔记扫描、TOC、GFM 告警、折叠块、ipynb 转换、数学公式、Mermaid、标签、断链
     ├── local/              # 本地文件夹授权 / 增量镜像 / 写回待办
     ├── search/             # 正文检索纯逻辑（仓库内与跨仓库共用）
@@ -144,10 +144,11 @@ lib/
     └── utils/              # 自然排序、文本编码、纯文本提取、目录体积等工具
 ```
 
-## 🗺 路线图
+## 🗺 开发
 
-后续方向与已完成功能见 [Roadmap.md](Roadmap.md)（含明确的非目标边界）；
-按代码缺口排出的分批落地计划见 [Roadmap.agent.md](Roadmap.agent.md)。
+功能边界与后续方向由维护者按实际使用反馈排期；已交付能力以本文与各版本
+Release 说明为准。明确不支持：私有仓库鉴权、协作、双链/图谱、静态站生成、
+TTS 朗读、阅读统计、PDF 导出。
 
 ## 📄 许可证
 
