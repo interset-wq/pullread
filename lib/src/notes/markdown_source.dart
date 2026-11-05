@@ -14,11 +14,13 @@ final RegExp _badgeLinkImgRegExp = RegExp(
   r'\[!\[([^\]]*)\]\(([^)\s]+)\)\]\(([^)]+)\)',
 );
 
-/// SVG 徽章类图片直接忽略：非常用位图格式、难以排版
-/// （shields.io / contrib.rocks / star-history / .svg 文件）。
+/// 徽章类图片直接忽略：这些图床返回的是装饰性徽章/统计图，
+/// 在正文里没有阅读价值（shields.io / contrib.rocks / star-history）。
+/// **不再按 `.svg` 后缀整体忽略**：仓库里的架构图、流程图大多是 SVG，
+/// 现在由 flutter_svg 渲染（本地与网络都支持）。
 final RegExp _ignoredImageRegExp = RegExp(
-  r'!\[[^\]]*\]\((?:[^)]*\.svg(?:\?[^)]*)?'
-  r'|https?://img\.shields\.io/[^)]*'
+  r'!\[[^\]]*\]\((?:'
+  r'https?://img\.shields\.io/[^)]*'
   r'|https?://contrib\.rocks/[^)]*'
   r'|https?://api\.star-history\.com/[^)]*)\)',
   caseSensitive: false,

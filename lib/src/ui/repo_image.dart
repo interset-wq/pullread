@@ -47,13 +47,26 @@ Widget buildRepoImage(
   } else if (clean.startsWith('http://') || clean.startsWith('https://')) {
     child = _NetworkImage(url: clean, fit: fit, maxWidth: maxWidth);
   } else {
-    child = Image.file(
-      resolveRepoFile(decodeMarkdownUrl(clean), baseDir),
-      fit: fit,
-      cacheWidth: maxWidth,
-      frameBuilder: _fadeIn,
-      errorBuilder: (_, _, _) => const _ImageErrorBox(),
-    );
+    final file = resolveRepoFile(decodeMarkdownUrl(clean), baseDir);
+    // 本地 SVG 必须走 flutter_svg：Image.file 只认位图，仓库里的
+    // 架构图/流程图大多是矢量图，直接加载只会显示破图。
+    // 不指定 width/height，让 SvgPicture 按 viewBox 等比缩放到可用宽度；
+    // 父级已有 maxWidth 约束时不会撑出屏幕。
+    if (file.path.toLowerCase().endsWith('.svg')) {
+      child = SvgPicture.file(
+        file,
+        fit: fit,
+        errorBuilder: (_, _, _) => const _ImageErrorBox(),
+      );
+    } else {
+      child = Image.file(
+        file,
+        fit: fit,
+        cacheWidth: maxWidth,
+        frameBuilder: _fadeIn,
+        errorBuilder: (_, _, _) => const _ImageErrorBox(),
+      );
+    }
   }
   if (!backdrop) return child;
   return Container(color: _backdropColor, child: child);

@@ -55,10 +55,10 @@ void main() {
       expect(out.contains('star-history.com'), isFalse);
     });
 
-    test('本地 .svg 资源同样忽略，位图正常保留', () {
+    test('本地 .svg 与位图都保留（架构图/流程图常用 SVG）', () {
       const src = '![dark](assets/dark.svg)\n![photo](figures/pic.png)\n';
       final out = normalizeHtmlImages(src);
-      expect(out.contains('dark.svg'), isFalse);
+      expect(out.contains('![dark](assets/dark.svg)'), isTrue);
       expect(out.contains('![photo](figures/pic.png)'), isTrue);
     });
 
