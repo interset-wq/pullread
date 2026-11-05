@@ -33,7 +33,7 @@ Widget buildRepoImage(
     final bytes = IpynbImageStore.bytesFor(clean);
     if (bytes == null) {
       child = const _ImageErrorBox();
-    } else if (_looksLikeSvg(bytes)) {
+    } else if (looksLikeSvg(bytes)) {
       child = SvgPicture.memory(bytes, fit: fit);
     } else {
       child = Image.memory(
@@ -61,6 +61,75 @@ Widget buildRepoImage(
 
 /// 图表白底垫色：比纯白柔和，浅色主题下与页面融为一体。
 const Color _backdropColor = Color(0xFFF7F7F8);
+
+/// 下载网络图片字节：带条件请求校验器时服务器未变会回 304，直接用缓存
+/// 字节（不重传图片本体），并刷新缓存 mtime 重置过期窗口。
+/// [force] 跳过条件头（手动重试场景，缓存可能损坏）。
+Future<Uint8List?> downloadNetworkImage(
+  String url, {
+  bool force = false,
+}) async {
+  try {
+    final headers = <String, String>{'User-Agent': 'Mozilla/5.0'};
+    if (!force) {
+      final v = await ImageDiskCache.readValidators(url);
+      if (v?.etag != null) {
+        headers['If-None-Match'] = v!.etag!;
+      } else if (v?.lastModified != null) {
+        headers['If-Modified-Since'] = v!.lastModified!;
+      }
+    }
+    final res = await http
+        .get(Uri.parse(url), headers: headers)
+        .timeout(const Duration(seconds: 30));
+    if (res.statusCode == 304) {
+      final cached = await ImageDiskCache.read(url);
+      if (cached != null) {
+        await ImageDiskCache.touch(url);
+        return cached;
+      }
+      return null; // 缓存已丢，只能等下次整图下载
+    }
+    if (res.statusCode == 200) {
+      await ImageDiskCache.storeValidators(
+        url,
+        res.headers['etag'],
+        res.headers['last-modified'],
+      );
+      return res.bodyBytes;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// 取图片原始字节（保存到相册/分享用）：笔记本内嵌图直接读内存，
+/// 网络图优先磁盘缓存、缺失再下载，本地图按正文相对路径解析。
+Future<Uint8List?> loadRepoImageBytes(
+  String url, {
+  required String baseDir,
+}) async {
+  final clean = url.trim();
+  if (IpynbImageStore.isIpynbImage(clean)) {
+    return IpynbImageStore.bytesFor(clean);
+  }
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    final cached = await ImageDiskCache.read(clean);
+    if (cached != null) return cached;
+    final fresh = await downloadNetworkImage(clean);
+    if (fresh != null) await ImageDiskCache.store(clean, fresh);
+    return fresh;
+  }
+  try {
+    return await resolveRepoFile(
+      decodeMarkdownUrl(clean),
+      baseDir,
+    ).readAsBytes();
+  } on Object {
+    return null;
+  }
+}
 
 /// 图片加载完成后渐入，避免解码完成的瞬间生硬闪现。
 Widget _fadeIn(
@@ -110,52 +179,13 @@ class _NetworkImageState extends State<_NetworkImage> {
       }
       return cached;
     }
-    final fresh = await _download();
+    final fresh = await downloadNetworkImage(widget.url);
     if (fresh != null) await ImageDiskCache.store(widget.url, fresh);
     return fresh;
   }
 
-  /// 条件请求下载：带校验器时服务器未变会回 304，直接用缓存字节
-  /// （不重传图片本体），并刷新缓存 mtime 重置过期窗口。
-  /// [force] 跳过条件头（手动重试场景，缓存可能损坏）。
-  Future<Uint8List?> _download({bool force = false}) async {
-    try {
-      final headers = <String, String>{'User-Agent': 'Mozilla/5.0'};
-      if (!force) {
-        final v = await ImageDiskCache.readValidators(widget.url);
-        if (v?.etag != null) {
-          headers['If-None-Match'] = v!.etag!;
-        } else if (v?.lastModified != null) {
-          headers['If-Modified-Since'] = v!.lastModified!;
-        }
-      }
-      final res = await http
-          .get(Uri.parse(widget.url), headers: headers)
-          .timeout(const Duration(seconds: 30));
-      if (res.statusCode == 304) {
-        final cached = await ImageDiskCache.read(widget.url);
-        if (cached != null) {
-          await ImageDiskCache.touch(widget.url);
-          return cached;
-        }
-        return null; // 缓存已丢，只能等下次整图下载
-      }
-      if (res.statusCode == 200) {
-        await ImageDiskCache.storeValidators(
-          widget.url,
-          res.headers['etag'],
-          res.headers['last-modified'],
-        );
-        return res.bodyBytes;
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<void> _refreshInBackground() async {
-    final fresh = await _download();
+    final fresh = await downloadNetworkImage(widget.url);
     if (fresh != null) await ImageDiskCache.store(widget.url, fresh);
   }
 
@@ -164,7 +194,7 @@ class _NetworkImageState extends State<_NetworkImage> {
     setState(() {
       _bytes = () async {
         await ImageDiskCache.remove(widget.url);
-        final fresh = await _download();
+        final fresh = await downloadNetworkImage(widget.url, force: true);
         if (fresh != null) await ImageDiskCache.store(widget.url, fresh);
         return fresh;
       }();
@@ -188,7 +218,7 @@ class _NetworkImageState extends State<_NetworkImage> {
         }
         final bytes = snapshot.data;
         if (bytes == null) return _ImageErrorBox(onRetry: _retry);
-        if (_looksLikeSvg(bytes)) {
+        if (looksLikeSvg(bytes)) {
           return SvgPicture.memory(
             bytes,
             fit: widget.fit,
@@ -208,7 +238,7 @@ class _NetworkImageState extends State<_NetworkImage> {
 }
 
 /// 按内容嗅探 SVG（部分图床 content-type 不规范，直接看字节更可靠）。
-bool _looksLikeSvg(Uint8List bytes) {
+bool looksLikeSvg(Uint8List bytes) {
   final head = String.fromCharCodes(bytes.take(512)).toLowerCase();
   return head.contains('<svg') || head.contains('<?xml');
 }

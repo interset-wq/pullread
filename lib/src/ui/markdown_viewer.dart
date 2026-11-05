@@ -9,13 +9,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'package:flutter_highlight/themes/github.dart';
-import 'package:gal/gal.dart';
 import 'package:markdown/markdown.dart' as m;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:mermaid_flutter/mermaid_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -37,6 +34,7 @@ import 'code_viewer.dart';
 import 'copy_button.dart';
 import 'code_font.dart';
 import 'h_scrollbar.dart';
+import 'image_actions.dart';
 import 'repo_page.dart';
 import 'image_gallery.dart';
 import 'markdown_editor.dart';
@@ -128,7 +126,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
 
   final GlobalKey _viewportKey = GlobalKey();
 
-  /// 长图导出的重绘边界（Roadmap「导出与分享·导出长图」）：包裹正文内容
+  /// 长图导出的重绘边界（长图导出）：包裹正文内容
   /// （面包屑 + 渲染结果，不含文末导航）。正文为非懒加载 Column，一次
   /// 布局整篇，边界离屏图层即完整长文，滚动位置不影响截取。
   final GlobalKey _bodyCaptureKey = GlobalKey();
@@ -138,7 +136,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// RepaintBoundary 截不到还没构建的部分。
   bool _eagerForCapture = false;
 
-  /// 导出长图期间的强制展开信号（Roadmap「导出与分享·导出长图」）：
+  /// 导出长图期间的强制展开信号（长图导出）：
   /// 截图截的是当前视图状态，折叠代码/折叠块若保持收起，长图里就是缺失的；
   /// 置 true 让所有折叠区临时展开，截图完成后复位（用户手动展开的不受影响）。
   final ValueNotifier<bool> _forceExpand = ValueNotifier(false);
@@ -507,7 +505,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                 value: 'copyText',
                 child: Text('复制全文（纯文本）'),
               ),
-              // 编辑仅面向本地镜像 md（Roadmap 边界：仓库文件只读）
+              // 编辑仅面向本地镜像 md（边界：仓库文件只读）
               if (_isLocalMirrorMd)
                 const PopupMenuItem(value: 'edit', child: Text('编辑')),
               // raw 模式下没有渲染内容，长图/卡片无从生成
@@ -607,7 +605,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     );
   }
 
-  /// 复制整篇 Markdown 源码到剪贴板（Roadmap「导出与分享·复制全文」）。
+  /// 复制整篇 Markdown 源码到剪贴板（复制全文）。
   Future<void> _copyFullText() async {
     final raw = _rawSource;
     if (raw == null || raw.isEmpty) {
@@ -645,7 +643,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     }
   }
 
-  /// 复制整篇为纯文本（Roadmap「导出与分享·复制纯文本」）：
+  /// 复制整篇为纯文本（纯文本导出）：
   /// GFM AST 提取正文，剥掉 Markdown 语法标记，直接可粘贴到聊天工具。
   Future<void> _copyPlainText() async {
     final raw = _rawSource;
@@ -663,7 +661,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     }
   }
 
-  /// 导出长图（Roadmap「导出与分享·导出长图」）：整篇正文截取为一张 PNG
+  /// 导出长图（长图导出）：整篇正文截取为一张 PNG
   /// 并调起系统分享（微信/QQ 等直接选会话发送）。正文为非懒加载 Column，
   /// RepaintBoundary 离屏图层即完整内容，与滚动位置无关。
   ///
@@ -747,54 +745,31 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   }
 
   /// PNG 产物落地共用尾段（长图/分享卡片共用）：存入系统相册「PullRead」
-  /// （gal 自动按 PNG 推导扩展名；保存失败如拒绝权限只提示，不阻断分享），
-  /// 再写临时文件调起系统分享，分享面板拉起后延迟清理临时文件。
+  /// （保存失败如拒绝权限只提示，不阻断分享），再调起系统分享。
   Future<void> _savePngAndShare(
     Uint8List png,
     ScaffoldMessengerState messenger, {
     required String name,
   }) async {
-    var savedToGallery = false;
-    var galleryDenied = false;
-    try {
-      if (!await Gal.hasAccess(toAlbum: true)) {
-        await Gal.requestAccess(toAlbum: true);
-      }
-      if (await Gal.hasAccess(toAlbum: true)) {
-        await Gal.putImageBytes(png, album: 'PullRead', name: name);
-        savedToGallery = true;
-      } else {
-        galleryDenied = true;
-      }
-    } on GalException {
-      galleryDenied = true;
-    }
-    if (savedToGallery) {
+    final outcome = await saveImageBytesToGallery(png, name: name);
+    if (outcome == GallerySaveOutcome.saved) {
       messenger.showSnackBar(
         const SnackBar(content: Text('已保存到相册「PullRead」')),
       );
-    } else if (galleryDenied) {
+    } else if (outcome == GallerySaveOutcome.denied) {
       messenger.showSnackBar(
         const SnackBar(content: Text('未获得相册权限，仅生成分享文件')),
       );
     }
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/$name.png');
-    await file.writeAsBytes(png, flush: true);
-    await SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path)], text: _title),
+    await shareImageBytes(
+      png,
+      name: name,
+      text: _title,
+      extension: '.png',
     );
-    // 分享面板拉起后临时文件即可清理（延迟留给慢加载的接收方）
-    Future<void>.delayed(const Duration(minutes: 5), () {
-      try {
-        if (file.existsSync()) file.deleteSync();
-      } on Object {
-        // 清理失败无碍
-      }
-    });
   }
 
-  /// 分享卡片（Roadmap「导出与分享·分享卡片」）：标题 + 首段摘要 + 来源仓库
+  /// 分享卡片（分享卡片）：标题 + 首段摘要 + 来源仓库
   /// 的 4:5 竖版卡片图。不走 RepaintBoundary 截屏，Canvas + TextPainter 离屏
   /// 绘制：固定尺寸无纹理上限问题，也不受折叠区/滚动状态影响。
   /// 配色跟随亮暗主题（表面色 + 松绿品牌点缀），与长图共用存相册+分享尾段。
@@ -949,7 +924,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     return bytes!.buffer.asUint8List();
   }
 
-  /// 手势翻页（Roadmap「阅读操作手感」）：正文区域左右快速滑动切换
+  /// 手势翻页（阅读操作手感）：正文区域左右快速滑动切换
   /// 上一篇/下一篇。代码块/表格内部的横向滚动视图在手势竞技场中优先，
   /// 横滑它们不会误触翻页；慢速拖动（<500px/s）也不触发。
   void _openSiblingByDrag(DragEndDetails details) {
@@ -976,7 +951,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     _openSibling(_siblings[_siblingIndex + 1]);
   }
 
-  /// 音量键翻页（Roadmap「阅读操作手感」）：阅读页内音量上/下键滚动一屏，
+  /// 音量键翻页（阅读操作手感）：阅读页内音量上/下键滚动一屏，
   /// 返回 handled 阻止系统调整音量。非本页按键一律放行。
   bool _handleVolumeKey(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
@@ -1998,7 +1973,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
         '${two(time.hour)}:${two(time.minute)}';
   }
 
-  // ---- 文内查找（Roadmap「检索·文内查找」） ----
+  // ---- 文内查找（文内查找） ----
 
   void _toggleFind() {
     if (_findOpen) {
@@ -2375,6 +2350,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     final decodeWidth = rawWidth < 320 ? 320 : (rawWidth > 2048 ? 2048 : rawWidth);
     return GestureDetector(
       onTap: () => _openGallery(index < 0 ? 0 : index),
+      onLongPress: () =>
+          showImageActions(context, src: src, baseDir: _noteDir),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: ClipRRect(

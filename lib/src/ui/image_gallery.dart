@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'image_actions.dart';
 import 'repo_image.dart';
 
 /// 图片阅读器：左右滑动多图浏览、双指缩放、页码指示。
@@ -37,6 +38,15 @@ class _ImageGalleryPageState extends State<ImageGalleryPage> {
     return page?.round() ?? widget.initialIndex;
   }
 
+  void _showActions() {
+    if (widget.sources.isEmpty) return;
+    showImageActions(
+      context,
+      src: widget.sources[_currentPage],
+      baseDir: widget.baseDir,
+    );
+  }
+
   /// 双击：已放大则还原，否则以点击位置为中心放大 2.5 倍。
   void _handleDoubleTap() {
     final current = _transformer.value;
@@ -69,6 +79,13 @@ class _ImageGalleryPageState extends State<ImageGalleryPage> {
           style: const TextStyle(fontSize: 14),
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          IconButton(
+            tooltip: '保存 / 分享',
+            icon: const Icon(Icons.ios_share),
+            onPressed: _showActions,
+          ),
+        ],
       ),
       body: PageView.builder(
         controller: _controller,
@@ -77,6 +94,11 @@ class _ImageGalleryPageState extends State<ImageGalleryPage> {
         itemBuilder: (context, index) => GestureDetector(
           onDoubleTapDown: (d) => _lastTapDown = d,
           onDoubleTap: _handleDoubleTap,
+          onLongPress: () => showImageActions(
+            context,
+            src: widget.sources[index],
+            baseDir: widget.baseDir,
+          ),
           child: InteractiveViewer(
             transformationController: _transformer,
             maxScale: 5,
