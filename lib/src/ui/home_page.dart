@@ -323,7 +323,7 @@ class _HomePageState extends State<HomePage> {
       dirs = const [];
     }
     if (!mounted) return;
-    // 置顶（Roadmap「仓库管理·仓库置顶」）固定在最前，其余保持原顺序
+    // 置顶（仓库置顶）固定在最前，其余保持原顺序
     dirs.sort((a, b) {
       final pa = RepoMeta.isPinned(a.path) ? 0 : 1;
       final pb = RepoMeta.isPinned(b.path) ? 0 : 1;
@@ -1091,7 +1091,7 @@ class _HomePageState extends State<HomePage> {
     caseSensitive: false,
   );
 
-  /// 剪贴板快速导入（Roadmap「导入与同步体验」）：克隆页打开时读取剪贴板，
+  /// 剪贴板快速导入（剪贴板导入）：克隆页打开时读取剪贴板，
   /// 内容是仓库地址（完整 URL 或 `owner/repo` 短格式）则自动填充；
   /// 识别失败静默不打扰。
   Future<void> _prefillFromClipboard(TextEditingController ctrl) async {
@@ -1360,7 +1360,7 @@ class _RepoCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
-  /// 是否已置顶（Roadmap「仓库管理·仓库置顶」）。
+  /// 是否已置顶（仓库置顶）。
   final bool pinned;
   final VoidCallback onTogglePin;
 
@@ -1465,7 +1465,7 @@ class _RepoCard extends StatelessWidget {
   }
 }
 
-/// 本地文件夹卡片（Roadmap「本地文件阅读器」）：打开/刷新/移除。
+/// 本地文件夹卡片：打开/刷新/移除。
 class _LocalCard extends StatelessWidget {
   const _LocalCard({
     required this.name,

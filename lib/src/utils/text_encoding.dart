@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:fast_gbk/fast_gbk.dart';
 
-/// 文本文件解码（Roadmap「本地 TXT」）：UTF-8 优先（严格校验），
+/// 文本文件解码（本地 TXT）：UTF-8 优先（严格校验），
 /// 非法字节时回退 GBK——中文小说/笔记常见 GBK/GB2312 编码，
 /// 直接按 UTF-8 读会得到乱码。纯 Dart 实现，全平台可用。
 String decodeTextBytes(List<int> bytes) {

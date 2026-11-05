@@ -143,7 +143,7 @@ class RepoMeta {
     );
   }
 
-  /// 仓库置顶（Roadmap「仓库管理·仓库置顶」）：存于本仓库 meta，
+  /// 仓库置顶（仓库置顶）：存于本仓库 meta，
   /// 随 RepoMeta.remove 与仓库一并消失，无需单独清理。
   static bool isPinned(String repoRoot) => _readRaw(repoRoot)['pinned'] == true;
 

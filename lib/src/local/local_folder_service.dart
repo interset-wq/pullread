@@ -12,7 +12,7 @@ import '../notes/note_scanner.dart';
 import '../git/repo_meta.dart';
 import 'mirror_state.dart';
 
-/// 一条本地文件夹记录（Roadmap「本地文件阅读器」）。
+/// 一条本地文件夹记录。
 /// [uri] 在 Android 上是 SAF tree URI（content://…，授权一次持久化），
 /// 在桌面端是用户选中的目录绝对路径。
 class LocalFolder {

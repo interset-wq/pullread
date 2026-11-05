@@ -100,7 +100,7 @@ class AppPrefs extends ChangeNotifier {
   bool? _wideTable;
   bool get wideTable => _wideTable ?? true;
 
-  // Ignore 配置（Roadmap「设置增强·Ignore 配置」）：默认隐藏规则开关
+  // Ignore 配置（Ignore 配置）：默认隐藏规则开关
   // （点开头的文件/目录名，.git 恒忽略，见 NoteScanner）+
   // 自定义文件/目录名规则（按名字精确匹配，跨仓库生效）
   bool? _ignoreDefaults;

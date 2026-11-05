@@ -4,7 +4,7 @@ export '../utils/natural_sort.dart';
 
 /// 扫描本地仓库中的笔记（Markdown/Notebook）、代码、图片与其他文本文件。
 class NoteScanner {
-  /// 自定义隐藏规则（Roadmap「设置增强·Ignore 配置」）：按文件/目录名
+  /// 自定义隐藏规则：按文件/目录名
   /// 精确匹配，跨仓库生效；由调用方从设置传入。
   NoteScanner({this.useDefaults = true, this.customRules = const []});
 

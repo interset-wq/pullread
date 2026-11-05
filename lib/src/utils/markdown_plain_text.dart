@@ -1,13 +1,13 @@
 import 'package:markdown/markdown.dart' as m;
 
-/// Markdown → 纯文本（Roadmap「导出与分享·复制纯文本」）：
+/// Markdown → 纯文本（纯文本导出）：
 /// 复用渲染管线的 GFM 解析（github-flavored 扩展集），按块级结构提取：
 /// 标题/段落间空行分隔；代码块保留内容；图片用 alt 文本；链接保留链接
 /// 文字（丢 URL）；列表保留标记并缩进嵌套层；表格行用 ` | ` 连接单元格。
 String markdownToPlainText(String source) =>
     _extractBlocks(source).join('\n\n');
 
-/// 提取正文第一个段落（Roadmap「导出与分享·分享卡片」）：只认 `<p>` 块，
+/// 提取正文第一个段落（分享卡片）：只认 `<p>` 块，
 /// 代码块/标题/列表自动跳过；段内空白折叠为单空格。找不到返回空串。
 String firstParagraphOfMarkdown(String source) {
   final doc = m.Document(

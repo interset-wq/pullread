@@ -13,7 +13,7 @@ import '../notes/math_render.dart';
 import '../theme/app_prefs.dart';
 import 'code_font.dart';
 
-/// 本地 Markdown 编辑器（Roadmap「本地 Markdown 编辑器」）：
+/// 本地 Markdown 编辑器：
 /// 源码编辑 + 预览切换，手动保存写回镜像文件与原文件夹（Android 经 SAF、
 /// 桌面直写真实路径）；未保存离开弹提醒。编辑仅针对本地文件夹（镜像），
 /// 仓库内文件不提供编辑入口。
