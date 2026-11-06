@@ -43,3 +43,11 @@
 - 操作：`release.yml` 在 tag 带 SemVer 预发布后缀（如 `v1.12.0-rc1`）时创建 GitHub Prerelease；正式 tag 行为不变
 - 涉及文件：`.github/workflows/release.yml`（版本校验支持 `-rc1` 后缀、`prerelease` 按 tag 名判断）、`AGENTS.md`（发版约定）
 - 验证：未推送/未实际触发 workflow；YAML 仅文本修改
+
+## 2026-11-06 新增设置页重设计建议书
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Windows）
+- 操作：调研设置页、偏好层与入口，输出两级信息架构、视觉规范、交互修正与实施顺序；未改业务代码
+- 涉及文件：`docs/settings-redesign.md`（新增）、`AGENT_OPS_LOG.md`
+- 验证：文档审阅；无代码改动，未运行测试
+- 遗留：建议稿尚未实现，未提交
