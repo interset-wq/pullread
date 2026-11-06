@@ -18,6 +18,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../git/repo_meta.dart';
 import '../local/local_folder_service.dart';
+import '../notes/code_outline.dart';
 import '../notes/details_syntax.dart';
 import '../notes/gfm_alerts.dart';
 import '../notes/ipynb.dart';
@@ -30,6 +31,7 @@ import '../utils/text_encoding.dart';
 import '../notes/toc.dart';
 import '../search/text_search.dart';
 import '../theme/app_prefs.dart';
+import 'code_view.dart';
 import 'code_viewer.dart';
 import 'copy_button.dart';
 import 'code_font.dart';
@@ -97,11 +99,10 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   List<String> _imageUrls = const [];
   String? _rawSource;
   bool _showRaw = false;
-  // Raw 模式多行选区（对标 GitHub mobile：长按起始行、点选结束行，
-  // 复制区间）；null = 未进入选区模式。anchor 为长按锚点，focus 为
-  // 后续点选的行，区间取两者较小/较大行号。
-  int? _rawAnchor;
-  int? _rawFocus;
+  // Raw 模式与代码查看器共用 CodeView：独立滚动控制器，不占用阅读进度
+  // 的 _scrollController（否则切视图会串位置、raw 滚动还会写坏进度）。
+  final _codeController = CodeViewController();
+  List<CodeSymbol> _rawOutline = const [];
   // 表格档位（按表存储）：key = 表格在文档中的序号（解析顺序，重建稳定），
   // value = 是否换行档。缺省 = 跟随设置页默认（wideTable 开 → 平铺；关 →
   // 测量驱动自动切档：该表自然宽度 > 2 倍屏宽时单独切为换行档）。
@@ -192,6 +193,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     _starred = RepoMeta.isStarred(widget.repoRoot, widget.note.relativePath);
     _bookmarks = RepoMeta.readBookmarks(widget.repoRoot);
     _scrollController.addListener(_onScroll);
+    _codeController.addListener(_onCodeControllerChanged);
     // 音量键翻页：全局 handler，页面销毁即注销，其他页面不受影响
     HardwareKeyboard.instance.addHandler(_handleVolumeKey);
     // 屏幕常亮：仅阅读页生效，离开即恢复系统行为
@@ -213,6 +215,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     HardwareKeyboard.instance.removeHandler(_handleVolumeKey);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _codeController.removeListener(_onCodeControllerChanged);
+    _codeController.dispose();
     _currentSection.dispose();
     _progressNotifier.dispose();
     _forceExpand.dispose();
@@ -223,6 +227,10 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// 当前这轮滚动是否由用户发起（拖动或拖动后的惯性）。
   /// 续读恢复 / TOC 跳转都是程序化动画，不能把它们的中间位置写成进度。
   bool _userScrollActive = false;
+
+  void _onCodeControllerChanged() {
+    if (mounted) setState(() {});
+  }
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
@@ -340,6 +348,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     var raw =
         decodeTextBytes(await File(widget.note.absolutePath).readAsBytes());
     _rawSource = raw;
+    _rawOutline = _buildRawOutline(raw);
     RepoMeta.touchLastOpened(widget.repoRoot, widget.note.relativePath);
     RepoMeta.pushRecent(
       widget.repoRoot,
@@ -396,7 +405,34 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _maybeRestoreProgress());
     }
+    // Raw 分支不在 FutureBuilder 里，加载完成时若正停在 raw 需要主动刷新，
+    // 否则会一直显示空内容。
+    if (mounted && _showRaw) setState(() {});
     return body;
+  }
+
+  bool get _rawIsNotebook =>
+      widget.note.absolutePath.toLowerCase().endsWith('.ipynb');
+
+  String get _rawLanguage => _rawIsNotebook ? 'json' : 'markdown';
+
+  /// Raw 大纲：Markdown 复用 TOC 的标题解析（跳过围栏代码块），
+  /// notebook 原文是 JSON，按代码启发式解析（通常为空）。
+  List<CodeSymbol> _buildRawOutline(String raw) {
+    if (_rawIsNotebook) {
+      final text = raw.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+      return extractCodeOutline(text, 'json');
+    }
+    return extractToc(raw)
+        .take(maxCodeSymbols)
+        .map(
+          (entry) => CodeSymbol(
+            line: entry.line + 1,
+            name: entry.text,
+            kind: 'section',
+          ),
+        )
+        .toList(growable: false);
   }
 
   @override
@@ -420,8 +456,32 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           ),
         ),
         actions: [
-          // 文内查找：raw 模式没有渲染锚点，定位无意义，仅在渲染视图提供
-          if (!_showRaw)
+          // Raw 模式复用代码查看器的工具条：查找/大纲/换行都在源码坐标系里；
+          // 渲染视图仍用阅读页自己的正文查找（按章节定位）。
+          if (_showRaw) ...[
+            IconButton(
+              tooltip: '大纲',
+              icon: const Icon(Icons.toc_outlined),
+              onPressed: _rawOutline.isEmpty
+                  ? null
+                  : () => _codeController.showOutline(context),
+            ),
+            IconButton(
+              tooltip: _codeController.findOpen ? '关闭查找' : '查找',
+              icon: Icon(
+                _codeController.findOpen ? Icons.search_off : Icons.search,
+              ),
+              onPressed: _codeController.toggleFind,
+            ),
+            IconButton(
+              tooltip: _codeController.wrap ? '关闭自动换行' : '自动换行',
+              icon: Icon(
+                Icons.wrap_text,
+                color: _codeController.wrap ? theme.colorScheme.primary : null,
+              ),
+              onPressed: _codeController.toggleWrap,
+            ),
+          ] else
             IconButton(
               tooltip: _findOpen ? '关闭查找' : '查找',
               icon: Icon(_findOpen ? Icons.search_off : Icons.search),
@@ -458,11 +518,10 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
             onSelected: (v) {
               switch (v) {
                 case 'raw':
-                  setState(() {
-                    _showRaw = !_showRaw;
-                    _rawAnchor = null;
-                    _rawFocus = null;
-                  });
+                  final enteringRaw = !_showRaw;
+                  // 进 raw 时收起阅读正文的查找条，两套查找互不干扰
+                  if (enteringRaw) _closeFind();
+                  setState(() => _showRaw = enteringRaw);
                 case 'font':
                   _showFontSheet();
                 case 'bookmark':
@@ -486,7 +545,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                 value: 'raw',
                 child: Text(_showRaw ? '渲染视图' : 'Raw 模式'),
               ),
-              const PopupMenuItem(value: 'font', child: Text('字号')),
+              // 字号只影响渲染视图；raw 固定代码字号 13
+              if (!_showRaw)
+                const PopupMenuItem(value: 'font', child: Text('字号')),
               if (!_showRaw) ...[
                 const PopupMenuItem(
                   value: 'bookmark',
@@ -550,24 +611,26 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           FloatingActionButton.small(
             heroTag: 'jump-top',
             tooltip: '回到顶部',
-            onPressed: _scrollToTop,
+            onPressed:
+                _showRaw ? _codeController.scrollToTop : _scrollToTop,
             child: const Icon(Icons.keyboard_arrow_up),
           ),
           const SizedBox(height: 8),
           FloatingActionButton.small(
             heroTag: 'jump-bottom',
             tooltip: '跳到文末',
-            onPressed: _scrollToBottom,
+            onPressed:
+                _showRaw ? _codeController.scrollToBottom : _scrollToBottom,
             child: const Icon(Icons.keyboard_arrow_down),
           ),
         ],
       ),
       body: Column(
         children: [
-          if (_findOpen) _buildFindBar(theme),
+          if (!_showRaw && _findOpen) _buildFindBar(theme),
           Expanded(
             child: _showRaw
-                ? _buildRawView(theme)
+                ? _buildRawView()
                 : FutureBuilder<String>(
                     future: _content,
                     builder: (context, snapshot) {
@@ -2204,132 +2267,15 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     );
   }
 
-  /// Raw 模式：原始 Markdown 全文可复制（对标 GitHub mobile）。
-  /// 长按某行开始选区，再点另一行扩展区间（类 PC shift 选区），
-  /// 选区生效时顶部出现操作条可复制/取消。
-  Widget _buildRawView(ThemeData theme) {
-    final raw = _rawSource ?? '';
-    final lines = raw.split('\n');
-    final anchor = _rawAnchor;
-    final focus = _rawFocus;
-    final selStart =
-        anchor != null && focus != null ? (anchor < focus ? anchor : focus) : null;
-    final selEnd =
-        anchor != null && focus != null ? (anchor < focus ? focus : anchor) : null;
-    final lineStyle = currentCodeFontStyle().copyWith(
-      fontSize: _fontSizes[_fontIndex],
-      height: 1.6,
-      color: theme.colorScheme.onSurface,
+  /// Raw 模式：把原始 Markdown 当代码看，与代码查看器共用 [CodeView]
+  /// （语法高亮、行号、查找、大纲、换行与按行选区完全一致）。
+  Widget _buildRawView() {
+    return CodeView(
+      content: _rawSource ?? '',
+      language: _rawLanguage,
+      outline: _rawOutline,
+      controller: _codeController,
     );
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            children: [
-              Text(
-                'Raw',
-                style: currentCodeFontStyle().copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const Spacer(),
-              CopyButton(code: raw),
-            ],
-          ),
-        ),
-        if (selStart != null)
-          Material(
-            color: theme.colorScheme.secondaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '已选 ${selStart + 1}–${selEnd! + 1} 行',
-                      style: currentCodeFontStyle().copyWith(
-                        fontSize: 13,
-                        color: theme.colorScheme.onSecondaryContainer,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: '复制选中行',
-                    icon: const Icon(Icons.copy_all),
-                    color: theme.colorScheme.onSecondaryContainer,
-                    onPressed: () => _copyRawSelection(selStart, selEnd),
-                  ),
-                  IconButton(
-                    tooltip: '取消选区',
-                    icon: const Icon(Icons.close),
-                    color: theme.colorScheme.onSecondaryContainer,
-                    onPressed: _clearRawSelection,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        Expanded(
-          child: Scrollbar(
-            thumbVisibility: true,
-            thickness: 4,
-            radius: const Radius.circular(4),
-            controller: _scrollController,
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-              itemCount: lines.length,
-              itemBuilder: (context, i) {
-                final selected =
-                    selStart != null && i >= selStart && i <= selEnd!;
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onLongPress: () =>
-                      setState(() {
-                        _rawAnchor = i;
-                        _rawFocus = i;
-                      }),
-                  onTap: () {
-                    if (_rawAnchor == null) return;
-                    setState(() => _rawFocus = i);
-                  },
-                  child: Container(
-                    color: selected
-                        ? theme.colorScheme.primary.withValues(alpha: 0.18)
-                        : null,
-                    child: Text(lines[i], style: lineStyle),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 复制当前 Raw 选区（两行号含端点），完成后清空选区。
-  Future<void> _copyRawSelection(int start, int end) async {
-    final lines = (_rawSource ?? '').split('\n');
-    final text = lines.sublist(start, end + 1).join('\n');
-    await Clipboard.setData(ClipboardData(text: text));
-    _clearRawSelection();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已复制 ${start + 1}–${end + 1} 行')),
-      );
-    }
-  }
-
-  void _clearRawSelection() {
-    if (_rawAnchor == null && _rawFocus == null) return;
-    setState(() {
-      _rawAnchor = null;
-      _rawFocus = null;
-    });
   }
 
   /// markdown 文件所在目录，相对图片的解析基准。

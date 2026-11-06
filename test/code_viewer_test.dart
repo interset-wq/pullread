@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:fast_gbk/fast_gbk.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reader/src/ui/code_viewer.dart';
 
@@ -42,10 +44,7 @@ void main() {
     await tester.runAsync(() async {
       await tester.pumpWidget(
         MaterialApp(
-          home: CodeViewerPage(
-            path: file.path,
-            fileName: 'sample.dart',
-          ),
+          home: CodeViewerPage(path: file.path, fileName: 'sample.dart'),
         ),
       );
       await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -70,8 +69,7 @@ void main() {
       find.byType(Scrollable).first,
     );
     final expected = 16.0 + 4 * 19.5;
-    expect(scrollable.position.pixels, greaterThan(0),
-        reason: '点大纲条目应滚到对应行');
+    expect(scrollable.position.pixels, greaterThan(0), reason: '点大纲条目应滚到对应行');
     expect(scrollable.position.pixels, closeTo(expected, 40));
   });
 
@@ -106,5 +104,30 @@ void main() {
     await tester.tap(find.byTooltip('关闭自动换行'));
     await tester.pump();
     expect(find.byTooltip('自动换行'), findsOneWidget);
+  });
+
+  testWidgets('decodes GBK source instead of failing', (tester) async {
+    final gbkFile = File('${temp.path}${Platform.pathSeparator}gbk.dart')
+      ..writeAsBytesSync(gbk.encode('class 中文 {}\nvoid main() {}\n'));
+
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CodeViewerPage(path: gbkFile.path, fileName: 'gbk.dart'),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(tester.takeException(), isNull);
+    final rich = tester.widget<RichText>(
+      find.descendant(
+        of: find.byType(HighlightView),
+        matching: find.byType(RichText),
+      ),
+    );
+    expect(rich.text.toPlainText(), contains('中文'));
   });
 }
