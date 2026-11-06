@@ -15,6 +15,7 @@ import '../platforms/repo_info.dart';
 import '../theme/app_prefs.dart';
 import '../utils/dir_size.dart' show formatBytes;
 import 'bookmarks_page.dart';
+import 'brand_splash.dart';
 import 'global_search_page.dart';
 import 'markdown_viewer.dart';
 import 'open_note.dart';
@@ -385,6 +386,10 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // 首屏仓库列表由 _loadRepos 直接读目录，通常一两帧内就绪。这里继续显示
+    // 品牌闪屏（与 main.dart 的初始化页同一实现），而不是转圈：否则闪屏尾帧
+    // 会和「屏幕中央的绿色小点」重叠，看起来像第三次启动动画。
+    if (_repos == null) return const BrandSplash();
     final theme = Theme.of(context);
     final repos = _repos ?? const <Directory>[];
     final locals = _localFolders ?? const <LocalFolder>[];
@@ -513,7 +518,7 @@ class _HomePageState extends State<HomePage> {
             : const Icon(Icons.add),
       ),
       body: _repos == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const BrandSplash()
           : RefreshIndicator(
               onRefresh: _loadRepos,
               child: repos.isEmpty && locals.isEmpty

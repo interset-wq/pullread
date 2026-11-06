@@ -37,7 +37,8 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_book"
             android:label="PullRead 拉读"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".MainActivity"
+            android:theme="@style/LaunchTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -49,7 +50,8 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_page"
             android:label="PullRead 拉读"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".MainActivity"
+            android:theme="@style/LaunchTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -61,7 +63,8 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_arrow"
             android:label="PullRead 拉读"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".MainActivity"
+            android:theme="@style/LaunchTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -73,7 +76,8 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_converge"
             android:label="PullRead 拉读"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".MainActivity"
+            android:theme="@style/LaunchTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -85,7 +89,8 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_tray"
             android:label="PullRead 拉读"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".MainActivity"
+            android:theme="@style/LaunchTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

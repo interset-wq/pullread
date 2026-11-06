@@ -145,8 +145,23 @@ class GitSyncService {
       _cloneAt(url, path, send);
       send.send(true);
     } on Object catch (e) {
-      send.send('$e');
+      send.send(_friendlyCloneError('$e'));
     }
+  }
+
+  /// 把 libgit2 的英文错误换成用户能看懂的提示。
+  ///
+  /// 空仓库是常见情况：远端 HEAD 指向尚未存在的分支，libgit2 报
+  /// `reference 'refs/heads/master' not found`，直接抛原文会让用户以为是
+  /// 网络 / 地址问题。
+  static String _friendlyCloneError(String raw) {
+    if (raw.contains("reference 'refs/heads/") && raw.contains('not found')) {
+      return '仓库是空的：远端还没有任何提交，暂时没有内容可阅读';
+    }
+    if (raw.contains('could not read refs')) {
+      return '无法读取远端仓库引用：请确认地址正确、远端仓库可匿名访问';
+    }
+    return raw;
   }
 
   /// 克隆到本地并检出远端 HEAD。

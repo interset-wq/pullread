@@ -5,14 +5,25 @@
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
         <item name="android:windowBackground">@drawable/launch_background</item>
+        <!-- 纸白状态栏 + 深色图标：不设时系统给浅底配白色图标会自动加一层
+             灰色 scrim（启动时顶部一条灰带，看起来像闪一下）。 -->
+        <item name="android:statusBarColor">@color/brand_paper</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/brand_paper</item>
     </style>
     <!-- Theme applied to the Android Window as soon as the process has started.
          This theme determines the color of the Android Window while your
          Flutter UI initializes, as well as behind your Flutter UI while its
          running.
 
-         This Theme is only used starting with V2 of Flutter's Android embedding. -->
+         This Theme is only used starting with V2 of Flutter's Android embedding.
+         闪屏期间（首帧绘制前）继续显示纸白 + 图标：Flutter 在 onCreate 就会
+         切到 NormalTheme，若这里用 ?android:colorBackground，深色模式下会先
+         黑屏一段。 -->
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:statusBarColor">@color/brand_paper</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/brand_paper</item>
     </style>
 </resources>

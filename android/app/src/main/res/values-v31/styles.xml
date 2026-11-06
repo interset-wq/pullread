@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ 的系统闪屏（SplashScreen API）。
+         不显式指定时，背景回落到 colorBackground：深色模式下就是一块黑屏。
+         这里只铺品牌纸白底；启动 logo 统一由 Flutter 首帧后的闪屏页绘制，
+         避免系统闪屏与 Flutter 闪屏各画一张图（出现「两张启动图」）。
+         Android 12 默认会给 windowSplashScreenAnimatedIcon 画默认应用图标，
+         所以显式指向一个透明 drawable。 -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/brand_paper</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_blank</item>
+        <item name="android:statusBarColor">@color/brand_paper</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/brand_paper</item>
+    </style>
+</resources>

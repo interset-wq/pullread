@@ -136,6 +136,7 @@ If-None-Match/If-Modified-Since，304 直接用缓存并刷新 mtime 重置过�
   - 从正文搜索结果进入时传 `initialFindQuery`：自动打开查找条、统计命中并
     定位到第一处（否则用户还要自己滚到命中位置）
 - **平台适配**：克隆只依赖用户给的**完整 URL**（GitHub / Gitee / GitCode / GitLab / 自建 Gitea 都可以），`GitPlatform` 枚举只用于展示与「用户名/仓库名 → URL」的短名拼接，禁止业务代码调用任何平台 REST API。原先的 `RepositoryAdapter` / adapter_factory / 四个平台 adapter 因无人调用已删除（2026-10）——新增平台只需补枚举与 `guessPlatform`，不要再引回 HTTP 抽象层。
+- **启动链路**：原生闪屏只铺品牌纸白底（`launch_background` + v31 `windowSplashScreenBackground`，`windowSplashScreenAnimatedIcon` 指向透明占位），**不画图标**；启动 logo 只由 Flutter 的 `BrandSplash`（`lib/src/ui/brand_splash.dart`）绘制，`main()` 的初始化等待页与 HomePage 首屏仓库列表加载页共用它，尺寸/位置一致才算「一张启动图」。五条硬约束：① `main()` 必须立刻 `runApp`，libgit2/CA 证书初始化放 `_bootstrap()` 里后台做，否则首帧前是黑屏；② 五个 `activity-alias` 必须挂 `android:theme="@style/LaunchTheme"`，否则正式包（从 alias 启动）在深色模式下黑屏；③ `NormalTheme` 的 `windowBackground` 也要用 `@drawable/launch_background`，Flutter 在 `onCreate` 就会切过去；④ 闪屏背景禁止用 `?android:colorBackground`（深色下变黑）；⑤ 首页加载态禁止用 `CircularProgressIndicator`（会和闪屏尾帧叠成「屏幕中央绿点」）。
 - **鉴权**：如需 token 只存本地，禁止硬编码或写入日志；当前仅支持公开仓库（用户明确不需要私有仓库功能）
 
 ## 第一版范围（反目标即边界）
