@@ -81,6 +81,18 @@ void main() {
     expect(reloaded.searchHistory, prefs.searchHistory);
   });
 
+  test('search history can be cleared', () async {
+    final prefs = await AppPrefs.load();
+    await prefs.addSearchHistory('one');
+    await prefs.addSearchHistory('two');
+    await prefs.clearSearchHistory();
+    expect(prefs.searchHistory, isEmpty);
+
+    AppPrefs.resetForTest();
+    final reloaded = await AppPrefs.load();
+    expect(reloaded.searchHistory, isEmpty);
+  });
+
   test('loading with corrupt values keeps startup safe', () async {
     SharedPreferences.setMockInitialValues({
       'lineHeight': 'not-a-double',

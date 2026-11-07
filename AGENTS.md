@@ -344,11 +344,20 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
   links" validates relative links/images in bulk, skipping external URLs, anchors and
   code blocks, decoding percent-encoding and resolving `../`. Results are grouped by
   source file and copyable. Strictly read-only.
+- **Settings** (`lib/src/ui/settings/`): two-level Material 3 layout. The root has
+  six navigation rows (reading, appearance, repositories, file display, storage/data,
+  about) with current values; each subpage owns 2–4 card groups. Sliders keep a local
+  draft and persist only on `onChangeEnd`; the fold threshold is disabled while long
+  code folding is off; desktop icon switching is Android-only; every subpage has
+  "restore this page". Shared theme selection is in `theme_mode_selector.dart`.
 - **Storage page** (`lib/src/ui/storage_page.dart`, `lib/src/utils/dir_size.dart`):
-  settings → Data → Storage shows disk usage for `repos`, `local`, `imgcache` and
-  `.meta` (recursive sizes summed in a background isolate). Image cache can be
-  cleared (delete files, keep the directory); the metadata section can clear reading
-  history. Repo/mirror deletion stays on the home cards.
+  settings → Storage & data → Storage shows disk usage for `repos`, `local`,
+  `imgcache` and `.meta` (recursive sizes summed in a background isolate). Image cache
+  can be cleared (delete files, keep the directory); the metadata section can clear
+  reading history. Repo/mirror deletion stays on the home cards.
+- **Storage & data settings** (`lib/src/ui/settings/data_settings_page.dart`): lists
+  pending write-backs with a conflict badge and clears search history; reading history
+  and favorites live under a separate destructive section with counts.
 
 ### 6.6 Local folders and the editor
 
@@ -376,8 +385,8 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
 - If write-back fails, record the file in `.pullread_pending.json` next to
   `.pullread_manifest.json`. Later incremental syncs **skip** those files and retry
   the write-back; never overwrite the mirror with stale source content. Settings →
-  Data → "pending write-backs" lists them, allows retry, or force-overwrites from
-  the mirror.
+  Storage & data → "pending write-backs" lists them, allows retry, or force-overwrites
+  from the mirror.
 
 ---
 
@@ -538,8 +547,9 @@ assemble, so keep that job. Release builds are still triggered only by `v*` tags
 - Prefer `pump` with fixed durations over `pumpAndSettle` when pages contain image
   decoding or indefinite animations.
 - Rendering baselines and their definitions live in `docs/perf.md`.
-- UX audit and the settings redesign proposal are reference material, not binding
-  specs: `docs/user-feedback.md`, `docs/settings-redesign.md`.
+- The UX audit is reference material, not a binding spec: `docs/user-feedback.md`.
+  Settings redesign phases 1–2 are implemented under `lib/src/ui/settings/`; phase 3
+  items remain optional and are tracked in `docs/settings-redesign.md`.
 
 ---
 

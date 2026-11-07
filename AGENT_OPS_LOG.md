@@ -129,3 +129,29 @@
     编码、`my.git.repo`、Windows 非法名、路径越界，以及 clone/delete 的护栏
     （只使用临时目录，不触碰真实用户数据）
 - 验证：`flutter analyze --fatal-infos` 通过；`clone_safety_test` 11 项通过
+
+## 2026-11-07 12:10 设置页两级重构
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Windows）
+- 分支：`feat/settings-redesign`（基于 `8c6aa14`）
+- 操作：
+  - 新增 `lib/src/ui/settings/`：根页、阅读/外观/仓库/文件显示/存储与数据/关于子页，
+    以及 `settings_components.dart`、`theme_mode_selector.dart`
+  - 删除旧的单页 `lib/src/ui/settings_page.dart`；`home_page.dart` 改用新入口，
+    主题弹层复用 `showThemeModeSheet`
+  - 首页只保留 6 个导航行与当前值；子页按卡片分组，长说明收进 `?` 帮助弹层
+  - 滑杆使用本地 draft，只在 `onChangeEnd` 写盘；默认用户名失焦/提交才保存
+  - 长代码块折叠关闭时禁用阈值控件；每个子页提供「恢复本页默认」
+  - 危险操作独立分组并二次确认；待写回与冲突数量显示在数据页和首页角标
+  - 数据页的阅读历史/收藏计数与清空移入 isolate，避免 UI 线程扫描仓库目录
+  - 非 Android 隐藏桌面图标组；新增「清空搜索历史」及 `AppPrefs.clearSearchHistory()`
+  - 关于页「检查更新」改为「获取最新版本」；仓库页改为「检查远端更新」
+  - 修复 Windows `deleteRepo` 在路径含 `/` 时被 cmd 误判为开关的问题
+  - 同步更新 README/AGENTS 设置路径与 `docs/settings-redesign.md` 实施状态
+- 验证：
+  - `flutter analyze --fatal-infos` 通过
+  - 新增 `test/settings_page_test.dart`（导航、当前值、滑杆写盘时机、用户名保存、
+    320 dp/2.0 文本/深色布局）；`test/app_prefs_test.dart` 增加清空搜索历史用例
+  - `settings_page_test` 7 项通过；`clone_safety_test` 11 项通过
+  - 全量 `flutter test` 209 项通过
+  - `flutter analyze --fatal-infos` 通过
