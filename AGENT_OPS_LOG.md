@@ -89,3 +89,22 @@
   - 修复既有失败测试 `test/widget_test.dart`：注入 fake `PathProviderPlatform`（临时目录），避免测试真的在 `~/Documents` 下建 `repos`、也避免真实 IO 在 fake async 里等不到；`pubspec.yaml` 增加 dev 依赖 `path_provider_platform_interface` / `plugin_platform_interface`
 - 验证：`flutter analyze --fatal-infos` 通过；全量 `flutter test` 通过
 - 备注：本机未连真机复验，UI 变化靠 widget 测试覆盖；提交未 push
+
+## 2026-11-07 10:54 Rewrite AGENTS.md as the English engineering contract
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）
+- 操作：领导要求重写 `AGENTS.md`（原文件由能力较弱的 agent 创建，部分内容已过时）。
+  按当前代码事实重建为英文工程契约：产品边界、技术栈与包名、模块地图、
+  10 条跨模块不变量、git/同步层约束、渲染与阅读链路、平台与启动、开发/验收/
+  发布流程、测试注意事项。
+- 顺带修正的过时描述：
+  - Android TLS 初始化顺序不再是「`runApp` 之前」，而是 `main()` 立即 `runApp`，
+    顺序在 `_bootstrap()` 内保持 `Libgit2.version` → `AndroidSSLHelper.initialize()`
+    → `Libgit2.setSSLCertLocations(file:)`
+  - 启动链路补充状态栏/导航栏纸白 + `windowLightStatusBar`（否则顶部出现灰带）
+  - 图标 alias 明确为五个（`MainActivityBook/Page/Arrow/Converge/Tray`），
+    修正清单注释里「三个」的旧说法（未改注释，仅文档描述以实际清单为准）
+  - 新增「路径/删除安全」约束：仓库名从 `Uri.pathSegments` 取、禁止删除 repos 根/
+    `.meta`/镜像根/文档根（对应 `docs/user-feedback.md` 的 P0，待修）
+- 涉及文件：`AGENTS.md`
+- 验证：纯文档改动，未运行代码检查；下一步按新文档第 5.1 节修 P0

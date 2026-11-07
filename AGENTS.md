@@ -1,199 +1,550 @@
 # AGENTS.md
 
-本地 git 仓库阅读器：把 GitHub / Gitee / GitCode（即 AtomGit）上的笔记仓库克隆到手机，提供原生阅读器体验——Markdown/Notebook 渲染、代码高亮、文章 TOC、目录树浏览；只读，不做编辑提交。零部署、零构建托管。
+**PullRead** is a read-only, mobile-first reader for note repositories. It clones a Git
+repository (GitHub, Gitee, GitCode/AtomGit, GitLab, self-hosted Gitea, …) onto the
+device and renders it natively: Markdown and Jupyter notebooks, syntax-highlighted
+code, article TOC, original directory tree, tags, bookmarks and full-text search.
+There is no backend, no build step and no hosting to maintain.
 
-## 技术栈与选型（已定，勿擅自更换）
+This file is the engineering contract for everyone (human or agent) changing the
+code. It is descriptive of the system *and* prescriptive: constraints marked **must**
+exist because ignoring them caused real regressions or data loss. Keep it in sync
+with the code in the same commit (see "Maintenance").
 
-- **框架**：Flutter（iOS + Android 双端），Dart 3 / Flutter 3.47+；另含 windows 桌面平台用于本机预览
-- **包名**：`com.intersetwq.pullread`（Android applicationId/namespace、iOS bundleId 同一标识；
-  Kotlin `MainActivity` 位于 `android/app/src/main/kotlin/com/intersetwq/pullread/`。
-  2026-10 由 `com.intersetwq.reader` 更名而来，旧包不覆盖升级、数据不迁移）
-- **应用图标切换**：桌面图标可在设置页五选一（摊开书/页即箭/抽页成箭/汇页箭/页堆箭，
-  松绿 × 纸白）。Android 用五个 `activity-alias`（同一时刻仅启用一个，经 `PackageManager`
-  `setComponentEnabledSetting` 切换，MethodChannel `app_icon`）；自适应图标前景
-  `drawable-xxxhdpi/ic_launcher_fg_*.png`（mark 主尺寸归一 432px 的 50%，**XML inset 必须为
-  0%**；过大≈66% 会顶满无留白，过小≈33% 加 16% inset 时只占约 1/9）+ 背景 `@color/brand_paper`；闪屏同纸白底。
-  iOS/Windows 未实现（iOS 备选图标 API 需真机验证，Windows 无此概念）；
-  通道缺失的平台上 `setAppIcon` 仅持久化偏好、静默忽略。
-- **应用内 logo 与图标源文件**：透明底 logo `assets/icon/app_logo.png` 用于首页头部左上角与
-  设置关于页（深色模式下白底版突兀，应用内一律用透明底；mark 加大后由
-  `temp/icon-design/` 的 SVG 源经 logo-design skill 渲染器无损生成）。
-  `assets/icon/app_icon.png` / `app_icon_foreground.png`（book，1024px）是
-  `flutter_launcher_icons` 的源文件：iOS AppIcon 集与 Windows `icon.ico` 由这两个文件重新生成。
-  **跑该工具前必须先把 pubspec 的 `android: false`、跑完改回**——工具会覆盖手工维护的
-  `mipmap-anydpi-v26/ic_launcher.xml`（inset 0% + fg）与五套 alias 相关的前景资源；
-  五个 alias 的 mipmap/fg 文件不受工具影响（文件名不同）。`assets/icons/` 五个 png
-  是**不透明**桌面图标一套（设置页图标选择器预览 + launcher mipmap 的来源），
-  禁止用透明底版本覆盖（安卓桌面图标不允许透明）。
-- **git 层**：libgit2 FFI（git2dart），仅用克隆/pull 只读能力；这是本项目最大技术风险点，改动同步层前先做小验证。
-  - **Android 硬约束**：git2dart 静态链接的 OpenSSL 无法访问系统证书库，`main()` 必须在 `runApp` 前依次执行 `WidgetsFlutterBinding.ensureInitialized()` → `Libgit2.version`（初始化 libgit2）→ `AndroidSSLHelper.initialize()` → `Libgit2.setSSLCertLocations(file:)`，否则 HTTPS 克隆报 "the SSL certificate is invalid"（CA 证书包随 git2dart_binaries 打包，无需自备）。
-  - **isolate 硬约束**：git 操作在后台 isolate 执行（大仓库不卡 UI）；isolate 内捕获 git2dart 原生异常后必须转普通 `Exception` 再抛（原生错误对象不可跨 isolate 发送，直接抛出会导致 Future 永不完成、UI 死转）。**clone 与 pull 都用 `Isolate.spawn` + `ReceivePort`**（checkRemote 仍用 `Isolate.run`，不需要进度）；**clone 超时 5 分钟时 `Isolate.kill` 并清理目标目录**——`Isolate.run(...).timeout()` 只会让 Future 超时，isolate 继续写盘留下半成品目录，重试报「本地目录已存在」。clone 支持**进度与取消**：isolate 内 `Callbacks.transferProgress` 把对象数/字节经 port 回传（`[0, received, total, bytes]` 消息），UI 显示百分比与已下载体积；`CloneCancelToken.cancel()` 在下一条进度消息时生效（传输是阻塞原生调用，无法即时打断），取消路径复用 kill + 清理目录的 finally 逻辑。**克隆不传 `checkoutBranch`**：猜错默认分支（如猜 `main` 而远端是 `master`）会触发整仓删除重克隆、大仓库下载两遍；不指定分支时 libgit2 检出远端 HEAD，克隆后再用 `readHeadBranch` 把真实分支写进 meta。
-  - **构建陷阱**：`INTERNET` 权限必须声明在 `android/app/src/main/AndroidManifest.xml`——Flutter 模板默认只加在 debug/profile 变体，release 包无网络权限，所有 HTTPS 请求报 `GIT_ERROR_NET: No address associated with hostname`。
-  - **dev 启动与图标 alias**：正式包把启动入口放在 `activity-alias`（桌面图标五选一），而 Flutter 工具只认 `<activity>` 上的 MAIN/LAUNCHER，`flutter run` / `flutter drive` 会报 `package identifier or launch activity not found`。因此 `android/app/src/debug/AndroidManifest.xml` 与 `src/profile/AndroidManifest.xml` 各有一份覆盖清单：给 `MainActivity` 挂启动 intent-filter、移除五个 alias。release 不读这两个目录，**图标切换只能在 release 包上验收**；改图标相关逻辑时不要动这两份清单。
-- **Markdown 渲染**：markdown_widget + 代码高亮；GFM alert（`> [!NOTE]` 等）与 .ipynb（Jupyter）转 Markdown 渲染
-  - **Notebook 富输出**（`lib/src/notes/ipynb.dart` + `ipynb_images.dart`）：代码输出里的 `image/png|jpeg|gif|svg` 解码后按内容哈希存内存（`IpynbImageStore`，64MB 上限、近似 LRU），正文只留 `pullread-ipynb://<hash>` 短引用——绝不把 base64 写进正文（否则复制全文、文内查找、TOC 行号都会被污染）；有图时丢弃 matplotlib 的 `<Figure ...>` 文本占位。`text/html` 的简单表格（无 colspan/rowspan、≤100 行 ≤30 列）降级成 Markdown 表格，解析不了回退 `text/plain`。正文检索用 `toMarkdown(includeImages: false)`，不解码图片。
-  - **长文懒渲染**（`lib/src/ui/markdown_viewer.dart`）：正文按块进 `SliverList`，只构建视口附近的块，首帧与内存只和屏高有关——5000 行首帧 2.3s→0.46s、内存增量 150MB→7MB、10000 行 4.5s→0.8s（数字与复现方式见 `docs/perf.md`）。两条硬约束：① 长图导出必须切回 `_eagerForCapture` 的整篇一次性布局，否则 RepaintBoundary 只能截到已构建的块；② 目录跳转依赖 `scroll_to_index` 的**连续条目索引**（每个块都挂 `AutoScrollTag`，标题用 `_headingSlots` 记槽位），改回只给标题挂稀疏锚点会让远距离跳转算错位置。
-  - **远程图片缓存**（`lib/src/ui/image_cache.dart`）：网络图先读磁盘缓存，命中立即出图（离线可读，不再等 30s 超时）；URL 经双 32 位哈希落盘到 `<docs>/imgcache`，总量 >200MB 按写入时间淘汰；超过 7 天的缓存在后台静默刷新一次，下载失败回退缓存副本。刷新与二次进入走条件请求：保存图床返回的
-ETag/Last-Modified（`<key>.img` 旁 `.meta` sidecar），带
-If-None-Match/If-Modified-Since，304 直接用缓存并刷新 mtime 重置过期
-窗口，不重传图片本体；手动重试跳过条件头。
-  - **SVG**（`lib/src/ui/repo_image.dart` + `lib/src/notes/markdown_source.dart`）：
-    本地 `.svg` 走 `SvgPicture.file`，网络图按字节嗅探走 `SvgPicture.memory`，
-    按 viewBox 等比缩放到可用宽度；`normalizeHtmlImages` 只忽略 shields.io /
-    contrib.rocks / star-history 徽章，**不再按 `.svg` 后缀整体丢弃**。
-    保存/分享时 `svgToPng` 栅格化（最长边 ≤2048），相册与聊天软件可直接预览。
-- **存储占用页**（`lib/src/ui/storage_page.dart` + `lib/src/utils/dir_size.dart`）：
-  设置「数据 → 存储占用」展示 `repos` / `local` / `imgcache` / `.meta`
-  四类目录的磁盘体积（体积统计在后台 isolate 递归累加）；图片缓存可
-  一键清理（删文件保留目录），元数据区提供清空阅读历史入口，
-  仓库/镜像的删除引导回首页对应卡片管理。
-- **本地文件夹阅读**（`lib/src/local/local_folder_service.dart`）：Android 走
-  `saf` 包授权文件夹（tree URI 持久化，无真实路径，dart:io 读不到）→
-  **增量镜像**到 `<docs>/local/<名>` 后复用 RepoPage/渲染管线（与 git 仓库
-  同构，不为 SAF 单独抽象内容源）；桌面走 `file_selector` 直选目录。镜像标记
-  `.pullread_local` 区分本地来源（「同步」= 增量重镜像）；只镜像
-  md/ipynb/代码/图片（>32MB 跳过），重名文件夹自动加序号。增量依据镜像根下
-  `.pullread_manifest.json` 的源侧 `(size, mtime)` 快照；SAF 授权必须申请
-  **写**权限（`pickDirectory(writePermission: true)`），否则编辑器无法写回。
-  `.txt` 同样进镜像，无特判——与代码文件同路（代码查看器只读查看，
-  编码兜底见 `lib/src/utils/text_encoding.dart`：UTF-8 严格校验优先、GBK 回退，纯 Dart）。
-- **本地 Markdown 编辑器**（`lib/src/ui/markdown_editor.dart`）：本地镜像 md
-  的阅读页菜单「编辑」进入——源码 + 预览切换、手动保存 + 未保存离开提醒；
-  保存双写镜像（dart:io）+ 原文件夹（Android SAF `writeFileBytes(overwrite:)`
-  按相对路径逐段 `child()` 解析，桌面直写真实路径），保存返回阅读页自动
-  重载；仓库内文件只读，仍不做 git 提交。写回失败时记入镜像根下
-  `.pullread_pending.json`（`.pullread_manifest.json` 旁）：之后的增量
-  同步会**跳过**这些文件并自动重试写回，绝不拿源侧旧内容覆盖镜像——
-  设置页「数据 → 未写回的修改」可查看明细、重试或以镜像为准强制覆盖。
-- **代码查看**（`lib/src/ui/code_viewer.dart` + `lib/src/ui/code_view.dart` + `lib/src/notes/code_outline.dart`）：非 Markdown 文件用语法高亮只读查看（对标 GitHub mobile，并补其痛点：无 TOC、不支持 notebook）。
-  - **共用渲染**：正文抽到 `CodeView` / `CodeViewController`，代码文件页与 Markdown Raw 模式共用同一套高亮、行号、查找、大纲、换行与选区；raw 固定代码字号 13、默认不换行，并使用**独立滚动控制器**（不占用阅读进度 `_scrollController`，切视图不串位置、raw 滚动不写坏进度）。读文件统一走 `decodeTextBytes`（UTF-8 优先、GBK 兜底）。
-  - **大纲**：正则启发式抽 `class/mixin/enum/extension`、`def`、`function/const 箭头函数`、`fun`、`func`、`fn`、shell 函数与 `# 注释分节`、yaml 顶层键等，最多 500 条；面板可跳行（`_currentLine` 按滚动位置反算并高亮当前条目，跳转按实测行高估算偏移）。Raw Markdown 的大纲复用 `extractToc`（跳过围栏代码块）；`.ipynb` 的 raw 原文按 JSON 处理。
-  - **文内查找**：复用 `findTextMatches`，查找条显示命中计数与上一处/下一处；**不做逐字高亮**（HighlightView 内部不暴露文本偏移）。
-  - **行选区复制**：长按起始行定锚、点选结束行扩展区间，选区高亮整行绘制；覆盖层放在**滚动内容坐标系内**（旧实现固定在视口，滚动后高亮错位），顶部操作条复制/取消；**自动换行模式不支持**（行高不定，无法按 dy 反算行号）。**行高必须用 `TextPainter` 按真实字体实测**（`_measureLineHeight`），不能写 `fontSize × height`：JetBrains Mono 13px / 1.5 实际是 20.0 而非 19.5，硬算会每行差 0.5px、选几十行后高亮累积偏移；行号也用 `TextScaler.noScaling` 与正文保持一致。回归测试见 `test/code_selection_test.dart`。
-  - **自动换行**：开关在 AppBar，开启后隐藏行号列（折行后行号对不齐），长行不再只能横向拖。
-- **目录扫描与缓存**（`lib/src/notes/note_index.dart`）：仓库文件列表在后台
-  isolate 扫描（UI 线程不做递归 `listSync`，大仓库不卡首帧），结果缓存到
-  `<reposRoot>/.meta/index/<仓库名>.json`；进入仓库页先用缓存渲染、再后台
-  重扫校正（stale-while-revalidate）。删除仓库/本地文件夹时一并清理该缓存。
-- **正文检索**（`lib/src/search/`）：仓库页搜索框可切换「文件名 / 正文」；
-  首页搜索图标进入 `lib/src/ui/global_search_page.dart` 跨仓库检索（逐仓库
-  顺序执行、结果流式分组），支持**搜索历史**（AppPrefs 持久化，最多 12 条，
-  历史标签点击即搜、✕ 删除）、**按仓库过滤**（多选仓库标签，未选 = 全部）、
-  「正文 / 仅标题」两种模式（仅标题只匹配文件名/路径，不读文件内容，
-  打开命中不带查找词）。正文检索在 isolate 内读 md/ipynb（单文件
-  ≤2MB）做线性匹配：查询按空白（含全角空格）拆词，**全部命中才返回（AND）**，
-  摘要用 `SearchSnippet.highlights` 给每个词各自的区间（UI 直接按偏移上色）；
-  排序为「路径命中全部关键词 → 命中次数 → 路径」。**刻意不建倒排索引**：中文 2-gram 的 postings
-  条目数与正文字符数同量级，序列化后往往比正文本身还大，而笔记仓库正文只有
-  几 MB，页缓存 + `indexOf` 足够快且无索引过期问题。
-- **文内查找**（`lib/src/ui/markdown_viewer.dart` + `findTextMatches`）：阅读页
-  AppBar 搜索图标打开正文查找条（Raw 模式改用 `CodeView` 的源码查找）；命中按行返回，行号与
-  `extractToc` 的 `TocEntry.line` 同一坐标系（都基于 front-matter/ipynb
-  转换后的正文），跳转时定位到命中所属章节标题，无标题文档按字符比例滚动。
-  正文命中逐字加底色：`MarkdownGenerator.textGenerator` 接管纯文本节点
-  （`_FindHighlightNode`），查找词非空时把节点文本按命中切开上底色，
-  与 `findTextMatches` 同为大小写不敏感；链接/代码块等非文本节点不高亮。
-- **标签聚合**（`lib/src/notes/tag_index.dart` + `lib/src/ui/tag_page.dart`）：
-  首页标签图标进入标签页，聚合所有仓库与本地文件夹镜像的 front-matter
-  `tags`（只读每个文件头 8KB，isolate 内扫描），点标签按 AND 跨仓库筛选；
-  多个标签同时选中即要求全部命中。**目录名隐式标签**（可开关，默认开，
-  标签页右上角切换）：开启后每级目录名并入 tags 合并去重，没写
-  front-matter 的仓库也能用标签导航。
-- **断链检查**（`lib/src/notes/link_check.dart`）：仓库页「更多 → 检查断链」
-  批量校验相对链接/图片是否仍存在（跳过外部 URL/锚点/代码块，还原百分号
-  编码与 `../`），结果按来源文件分组、可复制清单；纯只读，不修改仓库。
-- **同步可感知**：`GitSyncService.checkRemote()` 在 isolate 内 fetch 后用
-  `RevWalk(push 远端头, hide 本地头)` 统计落后提交数（不移动本地分支）；
-  仓库页「更多 → 检查更新」先展示数量再由用户决定是否 pull。`RepoMeta`
-  的 `syncedAt` 在克隆（`writeClone`）与成功 pull（`touchSynced`）时更新，
-  仓库卡展示「同步于 …」。**历史分叉处理**：`checkRemote` 反向 RevWalk
-  检出本地有而远端没有的提交即判为分叉（远端改写提交记录的典型特征），
-  pull 遇到无法 fast-forward 时（`SyncException.diverged`）弹窗询问
-  「重新克隆」——按 RepoMeta 记录的原 URL 删除本地仓库并重新克隆，
-  阅读进度/收藏/更新标记存于仓库外 meta，不受影响。**更新感知打标**：pull（含「全部更新」与后台
-  静默拉取）fast-forward 后在 isolate 内对本地旧头→远端头做 tree diff，
-  变更文件（新增/修改，不含删除）记入 `RepoMeta.recentChanges`
-  （上限 200 条，超出整体清空）；仓库页文件行显示「新增/更新」角标，
-  打开文件即清除该文件的标记。
-  - **拉取进度**：`pull()` 用 `Isolate.spawn` + `ReceivePort`（与 clone 同一套消息协议：进度 / 结果 / 错误），isolate 内 `Remote.fetch(transferProgress:)` 回报对象数与字节。拉取**不可安全取消**（fetch 是阻塞原生调用，kill 可能留下半截 packfile），所以只显示进度、不提供取消。仓库页「同步」与「全部更新」都走 `runWithPullProgress` 对话框；批量路径同时补写 `syncedAt` 与 `recentChanges`（早期只有单仓库 pull 写）。
-  - **更新收件箱**（`lib/src/ui/updates_page.dart`）：首页 AppBar 的 inbox 图标带未读数，跨仓库与本地镜像聚合 `recentChanges`、按来源分组；点开即读并清除该条，支持「全部已读」。打开文件的统一入口是 `lib/src/ui/open_note.dart`（阅读页/图库/代码页三路分发 + 清除标记 + 最近打开），仓库页与收件箱共用。
-  - **仓库页阅读状态**：文件行尾部显示「读到 N% / 已读完」（<0.5% 不标），工具栏「仅看未读」只隐藏**有阅读记录**的文件；数据由 `RepoMeta.readAllProgress` 一次读出，从阅读页返回后刷新。
-- **阅读链路**（`lib/src/ui/markdown_viewer.dart`）：
-  - **打开即续读**：首帧布局后自动恢复到上次位置（标题锚点优先，无标题按比例），
-    SnackBar 提供「从头读」撤销；**不再弹模态框**（旧实现每次打开都问一次）
-  - **进度只在用户滚动时写**：续读恢复用 `animateTo` / `scrollToIndex`，同样会触发
-    `ScrollController` 的 listener；保存前必须确认这轮滚动由用户发起
-    （`ScrollStartNotification.dragDetails != null`，`ScrollEndNotification` 复位），
-    否则打开后立刻返回会把进度覆盖成动画中途的位置（实测 87% 被写成 55%）。
-  - **段落级书签**：阅读页菜单「在此处加书签」记录章节标题 + 全篇滚动比例，存 `RepoMeta.bookmarks`（单仓库 100 条、同文件 1% 内去重）；本文书签面板可跳转/删除。首页「书签」横滑条展示最近 5 条，`BookmarksPage` 按仓库分组列出全部；点开走 `MarkdownViewerPage.initialFraction`（优先级低于 `initialFindQuery`，且会跳过续读恢复）直接落到位置。
-  - **同目录上一篇/下一篇**复用 `NoteIndexCache`，打开文章时**不做**递归扫描；
-    缓存缺失才后台扫描并回写（大仓库打开文章不卡首帧）
-  - **正文图片解码宽度**按「屏宽 × devicePixelRatio」限制（320~2048），避免
-    原图解码占几十 MB；图库仍按原图（可放大看细节）
-  - **图片保存/分享**（`lib/src/ui/image_actions.dart`）：正文图长按、图库右上角
-    菜单与长按共用同一入口（保存相册 / 分享 / 复制地址）；`loadRepoImageBytes`
-    统一读取本地文件、网络磁盘缓存/下载与 notebook 内存图，相册保存失败只提示、
-    不阻断分享；SVG 先转 PNG 再落地。
-  - 从正文搜索结果进入时传 `initialFindQuery`：自动打开查找条、统计命中并
-    定位到第一处（否则用户还要自己滚到命中位置）
-- **平台适配**：克隆只依赖用户给的**完整 URL**（GitHub / Gitee / GitCode / GitLab / 自建 Gitea 都可以），`GitPlatform` 枚举只用于展示与「用户名/仓库名 → URL」的短名拼接，禁止业务代码调用任何平台 REST API。原先的 `RepositoryAdapter` / adapter_factory / 四个平台 adapter 因无人调用已删除（2026-10）——新增平台只需补枚举与 `guessPlatform`，不要再引回 HTTP 抽象层。
-- **启动链路**：原生闪屏只铺品牌纸白底（`launch_background` + v31 `windowSplashScreenBackground`，`windowSplashScreenAnimatedIcon` 指向透明占位），**不画图标**；启动 logo 只由 Flutter 的 `BrandSplash`（`lib/src/ui/brand_splash.dart`）绘制，`main()` 的初始化等待页与 HomePage 首屏仓库列表加载页共用它，尺寸/位置一致才算「一张启动图」。五条硬约束：① `main()` 必须立刻 `runApp`，libgit2/CA 证书初始化放 `_bootstrap()` 里后台做，否则首帧前是黑屏；② 五个 `activity-alias` 必须挂 `android:theme="@style/LaunchTheme"`，否则正式包（从 alias 启动）在深色模式下黑屏；③ `NormalTheme` 的 `windowBackground` 也要用 `@drawable/launch_background`，Flutter 在 `onCreate` 就会切过去；④ 闪屏背景禁止用 `?android:colorBackground`（深色下变黑）；⑤ 首页加载态禁止用 `CircularProgressIndicator`（会和闪屏尾帧叠成「屏幕中央绿点」）。
-- **鉴权**：如需 token 只存本地，禁止硬编码或写入日志；当前仅支持公开仓库（用户明确不需要私有仓库功能）
+---
 
-## 第一版范围（反目标即边界）
+## 1. Product scope
 
-- 只做：整仓克隆 → 舒服地读（第一优先级是渲染体验）→ 按原目录结构浏览（目录树禁止扁平化）+ 全局搜索
-- 已明确不做：**任何编辑/commit/push 功能**（用户 2026-10 移除）、双链/图谱、协作、私有仓库、部署/CI/静态站生成
-- 底线：渲染效果不能差于博客；同步冲突/丢内容不可接受——涉及 git 操作的改动必须重点自查这两条
+**In scope**
 
-## 开发约定
+- Clone a whole repository, then read it comfortably. Rendering quality is the
+  number-one priority.
+- Browse the original directory structure. **Never flatten the tree.**
+- Global search across repositories and local folders.
+- Local folders (SAF on Android / directory picker on desktop) with the same reading
+  pipeline as Git repositories, plus a Markdown editor that writes back.
+- Reading progress, bookmarks, tags, link checking and update awareness.
 
-- 提交：英文 Conventional Commit（feat/fix/chore…），原子化提交；push 必须先经用户同意
-- 临时文件放 `temp/`（已加入 .gitignore），不放系统 temp
-- 不使用 TDD/SDD 流程；仅当改动触及已有测试覆盖的行为时才同步调整测试
-- Windows 环境：Python 读文件必须显式 `encoding="utf-8"`
+**Out of scope — do not add**
 
-## 常用命令
+- Any edit/commit/push capability for Git repositories (removed by the user in
+  2026-10). Local-folder editing is the only write path and never touches Git.
+- Backlinks/graphs, collaboration, private repositories, TTS, PDF, reading stats,
+  deployment/CI/static-site generation.
+- Platform REST APIs. See "Platform adaptation".
+
+**Non-negotiables**
+
+- Rendering must never be worse than a typical blog.
+- Sync conflicts or content loss are unacceptable. Any change to the Git layer must
+  be self-reviewed against this rule before commit.
+
+---
+
+## 2. Stack and identity
+
+- **Framework**: Flutter, Dart 3 / Flutter 3.47+. iOS + Android are the product
+  targets; the Windows desktop target exists for local preview only. iOS work cannot
+  be verified on this machine (no macOS).
+- **Package id**: `com.intersetwq.pullread` for Android `applicationId`/`namespace`
+  and the iOS bundle id. Kotlin `MainActivity` lives in
+  `android/app/src/main/kotlin/com/intersetwq/pullread/`. Renamed from
+  `com.intersetwq.reader` in 2026-10: the old package is not upgraded in place and
+  its data is not migrated.
+- **No new heavy dependencies without justification**. The Git layer is already the
+  riskiest part of the project.
+
+---
+
+## 3. Architecture at a glance
+
+| Path | Responsibility |
+| --- | --- |
+| `lib/main.dart` | Startup, `_bootstrap()` (libgit2 + CA), theme, routing to `HomePage` |
+| `lib/src/git/` | libgit2 FFI wrapper (`sync_service.dart`), repo metadata (`repo_meta.dart`) |
+| `lib/src/notes/` | Note scanning/index, Markdown source, notebook conversion, TOC, tags, link check, code outline |
+| `lib/src/search/` | Filename/full-text search, snippets, search models |
+| `lib/src/local/` | SAF/desktop folder authorization and incremental mirroring |
+| `lib/src/ui/` | Pages and shared widgets (reader, code view, image cache/actions, settings, …) |
+| `lib/src/theme/` | `AppPrefs`, app theme |
+| `lib/src/utils/` | Text encoding, directory size, small helpers |
+| `test/`, `integration_test/` | Unit/widget tests, real-device render baseline |
+| `docs/` | Perf baseline, UX audit, settings redesign proposal |
+
+---
+
+## 4. Non-negotiable invariants
+
+These cut across features. Violating any of them has already caused a bug in this
+project or would cause data loss.
+
+1. **Git is read-only.** Clone/pull only; never commit, checkout user changes or
+   rewrite history.
+2. **Never delete outside the intended target.** Repo names and target paths must be
+   derived safely (see "Git and sync"), and deletion helpers must refuse roots.
+3. **All Git work runs in a background isolate**, and native errors must be converted
+   to plain Dart errors before crossing the isolate boundary.
+4. **The UI isolate never does recursive filesystem scans.** Use isolates plus the
+   on-disk index cache.
+5. **Long documents are lazily laid out.** Eager layout is only for capture/export.
+6. **Reading progress is written only for user-initiated scrolls**, never for
+   programmatic restore/animations.
+7. **Server data is never rendered as executable/inline payloads**: notebook images
+   go to a side store, not into Markdown source as base64.
+8. **No secrets in code or logs.** Tokens, if ever added, stay on device.
+9. **Startup shows exactly one splash image** and never a spinner.
+10. **Pending local edits win over a stale source folder.** Never overwrite the
+    mirror with older source content.
+
+---
+
+## 5. Git and sync layer (highest risk)
+
+Uses libgit2 through FFI (`git2dart`). Only clone/fetch/pull capabilities are used.
+**Change this layer in small, verifiable steps.**
+
+### 5.1 Target paths and deletion safety
+
+- Derive the repository name from `Uri.parse(url).pathSegments`, ignoring empty
+  segments; strip only a trailing `.git` suffix (never `replaceAll('.git', '')`).
+- Validate the name: non-empty, not `.`/`..`, does not start with `.` (at minimum
+  reject `.meta`), and contains no path separators or Windows-illegal characters
+  (`: * ? " < > |`).
+- Before cloning, verify that the target's parent is exactly the repos root, using
+  path segments rather than string prefixes.
+- `_prepareTarget()` must refuse to delete the repos root, the metadata directory,
+  the local-mirror root or the application documents root. A trailing-slash URL once
+  produced an empty name and would have recursively deleted every cloned repo plus
+  `.meta` (reading progress, bookmarks, favorites, update markers).
+- Tests for URL/path handling must use temporary directories only, never real user
+  data directories.
+
+### 5.2 Android TLS bootstrap
+
+`git2dart_binaries` statically links OpenSSL, which cannot see the Android system
+certificate store. In `_bootstrap()` (`lib/main.dart`) the order **must** be:
+
+1. `WidgetsFlutterBinding.ensureInitialized()`
+2. `Libgit2.version` (load the native library)
+3. `AndroidSSLHelper.initialize()`
+4. `Libgit2.setSSLCertLocations(file: certPath)`
+
+Otherwise HTTPS clones fail with `the SSL certificate is invalid`. The CA bundle is
+shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
+`runApp` (see "Startup") so the first frame is not blocked.
+
+### 5.3 Isolates, timeout and cancellation
+
+- **Clone and pull use `Isolate.spawn` + `ReceivePort`**; `checkRemote` uses
+  `Isolate.run` because it needs no progress. Never run Git on the UI isolate.
+- Inside an isolate, catch `git2dart` native exceptions and rethrow a normal
+  `Exception` (or send a string). Native error objects cannot cross isolates; sending
+  them leaves the returned `Future` incomplete and the UI spinning forever.
+- Clone has a **5-minute timeout that must `Isolate.kill` the worker and clean up the
+  target directory**. `Isolate.run(...).timeout()` only times out the future; the
+  isolate keeps writing and leaves a half-cloned directory that makes retries fail
+  with "local directory already exists".
+- Clone reports progress through the port as `[0, receivedObjects, totalObjects,
+  receivedBytes]`; the final message is `true` on success or an error string.
+  `CloneCancelToken.cancel()` takes effect on the next progress message because the
+  transfer itself is a blocking native call. Cancellation reuses the kill + cleanup
+  path.
+- **Never pass `checkoutBranch` to clone.** Guessing the default branch (`main` vs
+  `master`) causes libgit2 to wipe and re-clone the whole repository. Let libgit2
+  check out the remote HEAD, then store the real branch with `readHeadBranch`.
+
+### 5.4 Sync awareness
+
+- `checkRemote()` fetches in an isolate, then counts commits behind with
+  `RevWalk` (push remote head, hide local head) without moving the local branch. The
+  repository page shows the count before the user confirms a pull.
+- `RepoMeta.syncedAt` is updated on clone (`writeClone`) and successful pull
+  (`touchSynced`); repository cards show "synced at …".
+- **Divergence**: `checkRemote()` also walks in reverse to detect local commits the
+  remote lacks. On a non-fast-forward pull (`SyncException.diverged`), ask the user
+  before deleting and re-cloning from the recorded URL. Reading progress, bookmarks
+  and update markers live outside the repo and survive.
+- **Change markers**: after a fast-forward pull (single, "update all", and silent
+  background pull), diff old head → new head inside the isolate and record
+  added/modified files (not deletions) in `RepoMeta.recentChanges` (cap 200; clear
+  the whole list when exceeded). File rows show "new/updated"; opening the file
+  clears its marker.
+- **Pull progress**: `pull()` uses the same spawn/port protocol as clone and reports
+  `Remote.fetch(transferProgress:)`. Pull is **not cancellable** (killing a blocking
+  fetch can leave a truncated packfile), so show progress without a cancel button.
+  Both the single-repo sync and "update all" use `runWithPullProgress`; the batch path
+  must also write `syncedAt` and `recentChanges`.
+- **Update inbox** (`updates_page.dart`): the home inbox icon shows unread counts,
+  aggregated from `recentChanges` of repos and local mirrors, grouped by source.
+  Opening an item marks it read; "mark all read" is supported. All openings go
+  through `open_note.dart`, which dispatches to reader/gallery/code viewer, clears
+  the marker and records the recent file.
+
+### 5.5 Android build requirements
+
+- `INTERNET` **must** be declared in `android/app/src/main/AndroidManifest.xml`.
+  The Flutter template only adds it to debug/profile; a release build then fails all
+  HTTPS requests with `GIT_ERROR_NET: No address associated with hostname`.
+- The release launcher entry lives on `activity-alias` widgets (five icon variants).
+  Flutter tooling only recognizes `MAIN`/`LAUNCHER` on `<activity>`, so
+  `android/app/src/debug/AndroidManifest.xml` and
+  `android/app/src/profile/AndroidManifest.xml` override the manifest: they attach
+  the launcher intent-filter to `MainActivity` and remove the five aliases. Release
+  builds do not read those directories, which means **icon switching can only be
+  verified on a release build**. Do not touch those two manifests while working on
+  icons.
+
+---
+
+## 6. Rendering and reading
+
+### 6.1 Markdown and notebooks
+
+- Renderer: `markdown_widget` plus syntax highlighting. GFM alerts (`> [!NOTE]`)
+  and `.ipynb` files are converted to Markdown before rendering.
+- **Notebook rich output** (`lib/src/notes/ipynb.dart`, `ipynb_images.dart`):
+  `image/png|jpeg|gif|svg` outputs are decoded into an in-memory store keyed by
+  content hash (`IpynbImageStore`, 64 MB cap, approximate LRU). The body keeps only a
+  short `pullread-ipynb://<hash>` reference — **never put base64 in the body**, or
+  copy-all, in-text find and TOC line numbers all get polluted. When images exist,
+  drop matplotlib's `<Figure ...>` text placeholder. Simple `text/html` tables
+  (no colspan/rowspan, ≤100 rows, ≤30 columns) become Markdown tables; otherwise fall
+  back to `text/plain`. Full-text search uses `toMarkdown(includeImages: false)` and
+  never decodes images.
+- **Lazy long-document layout** (`lib/src/ui/markdown_viewer.dart`): body blocks go
+  into a `SliverList` so only blocks near the viewport are built. Baseline numbers
+  (reproduce with `docs/perf.md`): 5000 lines first frame 2.3s → 0.46s and +150 MB →
+  +7 MB memory; 10000 lines 4.5s → 0.8s. Two hard constraints:
+  1. Long-image export must switch back to the whole-document, one-shot layout
+     (`_eagerForCapture`); otherwise `RepaintBoundary` only captures built blocks.
+  2. TOC jumps depend on **contiguous item indices** from `scroll_to_index`: every
+     block carries an `AutoScrollTag`, and headings record their slot in
+     `_headingSlots`. Sparse heading-only anchors miscalculate long-distance jumps.
+- **Remote image cache** (`lib/src/ui/image_cache.dart`): network images read the
+  disk cache first and render immediately (offline-friendly, no 30s timeout). URLs
+  are hashed with two 32-bit values into `<docs>/imgcache`; evict by write time above
+  200 MB. Cache entries older than 7 days are refreshed silently in the background;
+  failures fall back to the cached copy. Refreshes and re-entry use conditional
+  requests: store `ETag`/`Last-Modified` in a `.meta` sidecar next to `<key>.img`,
+  send `If-None-Match`/`If-Modified-Since`; a 304 reuses the cache and resets the
+  freshness window without re-downloading bytes. Manual retry skips conditional
+  headers.
+- **SVG** (`repo_image.dart`, `markdown_source.dart`): local `.svg` uses
+  `SvgPicture.file`; network bytes are sniffed and use `SvgPicture.memory`, scaled to
+  available width by viewBox. `normalizeHtmlImages` only drops shields.io /
+  contrib.rocks / star-history badges — **do not drop all `.svg` URLs**. Saving or
+  sharing rasterizes via `svgToPng` (longest edge ≤2048).
+- **Image decoding width** in the reader is capped by screen width × devicePixelRatio
+  (320–2048) to avoid decoding tens of MB per image. The gallery still uses the
+  original resolution for zooming.
+- **Image save/share** (`image_actions.dart`): long-press in the body and the gallery
+  menu/long-press share one path (save to gallery / share / copy URL).
+  `loadRepoImageBytes` handles local files, network cache/download and notebook
+  in-memory images. A failed gallery save only warns; sharing still works. SVG is
+  converted to PNG first.
+
+### 6.2 Code viewer
+
+- Non-Markdown files open in a syntax-highlighted read-only viewer
+  (`code_viewer.dart` + `code_view.dart` + `notes/code_outline.dart`), matching
+  GitHub mobile while adding an outline and notebook support.
+- **Shared rendering**: `CodeView` / `CodeViewController` are used by both the code
+  file page and Markdown "Raw" mode. They share highlighting, line numbers, find,
+  outline, wrapping and line selection. Raw mode fixes font size at 13, does not wrap
+  by default, and uses its **own scroll controller** (never the reader's
+  `_scrollController`, so view switches don't leak positions or corrupt progress).
+  File reads always go through `decodeTextBytes` (strict UTF-8 first, GBK fallback).
+- **Outline**: regex heuristics for `class/mixin/enum/extension`, `def`,
+  `function`/`const` arrow functions, `fun`, `func`, `fn`, shell functions,
+  `# section` comments and top-level YAML keys; cap 500 entries. The panel can jump
+  to a line and highlights the current entry (`_currentLine` derived from scroll
+  offset). Raw Markdown reuses `extractToc` (skipping fenced code); `.ipynb` raw text
+  is treated as JSON.
+- **Find**: reuses `findTextMatches`, shows match count and previous/next.
+  Per-character highlighting is intentionally not implemented because
+  `HighlightView` does not expose text offsets.
+- **Line selection copy**: long-press anchors the start line, tap extends to the end
+  line, and the whole line range is highlighted. The overlay lives in the **scrolled
+  content coordinate space** (a viewport-fixed overlay drifts after scrolling). A top
+  action bar offers copy/cancel. **Wrapping mode does not support line selection**
+  (line heights vary, so a `dy` cannot be mapped back to a line).
+  **Line height must be measured with `TextPainter` using the real font**
+  (`_measureLineHeight`), never `fontSize × height`: JetBrains Mono at 13px / 1.5
+  renders at 20.0, not 19.5; hard-coding 19.5 shifts the highlight by 0.5px per line
+  and visibly accumulates over dozens of lines. Line numbers use
+  `TextScaler.noScaling` to match the `RichText` inside `HighlightView`. Regression
+  test: `test/code_selection_test.dart`.
+- **Wrapping** is an AppBar toggle; enabling it hides the line-number gutter because
+  wrapped rows no longer align with line numbers.
+
+### 6.3 Reading flow (`markdown_viewer.dart`)
+
+- **Open and resume**: after the first layout, restore the last position (heading
+  anchor first, fraction fallback) and offer "read from start" in a SnackBar. Do not
+  show a modal on every open (old behavior).
+- **Write progress only for user scrolls**: restore uses `animateTo` /
+  `scrollToIndex`, which also fire the `ScrollController` listener. Confirm the round
+  of scrolling was user-initiated (`ScrollStartNotification.dragDetails != null`,
+  reset on `ScrollEndNotification`) before persisting. Otherwise opening and
+  immediately leaving overwrites progress with an intermediate animation position
+  (observed: 87% became 55%).
+- **Bookmarks** are paragraph-level: record heading + whole-document fraction in
+  `RepoMeta.bookmarks` (100 per repo, dedupe within 1% of the same file). The
+  in-article panel can jump/delete. Home shows the five most recent; `BookmarksPage`
+  groups all by repository. Opening uses `MarkdownViewerPage.initialFraction`
+  (lower precedence than `initialFindQuery`, and it skips resume).
+- **Previous/next in the same directory** reuse `NoteIndexCache`; opening an article
+  must not trigger a recursive scan. If the cache is missing, scan in the background
+  and write it back.
+- **In-text find**: the AppBar search icon opens a find bar (Raw mode uses
+  `CodeView`'s source find). Matches are reported by line in the same coordinate
+  system as `TocEntry.line` (both based on the post-front-matter / converted body).
+  Jumps currently locate the heading that contains the match; documents without
+  headings scroll by character ratio. Match highlighting is per character via
+  `MarkdownGenerator.textGenerator` (`_FindHighlightNode`), case-insensitive, and
+  only applies to plain-text nodes (not links/code blocks).
+- **Search entry**: opening from a body search result passes `initialFindQuery` so
+  the find bar opens, counts matches and jumps to the first one.
+- **Repository reading status**: file rows show "read N% / finished" (<0.5% is not
+  shown); the toolbar's "unread only" filter hides only files that already have
+  reading records. Read all records at once with `RepoMeta.readAllProgress` and
+  refresh when returning from the reader.
+
+### 6.4 Directory index and search
+
+- **Index cache** (`lib/src/notes/note_index.dart`): repository file lists are
+  scanned in a background isolate (never recursive `listSync` on the UI thread),
+  cached to `<reposRoot>/.meta/index/<repoName>.json`, and rendered
+  stale-while-revalidate. Remove the cache when deleting a repo/local folder.
+- **Full-text search** (`lib/src/search/`): the repo page can switch between
+  filename and body search; the home search icon opens
+  `lib/src/ui/global_search_page.dart` across repositories (sequential per repo,
+  results stream in per group). Supports search history (persisted in `AppPrefs`,
+  max 12; tap to search, ✕ to delete), repository filters (multi-select; none = all)
+  and "body / title only" modes. Title-only matches filenames/paths without reading
+  files and does not open with a find query.
+- Body search reads md/ipynb inside an isolate (max 2 MB per file) and does linear
+  matching: split the query on whitespace (including full-width spaces), require
+  **all terms** (AND), and produce per-term highlight ranges with
+  `SearchSnippet.highlights` for the UI. Sort order: path matches all terms → match
+  count → path.
+- **Deliberately no inverted index**: for Chinese 2-grams the postings are the same
+  order of magnitude as the text, often larger after serialization, while note repos
+  hold only a few MB. Page cache + `indexOf` is fast and has no index staleness.
+
+### 6.5 Tags, link checking, storage
+
+- **Tags** (`lib/src/notes/tag_index.dart`, `lib/src/ui/tag_page.dart`): the home tag
+  icon opens a page aggregating front-matter `tags` from all repos and local mirrors
+  (reads only the first 8 KB of each file, scans in an isolate). Selecting multiple
+  tags requires ALL of them (AND) across sources. **Implicit directory tags** are a
+  toggle (default on, top-right of the tag page): each directory level is merged into
+  the tag set, so repos without front matter are still navigable.
+- **Link checking** (`lib/src/notes/link_check.dart`): repo page "more → check broken
+  links" validates relative links/images in bulk, skipping external URLs, anchors and
+  code blocks, decoding percent-encoding and resolving `../`. Results are grouped by
+  source file and copyable. Strictly read-only.
+- **Storage page** (`lib/src/ui/storage_page.dart`, `lib/src/utils/dir_size.dart`):
+  settings → Data → Storage shows disk usage for `repos`, `local`, `imgcache` and
+  `.meta` (recursive sizes summed in a background isolate). Image cache can be
+  cleared (delete files, keep the directory); the metadata section can clear reading
+  history. Repo/mirror deletion stays on the home cards.
+
+### 6.6 Local folders and the editor
+
+- **Local folder reading** (`lib/src/local/local_folder_service.dart`): Android uses
+  the `saf` package to authorize a tree URI (persisted; no real path, so `dart:io`
+  cannot read it) and **incrementally mirrors** it to `<docs>/local/<name>`, then
+  reuses `RepoPage` and the whole rendering pipeline — treat it as a repository, do
+  not invent a second content-source abstraction. Desktop uses `file_selector` with a
+  real path. A `.pullread_local` marker distinguishes local sources; "sync" means
+  re-mirror. Mirror only md/ipynb/code/images (skip files >32 MB); append a numeric
+  suffix on name collisions.
+- Incremental sync compares source-side `(size, mtime)` snapshots stored in
+  `.pullread_manifest.json` at the mirror root.
+- SAF authorization **must request write permission**
+  (`pickDirectory(writePermission: true)`), otherwise the editor cannot write back.
+- `.txt` is mirrored and opened as an ordinary code file, with no special case. Text
+  decoding goes through `lib/src/utils/text_encoding.dart` (strict UTF-8 first, GBK
+  fallback, pure Dart).
+- **Local Markdown editor** (`lib/src/ui/markdown_editor.dart`): opened from the
+  reader's "edit" action for mirrored Markdown. Source/preview toggle, manual save,
+  unsaved-changes prompt on exit. Saving writes both the mirror (dart:io) and the
+  original folder (Android SAF `writeFileBytes(overwrite:)`, resolving each path
+  segment with `child()`; desktop writes the real path). Returning to the reader
+  reloads automatically. Repository files remain read-only and are never committed.
+- If write-back fails, record the file in `.pullread_pending.json` next to
+  `.pullread_manifest.json`. Later incremental syncs **skip** those files and retry
+  the write-back; never overwrite the mirror with stale source content. Settings →
+  Data → "pending write-backs" lists them, allows retry, or force-overwrites from
+  the mirror.
+
+---
+
+## 7. Platform and startup
+
+### 7.1 Platform adaptation
+
+Clone only needs the **full URL** the user provides. The `GitPlatform` enum is for
+display and for turning "username/repo" into a URL; business code must never call
+platform REST APIs. The old `RepositoryAdapter` / adapter factory / four platform
+adapters were deleted in 2026-10. Adding a platform means adding an enum value and a
+`guessPlatform` case — do not reintroduce an HTTP abstraction layer.
+
+Authentication: tokens, if ever added, stay on device only — never hardcode them or
+log them. Only public repositories are supported (the user explicitly does not want
+private-repo support).
+
+### 7.2 Startup chain
+
+The native splash paints only the brand paper color (`launch_background` plus v31
+`windowSplashScreenBackground`; `windowSplashScreenAnimatedIcon` points at a
+transparent placeholder). It **must not draw a logo**. The only startup logo is
+Flutter's `BrandSplash` (`lib/src/ui/brand_splash.dart`), shared by `main()`'s
+bootstrap page and `HomePage`'s first repo-list load so sizes/positions match and the
+user sees a single splash.
+
+Hard constraints:
+
+1. `main()` must call `runApp` immediately. libgit2/CA initialization happens in
+   `_bootstrap()` after the first frame; doing it before `runApp` shows a black
+   surface for hundreds of ms to seconds.
+2. All five `activity-alias` entries must use `android:theme="@style/LaunchTheme"`;
+   otherwise a release build (launched from an alias) shows black in dark mode.
+3. `NormalTheme` must also use `@drawable/launch_background` as `windowBackground`;
+   Flutter switches to it in `onCreate`.
+4. Never use `?android:colorBackground` for the splash background — it turns black in
+   dark mode.
+5. The home loading state must not use a `CircularProgressIndicator`; it would
+   overlap the splash tail and look like a green dot in the middle of the screen.
+   Use `BrandSplash` instead.
+6. The launch/normal themes set the status bar and navigation bar to
+   `@color/brand_paper` with `windowLightStatusBar=true`. Without this, Android adds
+   a gray scrim behind light status-bar icons, which looks like a flash during
+   startup.
+
+### 7.3 Icons and logo
+
+- Desktop icon is selectable in settings (five designs: open book, page-as-arrow,
+  pull-page arrow, converge-pages arrow, page-stack arrow; pine green on paper
+  white). Android implements this with five `activity-alias` entries
+  (`MainActivityBook/Page/Arrow/Converge/Tray`); exactly one is enabled at a time and
+  switching goes through `PackageManager.setComponentEnabledSetting` over the
+  `app_icon` MethodChannel. Adaptive icon foregrounds are
+  `drawable-xxxhdpi/ic_launcher_fg_*.png` (the mark is normalized to 50% of 432px;
+  **XML inset must be 0%** — ~66% fills the canvas with no padding, ~33% with a 16%
+  inset occupies only about 1/9), with `@color/brand_paper` background and the same
+  paper color for the splash.
+- iOS/Windows icon switching is not implemented (the iOS alternate-icon API needs
+  real-device verification; Windows has no such concept). On platforms without the
+  channel, `setAppIcon` persists the preference and silently does nothing.
+- In-app logo: transparent `assets/icon/app_logo.png` is used in the home header and
+  the settings "about" page. Never use a white-background version in-app (it looks
+  wrong in dark mode). Larger marks are generated losslessly from the SVG sources in
+  `temp/icon-design/` with the logo-design skill renderer.
+- `assets/icon/app_icon.png` and `app_icon_foreground.png` (book, 1024px) are the
+  `flutter_launcher_icons` sources for the iOS AppIcon set and Windows `icon.ico`.
+  **Set `android: false` in pubspec before running the tool and restore it
+  afterwards**: the tool overwrites the hand-maintained
+  `mipmap-anydpi-v26/ic_launcher.xml` (0% inset + foreground) and related default
+  launcher resources. The five alias-specific mipmap/fg files have distinct names and
+  are not touched.
+- `assets/icons/` holds five **opaque** desktop icon PNGs (settings preview + launcher
+  mipmap source). Never replace them with transparent versions — Android launcher
+  icons must not be transparent.
+
+---
+
+## 8. Development workflow
+
+### 8.1 Conventions
+
+- Commits: English Conventional Commits (`feat/fix/chore/docs/test/…`), atomic.
+  **Push requires explicit user approval.**
+- Temporary files go in `temp/` (git-ignored), not the system temp directory.
+- No TDD/SDD process. When a change touches behavior already covered by tests,
+  update or extend those tests in the same commit.
+- On Windows, Python file reads must pass `encoding="utf-8"` explicitly.
+- Comments and UI copy are Chinese; identifiers and commit messages are English.
+
+### 8.2 Commands
 
 ```bash
-flutter create .            # 项目尚未初始化时先执行
 flutter pub get
-flutter run                 # 运行（连接设备/模拟器；dev 清单见上文 alias 说明）
-flutter analyze             # 静态检查
+flutter run                 # device/emulator; see the alias note for dev manifests
+flutter analyze --fatal-infos
 flutter test
+
+# Release APK: arm64 only, fixed command
 flutter build apk --split-per-abi --target-platform android-arm64
 
-# 长文渲染基线（真机 profile；指标定义与历史数字见 docs/perf.md）
+# Long-document render baseline (real device, profile mode)
 flutter drive --profile -d <deviceId> \
   --driver=test_driver/integration_test.dart \
   --target=integration_test/render_perf_test.dart
-# 只测某一档、内存更干净：追加 --dart-define=PERF_SIZES=10000
+# Single size / cleaner memory: add --dart-define=PERF_SIZES=10000
 ```
 
-APK 打包约定：只打 arm64-v8a（主流手机架构），固定用上述命令
-（产物 `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`，
-约 32MB；通用 fat APK 约 79MB）。注意：gradle `ndk.abiFilters` 对
-Flutter 注入的 so 无效且与 `--split-per-abi` 冲突，不要用它限制架构；
-x86_64 模拟器无法安装本 APK，模拟器调试走 debug 构建。
+APK packaging: only arm64-v8a (mainstream phones). Output is
+`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~32 MB; the fat APK is
+~79 MB). Do **not** use gradle `ndk.abiFilters` to restrict ABIs — it does not affect
+Flutter-injected `.so` files and conflicts with `--split-per-abi`. x86_64 emulators
+cannot install this APK; use a debug build for emulator work.
 
-CI（`.github/workflows/ci.yml`）：PR / main push 跑 `flutter analyze --fatal-infos`
-+ `flutter test`，另有独立的 `build-apk` job 构建 debug arm64 APK——清单合并、
-图标资源、插件兼容这类问题只有真正 assemble 才会暴露。Release 仍只由 `v*` tag
-触发 `release.yml`。
+### 8.3 Verification
 
-发版约定：正式 Release 只经 GitHub（interset-wq/pullread）发布——推送
-`v*` tag 触发 `.github/workflows/release.yml`，CI 校验 tag 与
-pubspec `version` 一致后自动构建 arm64 APK 并创建 Release，禁止手动
-上传 APK（避免与源码构建不一致）。发版流程 = 改 pubspec version →
-提交 → 打同名 tag 推送。**Prerelease**：tag 带 SemVer 预发布后缀
-（如 `v1.12.0-rc1`，pubspec 写 `1.12.0-rc1+21`）走同一构建流程，但
-GitHub Release 标为 prerelease，代表尚未真机验收；不带 `-` 后缀的
-tag 仍是正式 Release。版本校验只比较版本主体，忽略 `+build` 号。
-也可在 Actions → Release → Run workflow 手动跑
-一次（`workflow_dispatch`）：只做构建 + 签名校验的冒烟，**不创建 Release**
-（版本校验与发布步骤只对 tag 生效），用于验证 action / 构建环境升级后
-链路仍可用。
+- Every change: `flutter analyze --fatal-infos` and `flutter test`.
+- Git-layer changes: add isolated tests (temp dirs only) and manually reason about
+  data-loss and fast-forward behavior.
+- UI changes that depend on gestures, SAF write-back, icon switching or volume keys
+  need real-device verification; widget tests are not enough. Icon switching in
+  particular can only be tested on a release build.
+- Startup changes: verify cold start light and dark, and confirm there is exactly one
+  splash image and no green dot.
 
-## 维护规则
+### 8.4 CI
 
-项目结构、构建/测试命令、架构边界、开发约定或本文件记录的其他事实发生变化时，必须在同一次改动中同步更新本文件。
+`.github/workflows/ci.yml` runs `flutter analyze --fatal-infos` + `flutter test` on
+PRs and pushes to `main`, plus a separate `build-apk` job that builds a debug arm64
+APK. Manifest merging, icon resources and plugin compatibility only surface in a real
+assemble, so keep that job. Release builds are still triggered only by `v*` tags via
+`release.yml`.
+
+### 8.5 Release
+
+- Official releases come only from GitHub (`interset-wq/pullread`). Push a `v*` tag;
+  `.github/workflows/release.yml` validates that the tag matches the pubspec
+  `version`, builds the arm64 APK and creates the GitHub Release. **Never upload an
+  APK manually** — it would diverge from the tagged source.
+- Flow: bump `pubspec.yaml` version → commit → push the matching tag.
+- **Prerelease**: a SemVer prerelease suffix (e.g. tag `v1.12.0-rc1`, pubspec
+  `1.12.0-rc1+21`) uses the same build but is marked prerelease on GitHub, meaning it
+  has not passed real-device acceptance yet. Tags without `-` are stable releases.
+  Version comparison ignores the `+build` suffix.
+- Actions → Release → Run workflow (`workflow_dispatch`) performs a build + signature
+  smoke test only and **creates no Release** (version validation and publishing are
+  tag-gated). Use it after upgrading actions or the build environment.
+- Signing: local release builds use a different key from the official APK, so
+  `INSTALL_FAILED_UPDATE_INCOMPATIBLE` is expected. For local installs, use a
+  temporary `applicationIdSuffix` and never commit it.
+
+---
+
+## 9. Testing notes
+
+- `test/widget_test.dart` injects a fake `PathProviderPlatform` pointing at a temp
+  directory. Never let tests touch the real `~/Documents` (or any user data
+  directory), and avoid real IO inside fake-async widget tests.
+- Prefer `pump` with fixed durations over `pumpAndSettle` when pages contain image
+  decoding or indefinite animations.
+- Rendering baselines and their definitions live in `docs/perf.md`.
+- UX audit and the settings redesign proposal are reference material, not binding
+  specs: `docs/user-feedback.md`, `docs/settings-redesign.md`.
+
+---
+
+## 10. Maintenance
+
+If project structure, build/test commands, architecture boundaries, conventions or any
+other fact recorded here changes, update this file in the same commit. Outdated
+instructions are worse than no instructions.
