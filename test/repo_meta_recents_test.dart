@@ -117,11 +117,15 @@ void main() {
     RepoMeta.toggleStar(mirrorB.path, 'b.md');
     expect(RepoMeta.starredFiles(repoA.path), ['a.md']);
     expect(RepoMeta.starredFiles(mirrorB.path), ['b.md']);
+    expect(RepoMeta.countStars(reposRoot.path), 1);
+    expect(RepoMeta.countStars(localRoot.path), 1);
 
     RepoMeta.clearAllStars(reposRoot.path);
     RepoMeta.clearAllStars(localRoot.path);
 
     expect(RepoMeta.starredFiles(repoA.path), isEmpty);
     expect(RepoMeta.starredFiles(mirrorB.path), isEmpty);
+    expect(RepoMeta.countStars(reposRoot.path), 0);
+    expect(RepoMeta.countStars(localRoot.path), 0);
   });
 }

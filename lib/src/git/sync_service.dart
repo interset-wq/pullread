@@ -259,7 +259,7 @@ class GitSyncService {
 
   /// 远端状态：fetch 之后统计本地落后多少个提交，**不移动本地分支**。
   ///
-  /// 供仓库页「检查更新」使用：先告诉用户有多少新内容，再决定是否 pull。
+  /// 供仓库页「检查远端更新」使用：先告诉用户有多少新内容，再决定是否 pull。
   Future<RemoteStatus> checkRemote({required Directory repoDir}) {
     final path = repoDir.path;
     return Isolate.run(() {
@@ -500,9 +500,10 @@ class GitSyncService {
     final dir = Directory(path);
     if (!dir.existsSync()) return;
     if (Platform.isWindows) {
+      final winPath = path.replaceAll('/', Platform.pathSeparator);
       final res = await Process.run(
         'cmd.exe',
-        ['/c', 'rmdir', '/s', '/q', path],
+        ['/c', 'rmdir', '/s', '/q', winPath],
       );
       if (dir.existsSync()) {
         throw SyncException('删除失败: ${res.stderr}');

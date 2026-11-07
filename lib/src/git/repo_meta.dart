@@ -424,6 +424,22 @@ class RepoMeta {
     }
   }
 
+  /// 来源根目录下所有来源（仓库 + 本地镜像）的收藏总数。
+  ///
+  /// 设置页「清空收藏」用它显示数量；按 `.meta/*.json` 统计，避免逐目录扫描。
+  static int countStars(String sourcesRoot) {
+    final metaDir =
+        Directory('$sourcesRoot${Platform.pathSeparator}.meta');
+    if (!metaDir.existsSync()) return 0;
+    var total = 0;
+    for (final f in metaDir.listSync(followLinks: false)) {
+      if (f is! File || !f.path.endsWith('.json')) continue;
+      final list = _readJson(f)['starred'];
+      if (list is List) total += list.length;
+    }
+    return total;
+  }
+
   /// 清空所有来源的收藏。
   ///
   /// 仓库与本地镜像的元数据都放在来源根的 `.meta/<name>.json`，直接按文件
