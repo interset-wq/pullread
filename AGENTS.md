@@ -67,9 +67,9 @@ If-None-Match/If-Modified-Since，304 直接用缓存并刷新 mtime 重置过�
   设置页「数据 → 未写回的修改」可查看明细、重试或以镜像为准强制覆盖。
 - **代码查看**（`lib/src/ui/code_viewer.dart` + `lib/src/ui/code_view.dart` + `lib/src/notes/code_outline.dart`）：非 Markdown 文件用语法高亮只读查看（对标 GitHub mobile，并补其痛点：无 TOC、不支持 notebook）。
   - **共用渲染**：正文抽到 `CodeView` / `CodeViewController`，代码文件页与 Markdown Raw 模式共用同一套高亮、行号、查找、大纲、换行与选区；raw 固定代码字号 13、默认不换行，并使用**独立滚动控制器**（不占用阅读进度 `_scrollController`，切视图不串位置、raw 滚动不写坏进度）。读文件统一走 `decodeTextBytes`（UTF-8 优先、GBK 兜底）。
-  - **大纲**：正则启发式抽 `class/mixin/enum/extension`、`def`、`function/const 箭头函数`、`fun`、`func`、`fn`、shell 函数与 `# 注释分节`、yaml 顶层键等，最多 500 条；面板可跳行（`_currentLine` 按滚动位置反算并高亮当前条目，跳转按固定行高 19.5 估算偏移）。Raw Markdown 的大纲复用 `extractToc`（跳过围栏代码块）；`.ipynb` 的 raw 原文按 JSON 处理。
+  - **大纲**：正则启发式抽 `class/mixin/enum/extension`、`def`、`function/const 箭头函数`、`fun`、`func`、`fn`、shell 函数与 `# 注释分节`、yaml 顶层键等，最多 500 条；面板可跳行（`_currentLine` 按滚动位置反算并高亮当前条目，跳转按实测行高估算偏移）。Raw Markdown 的大纲复用 `extractToc`（跳过围栏代码块）；`.ipynb` 的 raw 原文按 JSON 处理。
   - **文内查找**：复用 `findTextMatches`，查找条显示命中计数与上一处/下一处；**不做逐字高亮**（HighlightView 内部不暴露文本偏移）。
-  - **行选区复制**：长按起始行定锚、点选结束行扩展区间，选区高亮按固定行高 19.5 整行绘制；覆盖层放在**滚动内容坐标系内**（旧实现固定在视口，滚动后高亮错位），顶部操作条复制/取消；**自动换行模式不支持**（行高不定，无法按 dy 反算行号）。
+  - **行选区复制**：长按起始行定锚、点选结束行扩展区间，选区高亮整行绘制；覆盖层放在**滚动内容坐标系内**（旧实现固定在视口，滚动后高亮错位），顶部操作条复制/取消；**自动换行模式不支持**（行高不定，无法按 dy 反算行号）。**行高必须用 `TextPainter` 按真实字体实测**（`_measureLineHeight`），不能写 `fontSize × height`：JetBrains Mono 13px / 1.5 实际是 20.0 而非 19.5，硬算会每行差 0.5px、选几十行后高亮累积偏移；行号也用 `TextScaler.noScaling` 与正文保持一致。回归测试见 `test/code_selection_test.dart`。
   - **自动换行**：开关在 AppBar，开启后隐藏行号列（折行后行号对不齐），长行不再只能横向拖。
 - **目录扫描与缓存**（`lib/src/notes/note_index.dart`）：仓库文件列表在后台
   isolate 扫描（UI 线程不做递归 `listSync`，大仓库不卡首帧），结果缓存到

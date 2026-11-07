@@ -64,8 +64,14 @@ class CodeViewController extends ChangeNotifier {
 class _CodeViewState extends State<CodeView> {
   static const _fontSize = 13.0;
   static const _lineHeightFactor = 1.5;
-  static const _lineHeight = _fontSize * _lineHeightFactor;
   static const _topPadding = 16.0;
+
+  /// 实际渲染行高（逻辑像素），由 [_measureLineHeight] 在 build 时更新。
+  ///
+  /// 不能直接用 `fontSize * height`（13 × 1.5 = 19.5）：引擎会按字体度量
+  /// 与整数像素取整，JetBrains Mono 在 13px / 1.5 下实际是 20.0。每行差
+  /// 0.5px，选中几十行后高亮就会肉眼可见地偏移。
+  double _lineHeight = _fontSize * _lineHeightFactor;
 
   late String _text;
   late List<String> _lines;
@@ -447,6 +453,9 @@ class _CodeViewState extends State<CodeView> {
           for (var i = 0; i < _lines.length; i++)
             Text(
               '${i + 1}',
+              // 与代码正文一致：不跟随系统字体缩放（HighlightView 的
+              // RichText 默认 noScaling），否则行号与代码会逐行错开。
+              textScaler: TextScaler.noScaling,
               style: currentCodeFontStyle().copyWith(
                 fontSize: _fontSize,
                 height: _lineHeightFactor,
@@ -458,6 +467,25 @@ class _CodeViewState extends State<CodeView> {
     );
   }
 
+  TextStyle get _codeTextStyle => currentCodeFontStyle().copyWith(
+        fontSize: _fontSize,
+        height: _lineHeightFactor,
+      );
+
+  /// 量一次真实行高：用与 [HighlightView] 完全相同的字体、字号与
+  /// `TextScaler.noScaling`（HighlightView 内部的 RichText 默认不跟随
+  /// 系统字体缩放），避免硬编码 `fontSize * height` 带来的累积误差。
+  double _measureLineHeight() {
+    final painter = TextPainter(
+      text: TextSpan(text: 'M\nM', style: _codeTextStyle),
+      textDirection: TextDirection.ltr,
+      textScaler: TextScaler.noScaling,
+    )..layout();
+    final height = painter.height / 2;
+    painter.dispose();
+    return height;
+  }
+
   Widget _buildHighlight(ThemeData theme, {required EdgeInsets padding}) {
     return HighlightView(
       _text,
@@ -466,16 +494,14 @@ class _CodeViewState extends State<CodeView> {
           ? atomOneDarkTheme
           : githubTheme,
       padding: padding,
-      textStyle: currentCodeFontStyle().copyWith(
-        fontSize: _fontSize,
-        height: _lineHeightFactor,
-      ),
+      textStyle: _codeTextStyle,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    _lineHeight = _measureLineHeight();
     final anchor = _selAnchor;
     final focus = _selFocus;
     final selStart = anchor != null && focus != null && !_wrap
@@ -542,6 +568,7 @@ class _CodeViewState extends State<CodeView> {
                         height: (selEnd! - selStart + 1) * _lineHeight,
                         child: IgnorePointer(
                           child: ColoredBox(
+                            key: const ValueKey('code-selection-highlight'),
                             color: theme.colorScheme.primary.withValues(
                               alpha: 0.18,
                             ),
