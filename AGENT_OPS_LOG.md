@@ -51,3 +51,28 @@
 - 涉及文件：`docs/settings-redesign.md`（新增）、`AGENT_OPS_LOG.md`
 - 验证：文档审阅；无代码改动，未运行测试
 - 遗留：建议稿尚未实现，未提交
+
+## 2026-11-07 09:32 新增用户视角体验审计报告
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Windows）
+- 操作：按 Markdown 笔记用户视角审计阅读、检索、导航、本地文件夹与同步体验，输出带代码位置的 P0/P1/P2 问题、功能建议、实施顺序与验收要求
+- 涉及文件：`docs/user-feedback.md`（新增）、`AGENT_OPS_LOG.md`
+- 验证：静态代码审计；P0 克隆尾斜杠路径已按代码逻辑确认，未在真实数据目录复现；未改业务代码
+- 遗留：报告与日志均未提交
+
+## 2026-11-07 09:35 删除错误的 Prerelease
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Windows）
+- 操作：按用户要求删除 2026-11-06 发布的 `v1.12.0-rc1` GitHub Prerelease 及对应 tag（原因：包名不正确）
+- 命令：`gh release delete v1.12.0-rc1 --yes --cleanup-tag`
+- 结果：Release 与远端 tag 均已删除；本地 tag 已不存在；未改动代码与版本号
+- 遗留：本次日志与 `docs/user-feedback.md` 尚未提交
+
+## 2026-11-07 09:50 修复发布包名并重发 Prerelease
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Windows）
+- 操作：删除 `android/app/build.gradle.kts` 中误提交的临时 `applicationIdSuffix`（debug `.devtest`、release `.reltest`），恢复发布包名为 `com.intersetwq.pullread`；版本升至 `1.12.0-rc2+22`
+- 提交：`0cae733 fix(android): remove temporary application id suffixes`、`442355a chore: bump version to 1.12.0-rc2+22`
+- 发布：创建并推送 tag `v1.12.0-rc2`；Release workflow `42325757730` 成功（5m52s），GitHub Prerelease `v1.12.0-rc2`
+- 验证：`flutter analyze` 无问题；`flutter test` 188 通过、1 失败（既有 `widget_test.dart` 首页仍停在 `BrandSplash`）；本地构建 APK 与下载的 Release APK 均为 `package name='com.intersetwq.pullread' versionName='1.12.0-rc2'`
+- 遗留：`docs/user-feedback.md` 与本日志条目尚未提交
