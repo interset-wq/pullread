@@ -155,3 +155,13 @@
   - `settings_page_test` 7 项通过；`clone_safety_test` 11 项通过
   - 全量 `flutter test` 209 项通过
   - `flutter analyze --fatal-infos` 通过
+
+## 2026-11-07 12:26 Push settings redesign branch
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Windows）
+- 分支：`feat/settings-redesign`
+- 提交：`531ff4f feat(settings): split settings into two-level pages`；
+  `a780d33 fix(git): normalize delete paths on Windows`
+- 推送：`git push -u origin feat/settings-redesign` 成功，远程跟踪已建立
+- 验证：提交前 `flutter analyze --fatal-infos` 通过，全量 `flutter test` 209 项通过
+- 未合并到 `main`，未创建 PR
