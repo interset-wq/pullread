@@ -58,9 +58,11 @@ Hard constraints:
   real-device verification; Windows has no such concept). On platforms without the
   channel, `setAppIcon` persists the preference and silently does nothing.
 - In-app logo: transparent `assets/icon/app_logo.png` is used in the home header and
-  the settings "about" page. Never use a white-background version in-app (it looks
-  wrong in dark mode). Larger marks are generated losslessly from the SVG sources in
-  `temp/icon-design/` with the logo-design skill renderer.
+  the settings "about" page (a full set `app_logo_<key>.png` covers all five marks).
+  Never use a white-background version in-app (it looks wrong in dark mode). Larger
+  marks are generated losslessly from the SVG sources in `design/icons/` (all three
+  sets: appicon / adaptive foreground / transparent in-app logo, see its README)
+  with the logo-design skill renderer.
 - `assets/icon/app_icon.png` and `app_icon_foreground.png` (book, 1024px) are the
   `flutter_launcher_icons` sources for the iOS AppIcon set and Windows `icon.ico`.
   **Set `android: false` in pubspec before running the tool and restore it
