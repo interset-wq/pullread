@@ -76,3 +76,16 @@
 - 发布：创建并推送 tag `v1.12.0-rc2`；Release workflow `42325757730` 成功（5m52s），GitHub Prerelease `v1.12.0-rc2`
 - 验证：`flutter analyze` 无问题；`flutter test` 188 通过、1 失败（既有 `widget_test.dart` 首页仍停在 `BrandSplash`）；本地构建 APK 与下载的 Release APK 均为 `package name='com.intersetwq.pullread' versionName='1.12.0-rc2'`
 - 遗留：`docs/user-feedback.md` 与本日志条目尚未提交
+
+## 2026-11-07 10:38 修复行选区高亮行高误差
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Ubuntu）
+- 问题：代码 / Raw 模式的行选区高亮高度按 `fontSize × height`（13 × 1.5 = 19.5）硬算，但 JetBrains Mono 在 Flutter 里实际渲染 20.0/行；每行差 0.5px，选中多行后高亮逐行偏移
+- 操作：
+  - `lib/src/ui/code_view.dart`：新增 `_measureLineHeight()`（用与 HighlightView 相同的字体/字号/`TextScaler.noScaling` 交给 `TextPainter` 实测），`_lineHeight` 改为运行时字段；选区高亮、`_lineAt`、`_onScroll`、`_jumpToLine` 全部改用实测值
+  - 行号 `Text` 加 `textScaler: TextScaler.noScaling`，与 HighlightView 的 RichText 保持一致（旧实现行号会跟随系统字体缩放而正文不会）
+  - 新增回归测试 `test/code_selection_test.dart`（加载真实 JetBrains Mono，长按+点选后把高亮矩形与 RenderParagraph 的实际行框对比；旧实现会得到 117 vs 120 而失败）
+  - `AGENTS.md`：更新代码查看章节的行高与大纲跳转说明
+  - 修复既有失败测试 `test/widget_test.dart`：注入 fake `PathProviderPlatform`（临时目录），避免测试真的在 `~/Documents` 下建 `repos`、也避免真实 IO 在 fake async 里等不到；`pubspec.yaml` 增加 dev 依赖 `path_provider_platform_interface` / `plugin_platform_interface`
+- 验证：`flutter analyze --fatal-infos` 通过；全量 `flutter test` 通过
+- 备注：本机未连真机复验，UI 变化靠 widget 测试覆盖；提交未 push
