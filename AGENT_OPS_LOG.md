@@ -129,3 +129,13 @@
     编码、`my.git.repo`、Windows 非法名、路径越界，以及 clone/delete 的护栏
     （只使用临时目录，不触碰真实用户数据）
 - 验证：`flutter analyze --fatal-infos` 通过；`clone_safety_test` 11 项通过
+
+## 2026-11-07 Separate branch for issue #2
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Windows）。
+- 分支：`fix/table-math-pipes`，基于 `origin/main`（`8c6aa14`）。
+- 提交：`f7aa681 fix(render): keep math pipes intact in tables`（cherry-pick 自 `009dc95`）。
+- 验证：`flutter analyze --fatal-infos` 通过；`test/table_math_test.dart` 4 项通过。
+- 已知：本地全量 `flutter test` 为 204 通过 / 1 失败，失败项 `clone_safety_test` 是 `main` 上既存的 Windows `cmd.exe rmdir` 路径问题；对应修复 `a780d33` 在 `feat/settings-redesign`，与本 PR 无关。
+- 推送：`git push -u origin fix/table-math-pipes` 成功。
+- PR：https://github.com/interset-wq/pullread/pull/3
