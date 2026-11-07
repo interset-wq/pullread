@@ -5,6 +5,7 @@ import 'dart:isolate';
 import 'package:git2dart/git2dart.dart';
 
 import '../platforms/repo_info.dart';
+import '../platforms/repo_url.dart';
 
 /// 本地仓库同步服务：封装 git2dart 的克隆 / pull / 本地删除。
 /// 仅支持公开仓库，匿名访问，无需任何凭据。
@@ -33,10 +34,17 @@ class GitSyncService {
     CloneCancelToken? cancelToken,
   }) async {
     final targetPath = '${parentDir.path}${Platform.pathSeparator}${repo.name}';
+    // 安全护栏：仓库名必须是单级、非隐藏目录名，目标必须严格位于 repos
+    // 根下一层。尾斜杠 URL 曾经解析出空名字，使 targetPath == repos 根，
+    // 随后 _prepareTarget 会递归删除所有仓库和 .meta。
+    if (!isSafeRepoName(repo.name) ||
+        !isDirectChildPath(parentDir.path, targetPath)) {
+      throw const SyncException('仓库名不合法，已取消克隆（不会删除任何本地文件）');
+    }
     // 上一次被取消/超时的克隆若还在原生代码里跑，等它退出并清理完目录，
     // 否则重试会在半成品/已完成目录上误报「本地目录已存在」
     await waitForCleanup(targetPath);
-    _prepareTarget(targetPath);
+    _prepareTarget(targetPath, parentDir: parentDir.path);
     final url = repo.cloneUrl;
     final port = ReceivePort();
     final isolate = await Isolate.spawn(
@@ -205,7 +213,14 @@ class GitSyncService {
   }
 
   /// 目标目录预检：有效仓库 → 报「已存在」；上次异常留下的半成品 → 清掉。
-  static void _prepareTarget(String path) {
+  ///
+  /// 删除前再次校验目标必须是 [parentDir] 的直接子目录、且目录名安全：
+  /// 即使调用方传错参数，也绝不递归删除 repos 根、`.meta` 或文档根。
+  static void _prepareTarget(String path, {required String parentDir}) {
+    if (!isDirectChildPath(parentDir, path) ||
+        !isSafeRepoName(pathBaseName(path))) {
+      throw SyncException('拒绝清理非仓库目录: $path');
+    }
     final dir = Directory(path);
     if (!dir.existsSync()) return;
     try {
@@ -477,7 +492,11 @@ class GitSyncService {
   ///
   /// Windows 下 .git 的对象文件是只读的，系统递归删除会失败，
   /// 用 `rmdir /s /q` 清只读删除；其余平台只读文件可直接 unlink。
-  Future<void> deleteRepo(String path) async {
+  Future<void> deleteRepo(String path, {required String reposRoot}) async {
+    if (!isDirectChildPath(reposRoot, path) ||
+        !isSafeRepoName(pathBaseName(path))) {
+      throw SyncException('拒绝删除仓库根目录以外的路径: $path');
+    }
     final dir = Directory(path);
     if (!dir.existsSync()) return;
     if (Platform.isWindows) {

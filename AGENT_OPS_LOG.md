@@ -108,3 +108,24 @@
     `.meta`/镜像根/文档根（对应 `docs/user-feedback.md` 的 P0，待修）
 - 涉及文件：`AGENTS.md`
 - 验证：纯文档改动，未运行代码检查；下一步按新文档第 5.1 节修 P0
+
+## 2026-11-07 11:10 Fix clone path data-loss risk (P0)
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）
+- 问题：`home_page` 用 `url.split('/').last.replaceAll('.git', '')` 取仓库名，
+  尾斜杠 URL 得到空名字，`GitSyncService.clone` 的目标路径退化成 repos 根目录，
+  `_prepareTarget` 随后递归删除整个 repos 根（含 `.meta` 的进度/书签/收藏）
+- 操作：
+  - 新增 `lib/src/platforms/repo_url.dart`：`parseRepoUrl`（`Uri.pathSegments` +
+    仅去尾部 `.git`，校验单级安全名）、`isSafeRepoName`（拒绝空名、`.`/`..`、
+    点开头、路径分隔符、Windows 非法字符/保留名）、`isDirectChildPath`
+    （规范化后比较路径段）、`pathBaseName`
+  - `home_page`：克隆信息改用 `parseRepoUrl`，解析失败直接提示并中止
+  - `sync_service`：`clone()` 在 `waitForCleanup`/`_prepareTarget` 之前校验
+    仓库名与目标边界；`_prepareTarget` 增加「必须是 repos 根直接子目录」护栏；
+    `deleteRepo` 改为必须传 `reposRoot` 并做同样的边界校验
+  - `home_page` / `repo_page`：删除与重新克隆路径补传 `reposRoot`
+  - 新增 `test/clone_safety_test.dart`：覆盖尾斜杠、`.`/`..`/`.meta`、百分号
+    编码、`my.git.repo`、Windows 非法名、路径越界，以及 clone/delete 的护栏
+    （只使用临时目录，不触碰真实用户数据）
+- 验证：`flutter analyze --fatal-infos` 通过；`clone_safety_test` 11 项通过

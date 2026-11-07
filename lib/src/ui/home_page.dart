@@ -12,6 +12,7 @@ import '../notes/note_index.dart';
 import '../notes/note_scanner.dart';
 import '../platforms/git_platform.dart';
 import '../platforms/repo_info.dart';
+import '../platforms/repo_url.dart';
 import '../theme/app_prefs.dart';
 import '../utils/dir_size.dart' show formatBytes;
 import 'bookmarks_page.dart';
@@ -1009,7 +1010,8 @@ class _HomePageState extends State<HomePage> {
     );
     if (ok != true) return;
     try {
-      await _sync.deleteRepo(repo.path);
+      final root = await _reposRoot;
+      await _sync.deleteRepo(repo.path, reposRoot: root.path);
       RepoMeta.remove(repo.path);
       NoteIndexCache.remove(repo.path);
       await _loadRepos();
@@ -1168,11 +1170,20 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
-    final name = url.split('/').last.replaceAll('.git', '');
+    final parsed = parseRepoUrl(url);
+    if (parsed == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('无法识别仓库地址：仓库名不能为空、不能以点开头，'
+              '也不能包含路径分隔符等非法字符'),
+        ),
+      );
+      return;
+    }
     final info = RepoInfo(
       platform: guessPlatform(url),
-      owner: url.split('/').reversed.elementAt(1),
-      name: name,
+      owner: parsed.owner,
+      name: parsed.name,
       cloneUrl: url,
     );
     setState(() => _cloning = true);
@@ -1238,7 +1249,7 @@ class _HomePageState extends State<HomePage> {
         cancelToken: cancelToken,
       );
       final root = await _reposRoot;
-      final clonePath = '${root.path}${Platform.pathSeparator}$name';
+      final clonePath = '${root.path}${Platform.pathSeparator}${info.name}';
       RepoMeta.writeClone(
         clonePath,
         url: url,
@@ -1274,7 +1285,7 @@ class _HomePageState extends State<HomePage> {
           () async {
             final root = await _reposRoot;
             await GitSyncService.waitForCleanup(
-              '${root.path}${Platform.pathSeparator}$name',
+              '${root.path}${Platform.pathSeparator}${info.name}',
             );
             if (mounted) await _loadRepos();
           }(),

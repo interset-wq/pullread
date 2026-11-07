@@ -1030,7 +1030,10 @@ class _RepoPageState extends State<RepoPage> {
       ),
     );
     try {
-      await GitSyncService().deleteRepo(widget.repoDir.path);
+      await GitSyncService().deleteRepo(
+        widget.repoDir.path,
+        reposRoot: widget.repoDir.parent.path,
+      );
       await GitSyncService().clone(
         repo: info,
         parentDir: widget.repoDir.parent,
