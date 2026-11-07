@@ -1486,7 +1486,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       const SizedBox(height: 4),
     ];
     var anchorIndex = 0;
-    for (final segment in splitGfmAlerts(content)) {
+    for (final segment in splitGfmAlerts(protectTableMathPipes(content))) {
       switch (segment) {
         case TextSegment(:final text):
           List<Toc>? tocs;
