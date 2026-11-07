@@ -165,3 +165,13 @@
 - 推送：`git push -u origin feat/settings-redesign` 成功，远程跟踪已建立
 - 验证：提交前 `flutter analyze --fatal-infos` 通过，全量 `flutter test` 209 项通过
 - 未合并到 `main`，未创建 PR
+
+## 2026-11-07 Fix issue #2 table math pipes
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Windows）。
+- 分支：`feat/settings-redesign`。
+- 提交：`009dc95 fix(render): keep math pipes intact in tables`。
+- 修复：GFM 表格按 `|` 切列会截断公式中的绝对值/范数；渲染前用 `protectTableMathPipes()` 占位，`MathNode` 还原，阅读页与编辑器预览共用。
+- 验证：`flutter analyze --fatal-infos` 通过；全量 `flutter test` 213 项通过；新增 `test/table_math_test.dart`。
+- 推送：`git push origin feat/settings-redesign` 成功（`a2ae9c4..009dc95`）。
+- 未合并 `main`，未创建 PR。
