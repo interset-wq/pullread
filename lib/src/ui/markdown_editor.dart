@@ -234,7 +234,7 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   /// （告警块按普通引用、details 标签剥离）。
   Widget _buildPreview(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
-    final data = _stripDetails(_controller.text);
+    final data = protectTableMathPipes(_stripDetails(_controller.text));
     final fontSize = 16.0;
     final generator = MarkdownGenerator(
       inlineSyntaxList: [MathInlineSyntax(), MathBlockSyntax()],
