@@ -30,14 +30,7 @@ android {
     }
 
     buildTypes {
-        debug {
-            // 仅本机验收用（临时）：与已装 release 签名不同，装成独立包避免
-            // 卸载丢数据；提交前删除。
-            applicationIdSuffix = ".devtest"
-        }
         release {
-            // TEMP-RELTEST
-            applicationIdSuffix = ".reltest"
             // 签名来源：本地直接用默认 debug keystore（~/.android/debug.keystore）；
             // CI 通过环境变量注入仓库 Secret 里的同一把 keystore，保证两端
             // 签名一致（AGP 对 debug keystore 的默认路径解析在 CI 上不可靠，
