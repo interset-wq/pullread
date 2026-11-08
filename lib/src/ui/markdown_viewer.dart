@@ -2719,9 +2719,9 @@ class _LineNumberColumn extends StatelessWidget {
 
 /// ```mermaid 围栏块：mermaid_flutter 原生渲染（纯 Dart 自绘，无 WebView）。
 /// 外观对齐代码块：左上语言标签 + 右上复制源码按钮；超宽图 FittedBox
-/// 缩放到屏宽；点按进全屏 MermaidView（pan/zoom/复位）。解析失败由
-/// errorBuilder 回退为高亮源码（最坏情况 = 原代码块展示）。
-class _MermaidBlockView extends StatelessWidget {
+/// 缩放到屏宽；点按进全屏 MermaidView（pan/zoom/复位），长按导出图片。
+/// 解析失败由 errorBuilder 回退为高亮源码（最坏情况 = 原代码块展示）。
+class _MermaidBlockView extends StatefulWidget {
   const _MermaidBlockView({
     required this.code,
     required this.highlightTheme,
@@ -2729,6 +2729,13 @@ class _MermaidBlockView extends StatelessWidget {
 
   final String code;
   final Map<String, TextStyle> highlightTheme;
+
+  @override
+  State<_MermaidBlockView> createState() => _MermaidBlockViewState();
+}
+
+class _MermaidBlockViewState extends State<_MermaidBlockView> {
+  final _captureKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -2743,35 +2750,43 @@ class _MermaidBlockView extends StatelessWidget {
           // 绘制命令；图表是几百条 Path/Text 的手绘场景，不加边界缓存时
           // 每个滚动帧都重跑 paint，明显卡顿。RepaintBoundary 让引擎把
           // 绘制结果缓存为图层，滚动只做合成偏移。
-          child: RepaintBoundary(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _openMermaidFullscreen(context, code),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.topLeft,
-                child: MermaidDiagram(
-                  source: code,
-                  theme: mermaidTheme,
-                  errorBuilder: (context, error) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '图表解析失败：$error',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.error,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topLeft,
+            // 边界放在缩放内层：导出时按图表原始尺寸抓图，而不是缩小后
+            // 的屏幕宽度，长图存下来仍然清晰。
+            child: RepaintBoundary(
+              key: _captureKey,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _openMermaidFullscreen(context, widget.code),
+                onLongPress: () => _showMermaidExport(context, _captureKey),
+                child: ColoredBox(
+                  // 图表本身透明；导出到相册/聊天软件时需要纸面底色
+                  color: theme.colorScheme.surface,
+                  child: MermaidDiagram(
+                    source: widget.code,
+                    theme: mermaidTheme,
+                    errorBuilder: (context, error) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '图表解析失败：$error',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        HighlightView(
-                          code,
-                          language: 'mermaid',
-                          theme: highlightTheme,
-                          textStyle: codeStyle,
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          HighlightView(
+                            widget.code,
+                            language: 'mermaid',
+                            theme: widget.highlightTheme,
+                            textStyle: codeStyle,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -2793,31 +2808,122 @@ class _MermaidBlockView extends StatelessWidget {
         Positioned(
           top: 0,
           right: 0,
-          child: CopyButton(code: code),
+          child: CopyButton(code: widget.code),
         ),
       ],
     );
   }
 }
 
+/// mermaid 图表的保存/分享菜单。抓图在用户选好动作后才做，避免每次
+/// 长按都渲染一遍 PNG。
+Future<void> _showMermaidExport(
+  BuildContext context,
+  GlobalKey captureKey,
+) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheet) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.download_outlined),
+            title: const Text('保存到相册'),
+            onTap: () => Navigator.pop(sheet, 'save'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.share_outlined),
+            title: const Text('分享图片'),
+            onTap: () => Navigator.pop(sheet, 'share'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (action == null) return;
+
+  final bytes = await captureRepaintBoundaryPng(captureKey);
+  if (bytes == null) {
+    messenger?.showSnackBar(
+      const SnackBar(content: Text('图表导出失败，请稍后重试')),
+    );
+    return;
+  }
+  final name = 'mermaid-${DateTime.now().millisecondsSinceEpoch}';
+  if (action == 'save') {
+    final outcome = await saveImageBytesToGallery(bytes, name: name);
+    messenger?.showSnackBar(
+      SnackBar(
+        content: Text(switch (outcome) {
+          GallerySaveOutcome.saved => '已保存到相册「PullRead」',
+          GallerySaveOutcome.denied => '未获得相册权限，保存失败',
+          GallerySaveOutcome.unsupported => '该图片格式无法存入相册，请使用分享',
+          GallerySaveOutcome.failed => '保存失败，请稍后重试',
+        }),
+      ),
+    );
+    return;
+  }
+  try {
+    await shareImageBytes(bytes, name: name, extension: '.png');
+  } on Object catch (e) {
+    messenger?.showSnackBar(SnackBar(content: Text('分享失败：$e')));
+  }
+}
+
 /// mermaid 全屏查看：MermaidView 自带 pan/zoom/复位/全屏对话框。
 void _openMermaidFullscreen(BuildContext context, String code) {
   Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (context) => Scaffold(
-        appBar: AppBar(title: const Text('图表')),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: MermaidView(
-              source: code,
-              theme: MaterialMermaidTheme.fromTheme(Theme.of(context)),
+    MaterialPageRoute<void>(builder: (_) => _MermaidFullscreenPage(code: code)),
+  );
+}
+
+class _MermaidFullscreenPage extends StatefulWidget {
+  const _MermaidFullscreenPage({required this.code});
+
+  final String code;
+
+  @override
+  State<_MermaidFullscreenPage> createState() => _MermaidFullscreenPageState();
+}
+
+class _MermaidFullscreenPageState extends State<_MermaidFullscreenPage> {
+  final _captureKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('图表'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share),
+            tooltip: '保存或分享',
+            onPressed: () => _showMermaidExport(context, _captureKey),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: RepaintBoundary(
+            key: _captureKey,
+            child: ColoredBox(
+              color: theme.colorScheme.surface,
+              child: MermaidView(
+                source: widget.code,
+                theme: MaterialMermaidTheme.fromTheme(theme),
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// 按表独立的表格节点：复制包内 TableNode.build 的组装逻辑，但列宽档位

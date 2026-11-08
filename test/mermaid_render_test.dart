@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mermaid_flutter/mermaid_flutter.dart';
+import 'package:reader/src/ui/image_actions.dart';
 
 /// mermaid 接入冒烟测试：与阅读页相同包裹方式（FittedBox +
 /// MaterialMermaidTheme.fromTheme）验证常见图类型可渲染、坏图走
@@ -76,6 +77,43 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(fallbackShown, isTrue, reason: '坏图应走 errorBuilder 回退');
       expect(find.textContaining('图表解析失败'), findsOneWidget);
+    });
+  });
+
+  group('mermaid 导出', () {
+    testWidgets('captures a RepaintBoundary as PNG bytes', (tester) async {
+      final key = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: RepaintBoundary(
+              key: key,
+              child: const SizedBox(
+                width: 60,
+                height: 30,
+                child: ColoredBox(color: Colors.teal),
+              ),
+            ),
+          ),
+        ),
+      );
+      // toImage 需要真实异步时钟，fake async 下会一直挂起
+      final bytes = await tester.runAsync(
+        () => captureRepaintBoundaryPng(key),
+      );
+      expect(bytes, isNotNull);
+      expect(
+        bytes!.sublist(0, 8),
+        [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+        reason: '应为 PNG 文件头',
+      );
+    });
+
+    testWidgets('returns null when the boundary is not laid out', (
+      tester,
+    ) async {
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      expect(await captureRepaintBoundaryPng(GlobalKey()), isNull);
     });
   });
 }

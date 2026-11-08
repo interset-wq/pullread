@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gal/gal.dart';
@@ -176,6 +177,32 @@ Future<GallerySaveOutcome> saveImageBytesToGallery(
     };
   } on Object {
     return GallerySaveOutcome.failed;
+  }
+}
+
+/// 把 [RepaintBoundary] 抓成 PNG（mermaid 图表导出用）。
+///
+/// 像素比按最长边 2048 封顶，与 [svgToPng] 保持一致；边界尚未布局或渲染
+/// 失败时返回 null，由调用方提示。
+Future<Uint8List?> captureRepaintBoundaryPng(
+  GlobalKey boundaryKey, {
+  int maxSide = 2048,
+}) async {
+  final render = boundaryKey.currentContext?.findRenderObject();
+  if (render is! RenderRepaintBoundary) return null;
+  final longest = render.size.longestSide;
+  if (longest <= 0) return null;
+  final ratio = (maxSide / longest).clamp(1.0, 3.0);
+  try {
+    final image = await render.toImage(pixelRatio: ratio);
+    try {
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      return data?.buffer.asUint8List();
+    } finally {
+      image.dispose();
+    }
+  } on Object {
+    return null;
   }
 }
 
