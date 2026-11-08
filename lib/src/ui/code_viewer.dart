@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../notes/code_outline.dart';
+import '../utils/dir_size.dart' show formatBytes;
 import '../utils/text_encoding.dart';
 import 'code_view.dart';
 
@@ -26,6 +28,10 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
   List<CodeSymbol> _symbols = const [];
   final _controller = CodeViewController();
 
+  /// 文件超过 5 MB 时只显示前 5 MB。
+  bool _truncated = false;
+  int _totalBytes = 0;
+
   @override
   void initState() {
     super.initState();
@@ -45,7 +51,20 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
   }
 
   Future<String> _load() async {
-    final bytes = await File(widget.path).readAsBytes();
+    // 大文件（日志、生成代码、压缩包误判等）整文件高亮会卡死 UI 甚至 OOM：
+    // 只读前 5 MB，并在正文上方提示已截断。
+    const maxBytes = 5 * 1024 * 1024;
+    final file = File(widget.path);
+    final totalBytes = await file.length();
+    _totalBytes = totalBytes;
+    _truncated = totalBytes > maxBytes;
+    final raf = await file.open();
+    Uint8List bytes;
+    try {
+      bytes = await raf.read(_truncated ? maxBytes : totalBytes);
+    } finally {
+      await raf.close();
+    }
     final text = _decode(bytes);
     _symbols = extractCodeOutline(
       text.replaceAll('\r\n', '\n').replaceAll('\r', '\n'),
@@ -155,11 +174,27 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          return CodeView(
+          final code = CodeView(
             content: snapshot.data!,
             language: _language,
             outline: _symbols,
             controller: _controller,
+          );
+          if (!_truncated) return code;
+          return Column(
+            children: [
+              Container(
+                width: double.infinity,
+                color: theme.colorScheme.secondaryContainer,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  '文件过大（${formatBytes(_totalBytes)}），仅显示前 5 MB',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              Expanded(child: code),
+            ],
           );
         },
       ),
