@@ -1,0 +1,100 @@
+# Reading flow, search and data
+
+> 细节文档：阅读流程、查找、索引/搜索、标签、断链、存储与设置页。
+
+## Reading flow (`markdown_viewer.dart`)
+
+- **Open and resume**: after the first layout, restore the last position (heading
+  anchor first, fraction fallback) and offer "read from start" in a SnackBar. Do not
+  show a modal on every open (old behavior).
+- **Write progress only for user scrolls**: restore uses `animateTo` /
+  `scrollToIndex`, which also fire the `ScrollController` listener. Confirm the round
+  of scrolling was user-initiated (`ScrollStartNotification.dragDetails != null`,
+  reset on `ScrollEndNotification`) before persisting. Otherwise opening and
+  immediately leaving overwrites progress with an intermediate animation position
+  (observed: 87% became 55%).
+- **Bookmarks** are paragraph-level: record heading + whole-document fraction in
+  `RepoMeta.bookmarks` (100 per repo, dedupe within 1% of the same file). The
+  in-article panel can jump/delete. Home shows the five most recent; `BookmarksPage`
+  groups all by repository. Opening uses `MarkdownViewerPage.initialFraction`
+  (lower precedence than `initialFindQuery`, and it skips resume).
+- **Previous/next in the same directory** reuse `NoteIndexCache`; opening an article
+  must not trigger a recursive scan. If the cache is missing, scan in the background
+  and write it back.
+- **In-text find**: the AppBar search icon opens a find bar (Raw mode uses
+  `CodeView`'s source find). Matches are reported by line in the same coordinate
+  system as `TocEntry.line` (both based on the post-front-matter / converted body).
+  Jumps currently locate the heading that contains the match; documents without
+  headings scroll by character ratio. Match highlighting is per character via
+  `MarkdownGenerator.textGenerator` (`_FindHighlightNode`), case-insensitive, and
+  only applies to plain-text nodes (not links/code blocks).
+- **Search entry**: opening from a body search result passes `initialFindQuery` so
+  the find bar opens, counts matches and jumps to the first one.
+- **Recent reading** (`RepoMeta.pushRecent` / `readRecentEntries`): recorded per
+  source root, not per repo. Git repos share `<reposRoot>/.meta/recents.json`;
+  local mirrors must pass `recentsRoot: <docs>/local` so they share
+  `<docs>/local/.meta/recents.json`. Entries carry an ISO-8601 timestamp; home
+  merges both roots, sorts newest first and dedupes per source. Never let each
+  local mirror write its own recents file. Home filtering (`home_feed.dart`) also
+  drops entries whose file no longer exists, for both favorites and recents, so
+  deleted/renamed notes never leave unresponsive ghost cards.
+- **Repository reading status**: file rows show "read N% / finished" (<0.5% is not
+  shown); the toolbar's "unread only" filter hides only files that already have
+  reading records. Read all records at once with `RepoMeta.readAllProgress` and
+  refresh when returning from the reader.
+
+## Directory index and search
+
+- **Index cache** (`lib/src/notes/note_index.dart`): repository file lists are
+  scanned in a background isolate (never recursive `listSync` on the UI thread),
+  cached to `<reposRoot>/.meta/index/<repoName>.json`, and rendered
+  stale-while-revalidate. Remove the cache when deleting a repo/local folder.
+- **Full-text search** (`lib/src/search/`): the repo page can switch between
+  filename and body search; the home search icon opens
+  `lib/src/ui/global_search_page.dart` across repositories and local folders
+  (sequential per source, results stream in per group; local sources are labeled
+  `本地 · <name>` so they stay distinct from same-named repos). Supports search
+  history (persisted in `AppPrefs`,
+  max 12; tap to search, ✕ to delete), source filters (multi-select; none = all)
+  and "body / title only" modes. Title-only matches filenames/paths without reading
+  files and does not open with a find query.
+- Body search reads md/ipynb inside an isolate (max 2 MB per file) and does linear
+  matching: split the query on whitespace (including full-width spaces), require
+  **all terms** (AND), and produce per-term highlight ranges with
+  `SearchSnippet.highlights` for the UI. Markdown is searched after stripping
+  front matter and normalizing HTML images, i.e. the same body the reader renders,
+  so every reported hit is visible to in-text find. Sort order: path matches all
+  terms → match count → path.
+- **Deliberately no inverted index**: for Chinese 2-grams the postings are the same
+  order of magnitude as the text, often larger after serialization, while note repos
+  hold only a few MB. Page cache + `indexOf` is fast and has no index staleness.
+
+## Tags, link checking, storage, settings
+
+- **Tags** (`lib/src/notes/tag_index.dart`, `lib/src/ui/tag_page.dart`): the home tag
+  icon opens a page aggregating front-matter `tags` from all repos and local mirrors
+  (reads only the first 8 KB of each file, scans in an isolate). Selecting multiple
+  tags requires ALL of them (AND) across sources. **Implicit directory tags** are a
+  toggle (default on, top-right of the tag page): each directory level is merged into
+  the tag set, so repos without front matter are still navigable.
+- **Link checking** (`lib/src/notes/link_check.dart`): repo page "more → check broken
+  links" validates relative links/images in bulk, skipping external URLs, anchors and
+  code blocks, decoding percent-encoding and resolving `../`. Results are grouped by
+  source file and copyable. Strictly read-only.
+- **Settings** (`lib/src/ui/settings/`): two-level Material 3 layout. The root has
+  six navigation rows (reading, appearance, repositories, file display, storage/data,
+  about) with current values; each subpage owns 2–4 card groups. Sliders keep a local
+  draft and persist only on `onChangeEnd`; the fold threshold is disabled while long
+  code folding is off; desktop icon switching is Android-only; every subpage has
+  "restore this page". Shared theme selection is in `theme_mode_selector.dart`.
+- **Storage page** (`lib/src/ui/storage_page.dart`, `lib/src/utils/dir_size.dart`):
+  settings → Storage & data → Storage shows disk usage for `repos`, `local`,
+  `imgcache` and `.meta` (recursive sizes summed in a background isolate). Image cache
+  can be cleared (delete files, keep the directory); the metadata section can clear
+  reading history. Repo/mirror deletion stays on the home cards.
+- **Storage & data settings** (`lib/src/ui/settings/data_settings_page.dart`): lists
+  pending write-backs with a conflict badge and clears search history; reading history
+  and favorites live under a separate destructive section with counts. Clearing them
+  covers **both** source roots (`<docs>/repos` and `<docs>/local`) and counts come
+  from `RepoMeta.countStars`, so local folders are never skipped.
+
