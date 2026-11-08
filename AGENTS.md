@@ -311,6 +311,12 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
   only applies to plain-text nodes (not links/code blocks).
 - **Search entry**: opening from a body search result passes `initialFindQuery` so
   the find bar opens, counts matches and jumps to the first one.
+- **Recent reading** (`RepoMeta.pushRecent` / `readRecentEntries`): recorded per
+  source root, not per repo. Git repos share `<reposRoot>/.meta/recents.json`;
+  local mirrors must pass `recentsRoot: <docs>/local` so they share
+  `<docs>/local/.meta/recents.json`. Entries carry an ISO-8601 timestamp; home
+  merges both roots, sorts newest first and dedupes per source. Never let each
+  local mirror write its own recents file.
 - **Repository reading status**: file rows show "read N% / finished" (<0.5% is not
   shown); the toolbar's "unread only" filter hides only files that already have
   reading records. Read all records at once with `RepoMeta.readAllProgress` and
@@ -324,9 +330,11 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
   stale-while-revalidate. Remove the cache when deleting a repo/local folder.
 - **Full-text search** (`lib/src/search/`): the repo page can switch between
   filename and body search; the home search icon opens
-  `lib/src/ui/global_search_page.dart` across repositories (sequential per repo,
-  results stream in per group). Supports search history (persisted in `AppPrefs`,
-  max 12; tap to search, ✕ to delete), repository filters (multi-select; none = all)
+  `lib/src/ui/global_search_page.dart` across repositories and local folders
+  (sequential per source, results stream in per group; local sources are labeled
+  `本地 · <name>` so they stay distinct from same-named repos). Supports search
+  history (persisted in `AppPrefs`,
+  max 12; tap to search, ✕ to delete), source filters (multi-select; none = all)
   and "body / title only" modes. Title-only matches filenames/paths without reading
   files and does not open with a find query.
 - Body search reads md/ipynb inside an isolate (max 2 MB per file) and does linear

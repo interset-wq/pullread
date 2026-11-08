@@ -32,7 +32,6 @@ import '../notes/toc.dart';
 import '../search/text_search.dart';
 import '../theme/app_prefs.dart';
 import 'code_view.dart';
-import 'code_viewer.dart';
 import 'copy_button.dart';
 import 'code_font.dart';
 import 'h_scrollbar.dart';
@@ -40,6 +39,7 @@ import 'image_actions.dart';
 import 'repo_page.dart';
 import 'image_gallery.dart';
 import 'markdown_editor.dart';
+import 'open_note.dart';
 import 'repo_image.dart';
 
 /// 笔记阅读页：Markdown 渲染 + 代码高亮 + 相对路径图片。
@@ -169,6 +169,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     }
     if (!mounted) return;
     final siblings = files
+        .where((n) => n.isMarkdown)
         .where((n) => n.relativePath.replaceAll('\\', '/').startsWith(dirPart))
         .where((n) => !n.relativePath
             .replaceAll('\\', '/')
@@ -354,6 +355,11 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       widget.repoRoot,
       widget.note.relativePath,
       limit: AppPrefs.instance?.recentsLimit ?? 5,
+      // 本地镜像没有 .git，显式让所有镜像共用 <docs>/local 的全局记录，
+      // 否则每个镜像各写一份，首页无法跨来源按时间排序。
+      recentsRoot: LocalFolderService.isLocalMirror(widget.repoRoot)
+          ? File(widget.repoRoot).parent.path
+          : null,
     );
     var body = raw;
     if (widget.note.absolutePath.toLowerCase().endsWith('.ipynb')) {
@@ -1830,7 +1836,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     return parts.join(Platform.pathSeparator);
   }
 
-  /// 打开仓库内文件：笔记进阅读页，其余进代码/图片查看器。
+  /// 打开仓库内文件：统一走 [openNoteFile] 分流（笔记 → 阅读页，
+  /// 图片 → 图库，其余 → 代码查看器），并顺带清除更新标记、记录最近打开。
   void _openLocalFile(String path) {
     final stat = File(path).statSync();
     final note = NoteFile(
@@ -1839,14 +1846,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       modified: stat.modified,
       sizeBytes: stat.size,
     );
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => note.isMarkdown
-            ? MarkdownViewerPage(note: note, repoRoot: widget.repoRoot)
-            : CodeViewerPage(path: path, fileName: note.fileName),
-      ),
-    );
+    unawaited(openNoteFile(context, repoRoot: widget.repoRoot, note: note));
   }
 
   /// GitHub 风格标题锚点匹配：小写、去特殊字符、空格转连字符（保留 CJK）。

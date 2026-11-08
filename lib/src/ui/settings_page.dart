@@ -490,8 +490,11 @@ class SettingsPage extends StatelessWidget {
     required void Function(String reposRoot) clear,
   }) async {
     final docs = await getApplicationDocumentsDirectory();
-    final root = '${docs.path}${Platform.pathSeparator}repos';
-    clear(root);
+    final sep = Platform.pathSeparator;
+    // 最近阅读按来源根目录存放：Git 仓库在 repos/.meta，本地镜像在
+    // local/.meta；两个都要清，否则清完首页仍能看到本地文件夹的历史。
+    clear('${docs.path}${sep}repos');
+    clear('${docs.path}${sep}local');
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已清空')),

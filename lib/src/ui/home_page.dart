@@ -18,7 +18,7 @@ import '../utils/dir_size.dart' show formatBytes;
 import 'bookmarks_page.dart';
 import 'brand_splash.dart';
 import 'global_search_page.dart';
-import 'markdown_viewer.dart';
+import 'home_feed.dart';
 import 'open_note.dart';
 import 'pull_progress.dart';
 import 'repo_page.dart';
@@ -39,6 +39,10 @@ class _HomePageState extends State<HomePage> {
   final _sync = GitSyncService();
   List<Directory>? _repos;
   List<LocalFolder>? _localFolders;
+
+  /// 本地文件夹的镜像根目录（与 [_localFolders] 同步刷新）。首页聚合、
+  /// 全局搜索和续读卡都需要真实目录，提前解析好避免每帧 await。
+  List<Directory> _localMirrors = const [];
   bool _cloning = false;
   bool _updatingAll = false;
 
@@ -66,8 +70,19 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadLocals() async {
     final folders = await LocalFolderService.listFolders();
+    final mirrors = <Directory>[];
+    for (final folder in folders) {
+      try {
+        mirrors.add(await LocalFolderService.mirrorDir(folder.name));
+      } on Object {
+        // 单个镜像目录不可用不影响其他来源
+      }
+    }
     if (!mounted) return;
-    setState(() => _localFolders = folders);
+    setState(() {
+      _localFolders = folders;
+      _localMirrors = mirrors;
+    });
     unawaited(_refreshUpdateCount());
     unawaited(_loadBookmarks());
   }
@@ -394,6 +409,12 @@ class _HomePageState extends State<HomePage> {
     final theme = Theme.of(context);
     final repos = _repos ?? const <Directory>[];
     final locals = _localFolders ?? const <LocalFolder>[];
+    final starred = collectHomeStarred(repos, _localMirrors);
+    final recents = collectHomeRecents(
+      repos,
+      _localMirrors,
+      limit: AppPrefs.instance?.recentsLimit ?? 5,
+    );
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
@@ -405,14 +426,17 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           IconButton(
-            tooltip: '搜索全部仓库',
+            tooltip: '搜索全部仓库和本地文件夹',
             icon: const Icon(Icons.search),
-            onPressed: repos.isEmpty
+            onPressed: repos.isEmpty && locals.isEmpty
                 ? null
                 : () => Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (_) => GlobalSearchPage(repos: repos),
+                        builder: (_) => GlobalSearchPage(
+                          repos: repos,
+                          locals: _localMirrors,
+                        ),
                       ),
                     ),
           ),
@@ -533,7 +557,8 @@ class _HomePageState extends State<HomePage> {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, i) {
                         if (i == 0) {
-                          final resume = _continueReading(repos);
+                          final resume =
+                              _continueReading(repos, _localMirrors);
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -542,18 +567,15 @@ class _HomePageState extends State<HomePage> {
                                 const SizedBox(height: 16),
                               ],
                               _buildFileStrip(
-                                repos,
                                 title: '⭐ 收藏',
-                                files: _collectStarred(repos),
+                                files: starred,
                                 starred: true,
                               ),
-                              if (_collectStarred(repos).isNotEmpty &&
-                                  _collectRecents(repos).isNotEmpty)
+                              if (starred.isNotEmpty && recents.isNotEmpty)
                                 const SizedBox(height: 12),
                               _buildFileStrip(
-                                repos,
                                 title: '最近阅读',
-                                files: _collectRecents(repos),
+                                files: recents,
                                 starred: false,
                               ),
                               if (_recentBookmarks.isNotEmpty) ...[
@@ -672,8 +694,13 @@ class _HomePageState extends State<HomePage> {
 
   /// 「继续阅读」候选：最近阅读里第一篇文章，且进度在 (2%, 98%) 之间
   /// （刚开始读的 0% 和已读完的不值得单独占一张卡）。
-  (Directory, String, double)? _continueReading(List<Directory> repos) {
-    for (final (repo, relPath) in _collectRecents(repos)) {
+  (Directory, String, double)? _continueReading(
+    List<Directory> repos,
+    List<Directory> locals,
+  ) {
+    final limit = AppPrefs.instance?.recentsLimit ?? 5;
+    for (final (repo, relPath)
+        in collectHomeRecents(repos, locals, limit: limit)) {
       final (fraction, _) = RepoMeta.readProgressInfo(repo.path, relPath);
       if (fraction <= 0.02 || fraction >= 0.98) continue;
       final file = File(
@@ -691,6 +718,9 @@ class _HomePageState extends State<HomePage> {
     final (repo, relPath, fraction) = resume;
     final theme = Theme.of(context);
     final repoName = repo.path.split(Platform.pathSeparator).last;
+    final origin = LocalFolderService.isLocalMirror(repo.path)
+        ? '本地 · $repoName'
+        : repoName;
     final fileName = relPath.split('/').last;
     return Material(
       color: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
@@ -728,7 +758,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$repoName · 已读 ${(fraction * 100).round()}%',
+                      '$origin · 已读 ${(fraction * 100).round()}%',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -831,8 +861,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// 首页横滑文件条（收藏 / 最近阅读）。
-  Widget _buildFileStrip(
-    List<Directory> repos, {
+  Widget _buildFileStrip({
     required String title,
     required List<(Directory, String)> files,
     required bool starred,
@@ -857,13 +886,16 @@ class _HomePageState extends State<HomePage> {
               final (repo, relPath) = files[i];
               final repoName =
                   repo.path.split(Platform.pathSeparator).last;
+              final origin = LocalFolderService.isLocalMirror(repo.path)
+                  ? '本地 · $repoName'
+                  : repoName;
               final fileName = relPath.split('/').last;
               final parentDir = relPath.split('/')
                 ..removeLast()
                 ..removeWhere((s) => s.isEmpty);
               final subtitle = parentDir.isEmpty
-                  ? repoName
-                  : '$repoName · ${parentDir.last}';
+                  ? origin
+                  : '$origin · ${parentDir.last}';
               return Material(
                 color: theme.colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(12),
@@ -923,57 +955,27 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// 跨仓库聚合收藏文章（每仓库按收藏先后）。
-  List<(Directory, String)> _collectStarred(List<Directory> repos) {
-    final out = <(Directory, String)>[];
-    for (final repo in repos) {
-      for (final rel in RepoMeta.starredFiles(repo.path)) {
-        out.add((repo, rel));
-      }
-    }
-    return out;
-  }
-
-  /// 跨仓库聚合最近阅读（全局新→旧）。
-  List<(Directory, String)> _collectRecents(List<Directory> repos) {
-    if (repos.isEmpty) return const [];
-    final root = Directory(repos.first.parent.path);
-    final byName = {
-      for (final d in repos)
-        d.path.split(Platform.pathSeparator).last: d,
-    };
-    return RepoMeta.readRecents(root.path)
-        .take(AppPrefs.instance?.recentsLimit ?? 5)
-        .map((e) => byName[e.$1] == null ? null : (byName[e.$1]!, e.$2))
-        .whereType<(Directory, String)>()
-        .toList();
-  }
-
-  /// 打开最近阅读的文章（仅 Markdown；文件已删除时忽略）。
-  void _openRecentFile(Directory repo, String relPath) {
+  /// 打开最近阅读的文章（统一走 [openNoteFile]：清除更新标记、记录最近打开；
+  /// 文件已删除时忽略）。
+  Future<void> _openRecentFile(Directory repo, String relPath) async {
     final file = File(
       '${repo.path}${Platform.pathSeparator}'
       '${relPath.replaceAll('/', Platform.pathSeparator)}',
     );
     if (!file.existsSync()) return;
     final stat = file.statSync();
-    Navigator.push(
+    await openNoteFile(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => MarkdownViewerPage(
-          note: NoteFile(
-            relativePath: relPath,
-            absolutePath: file.path,
-            modified: stat.modified,
-            sizeBytes: stat.size,
-          ),
-          repoRoot: repo.path,
-        ),
+      repoRoot: repo.path,
+      note: NoteFile(
+        relativePath: relPath,
+        absolutePath: file.path,
+        modified: stat.modified,
+        sizeBytes: stat.size,
       ),
-    ).then((_) {
-      // 阅读页会更新进度：回到首页刷新「继续阅读」与「最近阅读」
-      if (mounted) setState(() {});
-    });
+    );
+    // 阅读页会更新进度：回到首页刷新「继续阅读」与「最近阅读」
+    if (mounted) setState(() {});
   }
 
   Future<void> _openRepo(Directory repoDir) async {

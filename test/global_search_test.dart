@@ -64,4 +64,27 @@ void main() {
     await settleSearch(tester, 250);
     expect(find.byType(ListTile), findsOneWidget);
   });
+
+  testWidgets('searches local mirrors and labels them apart from repos',
+      (tester) async {
+    final localRoot = Directory('${root.path}${Platform.pathSeparator}local')
+      ..createSync();
+    final mirror = Directory('${localRoot.path}${Platform.pathSeparator}a')
+      ..createSync();
+    File('${mirror.path}${Platform.pathSeparator}note.md')
+        .writeAsStringSync('flutter local');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GlobalSearchPage(repos: [repoA], locals: [mirror]),
+      ),
+    );
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), 'flutter');
+    await settleSearch(tester, 450);
+
+    expect(find.byType(ListTile), findsNWidgets(2), reason: '仓库与本地镜像各命中一条');
+    // 同名来源用「本地 · 」前缀区分（分组标题与过滤标签都会出现）
+    expect(find.text('本地 · a'), findsWidgets);
+  });
 }

@@ -374,26 +374,42 @@ class RepoMeta {
       const [];
 
   /// 记录一次阅读到全局最近阅读（去重、新的在前、限量）。
-  /// 每条格式 `仓库名<TAB>相对路径`，跨仓库聚合展示。
+  ///
+  /// 每条格式 `来源名<TAB>相对路径<TAB>ISO8601 时间`，跨来源聚合展示；
+  /// 时间字段用于把 Git 仓库与本地镜像的最近阅读合并排序（旧条目没有该
+  /// 字段，解析时允许为空）。
+  ///
+  /// [recentsRoot] 用于本地文件夹镜像：镜像根目录不是 Git 仓库，
+  /// 无法像仓库那样从 `.git` 推断出上级目录，调用方显式传入
+  /// `<docs>/local`，让所有镜像共用一份全局记录。
   static void pushRecent(
     String repoRoot,
     String relativePath, {
     int limit = 5,
+    String? recentsRoot,
   }) {
     final name = repoRoot.split(Platform.pathSeparator).last;
-    final entry = '$name\t${relativePath.replaceAll('\\', '/')}';
-    final f = _recentsFile(repoRoot);
+    final key = '$name\t${relativePath.replaceAll('\\', '/')}';
+    final entry = '$key\t${DateTime.now().toIso8601String()}';
+    final f = _recentsFile(recentsRoot ?? repoRoot);
     final raw = _readJson(f);
     final list = (raw['recents'] as List?)?.cast<String>().toList() ?? [];
-    list
-      ..remove(entry)
-      ..insert(0, entry);
+    list.removeWhere((e) => _recentKey(e) == key);
+    list.insert(0, entry);
     final cap = limit.clamp(1, _maxEntries);
     if (list.length > cap) {
       list.removeRange(cap, list.length);
     }
     raw['recents'] = list;
     _writeJson(f, raw);
+  }
+
+  /// 条目去掉时间后的 `来源名<TAB>相对路径`（用于去重）。
+  static String _recentKey(String entry) {
+    final first = entry.indexOf('\t');
+    if (first < 0) return entry;
+    final second = entry.indexOf('\t', first + 1);
+    return second < 0 ? entry : entry.substring(0, second);
   }
 
   /// 清空全局最近阅读。
@@ -424,16 +440,37 @@ class RepoMeta {
     }
   }
 
-  /// 全局最近阅读列表，新的在前，每条为 (仓库名, 相对路径)。
-  static List<(String, String)> readRecents(String reposRoot) =>
-      ((_readJson(_recentsFile(reposRoot))['recents'] as List?) ?? const [])
-          .cast<String>()
-          .map((e) {
-        final i = e.indexOf('\t');
-        return i < 0 ? null : (e.substring(0, i), e.substring(i + 1));
-      })
-          .whereType<(String, String)>()
-          .toList();
+  /// 全局最近阅读列表（旧→新按文件内顺序，新的在前），每条为
+  /// (仓库名, 相对路径)；需要跨来源按时间排序时用 [readRecentEntries]。
+  static List<(String, String)> readRecents(String reposRoot) => [
+        for (final e in readRecentEntries(reposRoot))
+          (e.repoName, e.relativePath),
+      ];
+
+  /// 全局最近阅读条目，含记录时间（旧条目为 null）。
+  ///
+  /// 每个来源根目录（`<repos>/`、`<docs>/local/`）各有一份
+  /// `.meta/recents.json`；首页合并两份后按时间倒序展示。
+  static List<({String repoName, String relativePath, DateTime? at})>
+      readRecentEntries(String reposRoot) {
+    final out = <({String repoName, String relativePath, DateTime? at})>[];
+    for (final entry
+        in ((_readJson(_recentsFile(reposRoot))['recents'] as List?) ??
+                const [])
+            .cast<String>()) {
+      final first = entry.indexOf('\t');
+      if (first < 0) continue;
+      final second = entry.indexOf('\t', first + 1);
+      out.add((
+        repoName: entry.substring(0, first),
+        relativePath: second < 0
+            ? entry.substring(first + 1)
+            : entry.substring(first + 1, second),
+        at: second < 0 ? null : DateTime.tryParse(entry.substring(second + 1)),
+      ));
+    }
+    return out;
+  }
 
   static Map<String, dynamic> _readJson(File f) {
     if (!f.existsSync()) return <String, dynamic>{};

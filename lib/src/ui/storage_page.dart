@@ -22,6 +22,7 @@ class StoragePage extends StatefulWidget {
 
 class _StoragePageState extends State<StoragePage> {
   String _reposRoot = '';
+  String _localRoot = '';
   bool _loading = true;
   int _reposBytes = 0;
   int _localBytes = 0;
@@ -50,6 +51,7 @@ class _StoragePageState extends State<StoragePage> {
     if (!mounted) return;
     setState(() {
       _reposRoot = reposRoot;
+      _localRoot = localRoot;
       _reposBytes = sizes[0];
       _localBytes = sizes[1];
       _imgCacheBytes = sizes[2];
@@ -194,6 +196,7 @@ class _StoragePageState extends State<StoragePage> {
     );
     if (!ok) return;
     RepoMeta.clearRecents(_reposRoot);
+    if (_localRoot.isNotEmpty) RepoMeta.clearRecents(_localRoot);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已清空')),

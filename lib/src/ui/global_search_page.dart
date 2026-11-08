@@ -7,18 +7,26 @@ import '../notes/note_scanner.dart';
 import '../search/repo_search.dart';
 import '../search/text_search.dart';
 import '../theme/app_prefs.dart';
-import 'markdown_viewer.dart';
+import 'open_note.dart';
 import 'search_snippet_text.dart';
 
-/// 跨仓库搜索页：逐个仓库检索、结果按仓库分组流式出现。
+/// 跨仓库/本地文件夹搜索页：逐个来源检索、结果按来源分组流式出现。
 ///
-/// 单个仓库的检索由 [RepoSearchService] 在 isolate 内完成；这里顺序遍历
-/// 选中的仓库，避免同时开一堆 isolate 抢 CPU。
-/// 支持搜索历史（本地持久化）、按仓库过滤、「仅标题 / 仅正文」两种模式。
+/// 单个来源的检索由 [RepoSearchService] 在 isolate 内完成；这里顺序遍历
+/// 选中的来源，避免同时开一堆 isolate 抢 CPU。
+/// 支持搜索历史（本地持久化）、按来源过滤、「仅标题 / 仅正文」两种模式。
 class GlobalSearchPage extends StatefulWidget {
-  const GlobalSearchPage({required this.repos, super.key});
+  const GlobalSearchPage({
+    required this.repos,
+    this.locals = const [],
+    super.key,
+  });
 
+  /// Git 仓库的本地克隆根目录。
   final List<Directory> repos;
+
+  /// 本地文件夹的镜像根目录（与仓库共用扫描 / 搜索 / 渲染管线）。
+  final List<Directory> locals;
 
   @override
   State<GlobalSearchPage> createState() => _GlobalSearchPageState();
@@ -33,8 +41,30 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
   int _seq = 0;
   List<_GlobalHit> _hits = const [];
 
-  /// 选中的仓库名集合；空 = 全部仓库。
+  /// 选中的来源名集合；空 = 全部来源。
   Set<String> _selectedRepos = {};
+
+  /// 搜索来源（Git 仓库 + 本地镜像），构建一次后复用。
+  List<_SearchSource>? _sourcesCache;
+
+  List<_SearchSource> get _sources => _sourcesCache ??= () {
+        final out = <_SearchSource>[];
+        for (final repo in widget.repos) {
+          out.add(_SearchSource(
+            name: repo.path.split(Platform.pathSeparator).last,
+            root: repo,
+          ));
+        }
+        for (final local in widget.locals) {
+          out.add(_SearchSource(
+            // 本地镜像总带「本地」前缀：与同名 Git 仓库区分。
+            name:
+                '本地 · ${local.path.split(Platform.pathSeparator).last}',
+            root: local,
+          ));
+        }
+        return out;
+      }();
 
   @override
   void dispose() {
@@ -66,26 +96,23 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
     _debounce = Timer(Duration(milliseconds: delayMs), () => _run(_query));
   }
 
-  /// 仓库在当前过滤范围（全部 / 勾选集合）内才参与检索。
-  bool _inScope(Directory repo) {
+  /// 来源在当前过滤范围（全部 / 勾选集合）内才参与检索。
+  bool _inScope(_SearchSource source) {
     if (_selectedRepos.isEmpty) return true;
-    return _selectedRepos.contains(_repoName(repo));
+    return _selectedRepos.contains(source.name);
   }
-
-  String _repoName(Directory repo) =>
-      repo.path.split(Platform.pathSeparator).last;
 
   Future<void> _run(String query) async {
     final seq = ++_seq;
     unawaited(AppPrefs.instance?.addSearchHistory(query));
     final merged = <_GlobalHit>[];
-    for (final repo in widget.repos) {
-      if (!_inScope(repo)) continue;
+    for (final source in _sources) {
+      if (!_inScope(source)) continue;
       if (!mounted || seq != _seq) return;
       List<FileSearchResult> hits;
       try {
         hits = await RepoSearchService.search(
-          repoRoot: repo.path,
+          repoRoot: source.root.path,
           query: query,
           titleOnly: _titleOnly,
         );
@@ -95,9 +122,9 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
       if (!mounted || seq != _seq) return;
       merged.addAll([
         for (final hit in hits)
-          _GlobalHit(repo: repo, repoName: _repoName(repo), result: hit),
+          _GlobalHit(source: source, result: hit),
       ]);
-      // 逐仓库更新：先搜完的仓库先出结果，不必等全部结束
+      // 逐来源更新：先搜完的来源先出结果，不必等全部结束
       setState(() => _hits = List.of(merged));
     }
     if (mounted && seq == _seq) setState(() => _searching = false);
@@ -114,7 +141,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             border: InputBorder.none,
-            hintText: _titleOnly ? '按文件名搜索全部仓库' : '搜索全部仓库的正文',
+            hintText: _titleOnly ? '按文件名搜索全部来源' : '搜索全部来源的正文',
           ),
           onChanged: _onChanged,
         ),
@@ -166,9 +193,10 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
     );
   }
 
-  /// 仓库过滤：横向滚动的筛选标签，未选任何仓库 = 搜全部。
+  /// 来源过滤：横向滚动的筛选标签，未选任何来源 = 搜全部。
   Widget _repoFilterChips(ThemeData theme) {
-    if (widget.repos.length < 2) return const SizedBox.shrink();
+    final sources = _sources;
+    if (sources.length < 2) return const SizedBox.shrink();
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -183,20 +211,20 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
               _scheduleRun();
             },
           ),
-          for (final repo in widget.repos)
+          for (final source in sources)
             Padding(
               padding: const EdgeInsets.only(left: 6),
               child: FilterChip(
-                label: Text(_repoName(repo)),
-                selected: _selectedRepos.contains(_repoName(repo)),
+                label: Text(source.name),
+                selected: _selectedRepos.contains(source.name),
                 showCheckmark: false,
                 visualDensity: VisualDensity.compact,
                 onSelected: (selected) {
                   setState(() {
                     final next = Set.of(_selectedRepos);
                     selected
-                        ? next.add(_repoName(repo))
-                        : next.remove(_repoName(repo));
+                        ? next.add(source.name)
+                        : next.remove(source.name);
                     _selectedRepos = next;
                   });
                   // 改过滤条件立即重跑，否则要再改一次查询才生效
@@ -217,9 +245,9 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Text(
-              widget.repos.isEmpty
-                  ? '还没有克隆任何仓库'
-                  : '在 ${widget.repos.length} 个仓库中搜索（至少 2 个字符）',
+              widget.repos.isEmpty && widget.locals.isEmpty
+                  ? '还没有仓库或本地文件夹'
+                  : '在 ${_sources.length} 个来源中搜索（至少 2 个字符）',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -278,19 +306,20 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
       );
     }
     final visible = _hits
-        .where((hit) => _selectedRepos.isEmpty ||
-            _selectedRepos.contains(hit.repoName))
+        .where((hit) =>
+            _selectedRepos.isEmpty ||
+            _selectedRepos.contains(hit.source.name))
         .toList();
     final items = <Widget>[];
-    String? lastRepo;
+    String? lastSource;
     for (final hit in visible) {
-      if (hit.repoName != lastRepo) {
-        lastRepo = hit.repoName;
+      if (hit.source.name != lastSource) {
+        lastSource = hit.source.name;
         items.add(
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
-              hit.repoName,
+              hit.source.name,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: theme.colorScheme.primary,
               ),
@@ -361,41 +390,40 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
     );
   }
 
-  void _openHit(_GlobalHit hit) {
+  Future<void> _openHit(_GlobalHit hit) async {
     final relPath = hit.result.relativePath;
     final file = File(
-      '${hit.repo.path}${Platform.pathSeparator}'
+      '${hit.source.root.path}${Platform.pathSeparator}'
       '${relPath.replaceAll('/', Platform.pathSeparator)}',
     );
     if (!file.existsSync()) return;
     final stat = file.statSync();
-    Navigator.push(
+    await openNoteFile(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => MarkdownViewerPage(
-          note: NoteFile(
-            relativePath: relPath,
-            absolutePath: file.path,
-            modified: stat.modified,
-            sizeBytes: stat.size,
-          ),
-          repoRoot: hit.repo.path,
-          // 带着检索词进阅读页：自动打开查找条并定位到第一处命中（仅标题模式没有正文命中，不带）
-          initialFindQuery: _titleOnly ? null : _query,
-        ),
+      repoRoot: hit.source.root.path,
+      note: NoteFile(
+        relativePath: relPath,
+        absolutePath: file.path,
+        modified: stat.modified,
+        sizeBytes: stat.size,
       ),
+      // 带着检索词进阅读页：自动打开查找条并定位到第一处命中（仅标题模式没有正文命中，不带）
+      findQuery: _titleOnly ? null : _query,
     );
   }
 }
 
-class _GlobalHit {
-  const _GlobalHit({
-    required this.repo,
-    required this.repoName,
-    required this.result,
-  });
+class _SearchSource {
+  const _SearchSource({required this.name, required this.root});
 
-  final Directory repo;
-  final String repoName;
+  /// 分组标题 / 过滤标签上的显示名（本地来源带「本地 · 」前缀）。
+  final String name;
+  final Directory root;
+}
+
+class _GlobalHit {
+  const _GlobalHit({required this.source, required this.result});
+
+  final _SearchSource source;
   final FileSearchResult result;
 }
