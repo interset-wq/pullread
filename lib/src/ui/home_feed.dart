@@ -10,6 +10,9 @@ import '../git/repo_meta.dart';
 /// 收藏保持来源顺序，最近阅读按时间倒序去重后取前 [limit] 条。
 
 /// 跨来源收藏文章（Git 仓库在前，本地镜像在后，各自按收藏先后）。
+///
+/// 收藏记录在仓库/镜像被删除、改名后仍留在元数据里；这里只保留磁盘上
+/// 仍存在的文件，避免首页出现点了没反应的「幽灵卡片」。
 List<(Directory, String)> collectHomeStarred(
   List<Directory> repos,
   List<Directory> locals,
@@ -17,6 +20,7 @@ List<(Directory, String)> collectHomeStarred(
   final out = <(Directory, String)>[];
   for (final source in [...repos, ...locals]) {
     for (final rel in RepoMeta.starredFiles(source.path)) {
+      if (!_sourceFileExists(source, rel)) continue;
       out.add((source, rel));
     }
   }
@@ -55,6 +59,8 @@ List<(Directory, String)> collectHomeRecents(
     final dir = byName[entry.repoName];
     if (dir == null) continue;
     if (!seen.add('${entry.repoName}\t${entry.relativePath}')) continue;
+    // 文件已删除或改名时跳过，不占用 limit 名额
+    if (!_sourceFileExists(dir, entry.relativePath)) continue;
     out.add((dir, entry.relativePath));
     if (out.length >= limit) break;
   }
@@ -77,3 +83,14 @@ Iterable<Directory> _sourceRoots(
 }
 
 String _baseName(String path) => path.split(Platform.pathSeparator).last;
+
+/// [relativePath] 在来源目录里是否仍有对应文件。
+///
+/// 只做单个 stat（首页一次最多几十条），不是递归扫描，可以留在 UI 线程。
+bool _sourceFileExists(Directory source, String relativePath) {
+  final file = File(
+    '${source.path}${Platform.pathSeparator}'
+    '${relativePath.replaceAll('/', Platform.pathSeparator)}',
+  );
+  return file.existsSync();
+}

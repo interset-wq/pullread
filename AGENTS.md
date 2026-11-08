@@ -316,7 +316,9 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
   local mirrors must pass `recentsRoot: <docs>/local` so they share
   `<docs>/local/.meta/recents.json`. Entries carry an ISO-8601 timestamp; home
   merges both roots, sorts newest first and dedupes per source. Never let each
-  local mirror write its own recents file.
+  local mirror write its own recents file. Home filtering (`home_feed.dart`) also
+  drops entries whose file no longer exists, for both favorites and recents, so
+  deleted/renamed notes never leave unresponsive ghost cards.
 - **Repository reading status**: file rows show "read N% / finished" (<0.5% is not
   shown); the toolbar's "unread only" filter hides only files that already have
   reading records. Read all records at once with `RepoMeta.readAllProgress` and
