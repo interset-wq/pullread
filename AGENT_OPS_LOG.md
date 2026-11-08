@@ -223,3 +223,20 @@
   - 删除旧 `settings_page.dart`，把「清空阅读历史 / 收藏也覆盖本地镜像」搬进
     `settings/data_settings_page.dart`
 - 验证：`flutter analyze --fatal-infos` 与全量 `flutter test` 通过。
+
+## 2026-11-08 Release 1.12.0-rc3
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 合并：`feat/settings-redesign` 通过本地 merge commit `8f77b3f` 合入 `main`
+  （fast-forward 推送），随后删除远端分支。设置页两级重构（`lib/src/ui/settings/`）
+  正式生效；旧 `settings_page.dart` 删除。
+- 冲突处理：`math_render.dart` 取 `main`（PR #3 + 金额正则）；`AGENT_OPS_LOG.md`
+  保留双方条目；数据设置页把「清空阅读历史 / 收藏」改为双来源根
+  （`repos` + `local`），计数改用 `RepoMeta.countStars`。
+- 版本：`1.12.0-rc3+23`（`db7442b`）。
+- 验证：`flutter analyze --fatal-infos` 无问题；全量 `flutter test` 230 项通过。
+- CI：`main` push 运行 `42450201593` 成功。
+- 发布：tag `v1.12.0-rc3` 触发 Release 运行 `42450581107` 成功，产物
+  `app-arm64-v8a-release.apk`，GitHub Prerelease `v1.12.0-rc3`。
+- 仍需真机验收：设置页两级导航与恢复默认、SAF 写回、图标切换、行选区高亮、
+  音量键翻页。
