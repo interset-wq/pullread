@@ -122,9 +122,15 @@ String _protectMathPipes(String tex) {
 String restoreMathPipes(String tex) =>
     tex.replaceAll(_mathEscapedPipe, r'\|').replaceAll(_mathPipe, '|');
 
-/// 行内公式：`$...$`（非贪婪，不匹配 `$100` 纯数字金额）。
+/// 行内公式：`$...$`。
+///
+/// 采用常见 Markdown 数学规则，避免把金额当公式：
+/// - 开 `$` 后不能紧跟空白（`$ 100` 不是公式）；
+/// - 闭 `$` 前不能是空白（`$100 到 $` 不是公式），因此 `$100 到 $200`
+///   这类范围金额不会再被吞掉；
+/// - 闭 `$` 后不能紧跟数字（`$x$2` 保持原文）。
 class MathInlineSyntax extends m.InlineSyntax {
-  MathInlineSyntax() : super(r'\$([^$\n]+?)\$');
+  MathInlineSyntax() : super(r'\$(?!\s)([^$\n]*?[^\s$])\$(?!\d)');
 
   @override
   bool onMatch(m.InlineParser parser, Match match) {
