@@ -111,4 +111,17 @@ void main() {
     expect(RepoMeta.readRecents(reposRoot.path), isEmpty);
     expect(RepoMeta.readRecents(localRoot.path).length, 1);
   });
+
+  test('清空收藏同时覆盖本地镜像', () {
+    RepoMeta.toggleStar(repoA.path, 'a.md');
+    RepoMeta.toggleStar(mirrorB.path, 'b.md');
+    expect(RepoMeta.starredFiles(repoA.path), ['a.md']);
+    expect(RepoMeta.starredFiles(mirrorB.path), ['b.md']);
+
+    RepoMeta.clearAllStars(reposRoot.path);
+    RepoMeta.clearAllStars(localRoot.path);
+
+    expect(RepoMeta.starredFiles(repoA.path), isEmpty);
+    expect(RepoMeta.starredFiles(mirrorB.path), isEmpty);
+  });
 }

@@ -424,19 +424,20 @@ class RepoMeta {
     }
   }
 
-  /// 清空所有仓库的收藏。
+  /// 清空所有来源的收藏。
+  ///
+  /// 仓库与本地镜像的元数据都放在来源根的 `.meta/<name>.json`，直接按文件
+  /// 清理即可；旧实现只遍历带 `.git` 的目录，本地文件夹的收藏永远清不掉。
   static void clearAllStars(String reposRoot) {
-    final root = Directory(reposRoot);
-    if (!root.existsSync()) return;
-    for (final d in root.listSync(followLinks: false)) {
-      if (d is! Directory) continue;
-      if (!Directory('${d.path}${Platform.pathSeparator}.git').existsSync()) {
-        continue;
-      }
-      final raw = _readRaw(d.path);
+    final metaDir =
+        Directory('$reposRoot${Platform.pathSeparator}.meta');
+    if (!metaDir.existsSync()) return;
+    for (final f in metaDir.listSync(followLinks: false)) {
+      if (f is! File || !f.path.endsWith('.json')) continue;
+      final raw = _readJson(f);
       if (!raw.containsKey('starred')) continue;
       raw['starred'] = <String>[];
-      _write(d.path, raw);
+      _writeJson(f, raw);
     }
   }
 
