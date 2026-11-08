@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,6 +10,7 @@ import 'package:mermaid_flutter/mermaid_flutter.dart';
 import '../local/local_folder_service.dart';
 import '../notes/math_render.dart';
 import '../theme/app_prefs.dart';
+import '../utils/text_encoding.dart';
 import 'code_font.dart';
 
 /// 本地 Markdown 编辑器：
@@ -44,6 +44,9 @@ class MarkdownEditorPage extends StatefulWidget {
 class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   late final TextEditingController _controller;
   late String _savedText;
+
+  /// 原文件是否为 UTF-8；否则按 GBK 写回，避免悄悄改编码。
+  late final bool _utf8;
   bool _preview = false;
   bool _saving = false;
 
@@ -52,7 +55,9 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   @override
   void initState() {
     super.initState();
-    _savedText = File(widget.filePath).readAsStringSync();
+    final bytes = File(widget.filePath).readAsBytesSync();
+    _utf8 = isUtf8Bytes(bytes);
+    _savedText = decodeTextBytes(bytes);
     _controller = TextEditingController(text: _savedText);
   }
 
@@ -68,13 +73,14 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
     if (_saving) return false;
     setState(() => _saving = true);
     final text = _controller.text;
+    final encoded = encodeTextBytes(text, asUtf8: _utf8);
     var mirrorOk = false;
     var sourceOk = false;
     String? sourceError;
     try {
-      await File(widget.filePath).writeAsString(text, flush: true);
+      await File(widget.filePath).writeAsBytes(encoded, flush: true);
       mirrorOk = true;
-      sourceOk = await _writeBackSource(text);
+      sourceOk = await _writeBackSource(encoded);
     } on Object catch (e) {
       sourceError = e.toString();
     }
@@ -110,13 +116,13 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   }
 
   /// 写回用户授权的原文件夹（SAF / 桌面真实路径共用服务层实现）。
-  Future<bool> _writeBackSource(String text) async {
+  Future<bool> _writeBackSource(List<int> bytes) async {
     final folder = await LocalFolderService.matchMirror(widget.mirrorRoot);
     if (folder == null) return false;
     return LocalFolderService.writeBack(
       folder,
       widget.relativePath,
-      utf8.encode(text),
+      bytes,
     );
   }
 

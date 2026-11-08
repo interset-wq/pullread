@@ -19,3 +19,26 @@ String decodeTextBytes(List<int> bytes) {
     return gbk.decode(bytes);
   }
 }
+
+/// 与 [decodeTextBytes] 配套：判断 [bytes] 是否为合法 UTF-8（允许 BOM）。
+///
+/// 编辑器用它在打开时记住原编码，保存时按同一编码写回，避免把 GBK 笔记
+/// 悄悄改成 UTF-8。
+bool isUtf8Bytes(List<int> bytes) {
+  final body = bytes.length >= 3 &&
+          bytes[0] == 0xEF &&
+          bytes[1] == 0xBB &&
+          bytes[2] == 0xBF
+      ? bytes.sublist(3)
+      : bytes;
+  try {
+    utf8.decode(body);
+    return true;
+  } on FormatException {
+    return false;
+  }
+}
+
+/// 按原文件编码编码文本：[asUtf8] 为 true 时写 UTF-8，否则写 GBK。
+List<int> encodeTextBytes(String text, {required bool asUtf8}) =>
+    asUtf8 ? utf8.encode(text) : gbk.encode(text);

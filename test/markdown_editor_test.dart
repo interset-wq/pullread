@@ -1,9 +1,11 @@
 import 'dart:io';
 
+import 'package:fast_gbk/fast_gbk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reader/src/local/local_folder_service.dart';
 import 'package:reader/src/ui/markdown_editor.dart';
+import 'package:reader/src/utils/text_encoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 本地 Markdown 编辑器：保存写镜像、写回失败进入 pending、未保存离开提醒。
@@ -92,6 +94,24 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(MarkdownEditorPage), findsOneWidget);
+  });
+
+  testWidgets('opens GBK notes and keeps GBK when saving', (tester) async {
+    file.writeAsBytesSync(gbk.encode('# 原标题\n\n正文'));
+    await pumpEditor(tester);
+    expect(find.textContaining('原标题'), findsWidgets);
+
+    await tester.enterText(find.byType(TextField), '# 新标题\n\n改过的正文');
+    await tester.runAsync(() async {
+      await tester.tap(find.byTooltip('保存'));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final saved = file.readAsBytesSync();
+    expect(isUtf8Bytes(saved), isFalse, reason: 'GBK 原文件不应被改成 UTF-8');
+    expect(gbk.decode(saved), contains('改过的正文'));
   });
 
   testWidgets('preview toggle swaps the source editor for rendered output',

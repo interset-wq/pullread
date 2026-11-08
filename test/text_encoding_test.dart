@@ -25,4 +25,23 @@ void main() {
     final bytes = latin1.encode('x') + gbk.encode(text);
     expect(decodeTextBytes(bytes).substring(1), text);
   });
+
+  test('识别原编码并按原编码写回', () {
+    const text = '第一章 起始';
+    final utf8Bytes = utf8.encode(text);
+    final gbkBytes = gbk.encode(text);
+
+    expect(isUtf8Bytes(utf8Bytes), isTrue);
+    expect(isUtf8Bytes([0xEF, 0xBB, 0xBF, ...utf8Bytes]), isTrue);
+    expect(isUtf8Bytes(gbkBytes), isFalse);
+
+    expect(
+      utf8.decode(encodeTextBytes(text, asUtf8: true)),
+      text,
+    );
+    expect(
+      gbk.decode(encodeTextBytes(text, asUtf8: false)),
+      text,
+    );
+  });
 }
