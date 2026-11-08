@@ -12,7 +12,7 @@ class NoteScanner {
   /// `.git` 恒被跳过——关掉默认规则也不进 git 内部目录。
   final bool useDefaults;
   final List<String> customRules;
-  static const mdExtensions = {'.md', '.markdown', '.ipynb'};
+  static const mdExtensions = {'.md', '.markdown', '.mdx', '.ipynb'};
 
   /// 支持语法高亮查看的代码/文本扩展名。
   static const codeExtensions = {
@@ -21,7 +21,7 @@ class NoteScanner {
     '.php', '.swift', '.m', '.sh', '.bash', '.zsh', '.json', '.yaml', '.yml',
     '.toml', '.xml', '.html', '.css', '.scss', '.sql', '.r', '.lua', '.pl',
     '.txt', '.gradle', '.properties', '.cfg', '.ini', '.cmake',
-    '.csv', '.tsv', '.log', '.env', '.mdx', '.diff', '.patch',
+    '.csv', '.tsv', '.log', '.env', '.diff', '.patch',
   };
 
   /// 可直接预览的图片扩展名。

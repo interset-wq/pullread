@@ -201,7 +201,9 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
 ### 6.1 Markdown and notebooks
 
 - Renderer: `markdown_widget` plus syntax highlighting. GFM alerts (`> [!NOTE]`)
-  and `.ipynb` files are converted to Markdown before rendering.
+  and `.ipynb` files are converted to Markdown before rendering. `.mdx` is treated as
+  Markdown too (`NoteScanner.mdExtensions`), matching search/tags/link-check; JSX
+  tags simply show as text instead of being executed.
 - **Math pipes in tables** (`lib/src/notes/math_render.dart`): GFM splits table
   cells on `|` before inline parsing, so `$|x|$` would truncate the cell (issue #2).
   `protectTableMathPipes()` replaces pipes inside table math with private-use
