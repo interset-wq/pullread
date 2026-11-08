@@ -240,3 +240,16 @@
   `app-arm64-v8a-release.apk`，GitHub Prerelease `v1.12.0-rc3`。
 - 仍需真机验收：设置页两级导航与恢复默认、SAF 写回、图标切换、行选区高亮、
   音量键翻页。
+
+## 2026-11-08 issue #4-2: branch switching
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 功能：仓库页菜单新增「切换分支」，分支列表读取本地 `refs/remotes/origin/*`
+  （离线可用）；本地分支缺失时从远端引用创建并设置 upstream，随后 force checkout、
+  `setHead` 与 reset --hard 对齐索引/工作区。
+- 数据安全：只读切换，不做 commit/push；分支名先过 `isSafeBranchName`；切换后清
+  文件索引缓存与「最近更新」打标，阅读进度/收藏按路径保留。失败不改变当前分支。
+- 测试：新增 `test/switch_branch_test.dart`（临时 bare 仓库，5 项）。
+- 验证：`flutter analyze --fatal-infos` 无问题；全量 `flutter test` 246 项通过。
+- 提交：`91f7066 feat(git): switch repository branches`，已推送 `main`。
+- 版本：`1.12.0-rc4+24`，待打 tag 发布 prerelease。
