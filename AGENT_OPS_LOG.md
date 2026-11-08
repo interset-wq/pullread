@@ -139,3 +139,32 @@
 - 已知：本地全量 `flutter test` 为 204 通过 / 1 失败，失败项 `clone_safety_test` 是 `main` 上既存的 Windows `cmd.exe rmdir` 路径问题；对应修复 `a780d33` 在 `feat/settings-redesign`，与本 PR 无关。
 - 推送：`git push -u origin fix/table-math-pipes` 成功。
 - PR：https://github.com/interset-wq/pullread/pull/3
+
+## 2026-11-08 Merge PR #3 and land the P1 reading-batch
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- PR #3 `fix(render): keep math pipes intact in tables`：本地复核
+  `flutter analyze --fatal-infos` 通过、`table_math_test` 4 项通过；全量测试
+  204 通过 / 1 失败，失败项 `sync_service_test`（真实网络 clone）单独重跑通过，
+  判定为网络抖动。已用 merge commit `4817ff0` 合入 `main` 并删除远端分支。
+- P1 阅读主链路（本机无真机，以下均以单元 / widget 测试验证）：
+  - 首页聚合接入本地镜像：`home_feed.dart` 新增收藏 / 最近阅读的跨来源合并；
+    `RepoMeta.pushRecent` 增加时间戳与 `recentsRoot`，镜像统一写
+    `<docs>/local/.meta/recents.json`，旧记录无时间戳仍可读；首页「继续阅读」、
+    收藏、最近阅读、搜索入口都同时覆盖仓库与本地文件夹
+  - 全局搜索 `GlobalSearchPage` 接受 `locals`，本地来源显示为「本地 · 名称」，
+    结果跳转统一走 `openNoteFile`
+  - 阅读页同目录上一篇/下一篇只列 Markdown；正文里的本地文件链接改走
+    `openNoteFile`（图片进图库、代码进代码页，并清除更新标记）
+  - 编辑器按原始编码打开并写回（`isUtf8Bytes` / `encodeTextBytes`），GBK 笔记
+    保存后仍是 GBK
+  - 行内公式拒绝把 `$100 到 $200` 这类范围金额当公式
+  - 代码查看器超过 5 MB 只读前 5 MB 并提示，避免整文件高亮卡死
+  - 清空阅读历史同时清理 `repos` 与 `local` 两个来源根目录；
+    `clearAllStars` 改为按来源根 `.meta/*.json` 清理，本地镜像收藏不再遗漏
+- 新增/扩展测试：`home_feed_test`、`repo_meta_recents_test`、
+  `global_search_test`（本地镜像与重名）、`text_encoding_test`、
+  `markdown_editor_test`（GBK 往返）、`math_render_test`（金额边界）。
+- 待处理：`feat/settings-redesign`（另一 agent，含设置两级重构与 Windows
+  `deleteRepo` 路径修复）尚未合并；其删除了旧 `settings_page.dart`，合并时需把
+  「清空阅读历史也清 local 根」搬到新的 `settings/data_settings_page.dart`。
