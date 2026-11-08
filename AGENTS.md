@@ -340,8 +340,10 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
 - Body search reads md/ipynb inside an isolate (max 2 MB per file) and does linear
   matching: split the query on whitespace (including full-width spaces), require
   **all terms** (AND), and produce per-term highlight ranges with
-  `SearchSnippet.highlights` for the UI. Sort order: path matches all terms → match
-  count → path.
+  `SearchSnippet.highlights` for the UI. Markdown is searched after stripping
+  front matter and normalizing HTML images, i.e. the same body the reader renders,
+  so every reported hit is visible to in-text find. Sort order: path matches all
+  terms → match count → path.
 - **Deliberately no inverted index**: for Chinese 2-grams the postings are the same
   order of magnitude as the text, often larger after serialization, while note repos
   hold only a few MB. Page cache + `indexOf` is fast and has no index staleness.

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import '../notes/ipynb.dart';
+import '../notes/markdown_source.dart';
 import '../notes/note_scanner.dart';
 import '../utils/text_encoding.dart';
 import 'text_search.dart';
@@ -94,7 +95,9 @@ class RepoSearchService {
         content = note.extension == '.ipynb'
             // 检索只要文字：跳过内嵌图片的解码与内存占用
             ? IpynbConverter.toMarkdown(raw, includeImages: false)
-            : raw;
+            // 与阅读页保持同一段正文：剥掉 front matter（否则搜 tags/date
+            // 能命中，但打开文章后文内查找为 0 处），再做 HTML 图片归一化
+            : normalizeHtmlImages(FrontMatter.parse(raw).body);
       } on Object {
         // 读不了的文件跳过（权限/编码/正在写入）
         continue;

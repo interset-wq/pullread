@@ -104,4 +104,41 @@ void main() {
       isEmpty,
     );
   });
+
+  test('front matter 不参与正文检索（打开后文内查找仍能命中）', () {
+    write(
+      'note.md',
+      '---\ntitle: 阅读笔记\ntags: [flutter, 状态管理]\n---\n正文里也有 flutter。',
+    );
+
+    final tagHits = RepoSearchService.searchSync(
+      repoRoot: root.path,
+      query: '状态管理',
+    );
+    expect(tagHits, isEmpty, reason: 'front matter 里的标签不该被当成正文命中');
+
+    final bodyHits = RepoSearchService.searchSync(
+      repoRoot: root.path,
+      query: '正文里也有',
+    );
+    expect(bodyHits.map((r) => r.relativePath), ['note.md']);
+    expect(bodyHits.first.snippets.first.line, 0,
+        reason: '摘要行号按剥掉 front matter 后的正文计算，与阅读页一致');
+  });
+
+  test('HTML 图片按阅读页的归一化结果参与检索', () {
+    write('post.md', '<img src="https://img.shields.io/badge/build-passing.svg">\n\n'
+        '正文内容');
+
+    final badgeHits = RepoSearchService.searchSync(
+      repoRoot: root.path,
+      query: 'shields',
+    );
+    expect(badgeHits, isEmpty, reason: '阅读页不渲染徽章，检索也不该命中');
+
+    expect(
+      RepoSearchService.searchSync(repoRoot: root.path, query: '正文内容'),
+      hasLength(1),
+    );
+  });
 }
