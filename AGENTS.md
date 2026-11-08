@@ -202,6 +202,12 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
 
 - Renderer: `markdown_widget` plus syntax highlighting. GFM alerts (`> [!NOTE]`)
   and `.ipynb` files are converted to Markdown before rendering.
+- **Math pipes in tables** (`lib/src/notes/math_render.dart`): GFM splits table
+  cells on `|` before inline parsing, so `$|x|$` would truncate the cell (issue #2).
+  `protectTableMathPipes()` replaces pipes inside table math with private-use
+  placeholders and `MathNode` restores them. Apply it before every
+  `MarkdownGenerator.buildWidgets` call (reader and editor preview); do not drop raw
+  `|` from formulas.
 - **Notebook rich output** (`lib/src/notes/ipynb.dart`, `ipynb_images.dart`):
   `image/png|jpeg|gif|svg` outputs are decoded into an in-memory store keyed by
   content hash (`IpynbImageStore`, 64 MB cap, approximate LRU). The body keeps only a
