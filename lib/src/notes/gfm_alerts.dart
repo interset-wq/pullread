@@ -39,10 +39,14 @@ class AlertSegment extends MarkdownSegment {
 }
 
 /// 把 Markdown 源文本按 GFM 告警块分割成段。
+///
+/// 围栏代码块（``` / ~~~）里的 `> [!NOTE]` 只是示例代码，不能当告警切分，
+/// 否则代码块会被撕成两半、后面的代码被当成 Markdown 渲染。
 List<MarkdownSegment> splitGfmAlerts(String source) {
   final segments = <MarkdownSegment>[];
   final lines = source.split('\n');
   var buffer = <String>[];
+  String? fence;
 
   void flush() {
     if (buffer.isNotEmpty) {
@@ -53,7 +57,23 @@ List<MarkdownSegment> splitGfmAlerts(String source) {
 
   for (var i = 0; i < lines.length; i++) {
     final line = lines[i];
-    final alert = _matchAlertStart(line);
+    final trimmed = line.trimLeft();
+    final marker = _fenceAt(trimmed);
+    if (fence != null) {
+      buffer.add(line);
+      if (marker != null &&
+          marker[0] == fence[0] &&
+          marker.length >= fence.length) {
+        fence = null;
+      }
+      continue;
+    }
+    if (marker != null) {
+      fence = marker;
+      buffer.add(line);
+      continue;
+    }
+    final alert = _matchAlertStart(trimmed);
     if (alert == null) {
       buffer.add(line);
       continue;
@@ -73,6 +93,10 @@ List<MarkdownSegment> splitGfmAlerts(String source) {
   flush();
   return segments;
 }
+
+/// 行首的围栏标记（至少三个反引号或波浪号），否则返回 null。
+String? _fenceAt(String trimmed) =>
+    RegExp(r'^(`{3,}|~{3,})').firstMatch(trimmed)?.group(1);
 
 /// 匹配 `> [!TYPE]` 形式的告警起始行，返回类型，否则返回 null。
 GfmAlertType? _matchAlertStart(String line) {
