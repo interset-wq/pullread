@@ -185,6 +185,13 @@ class RepoMeta {
     _write(repoRoot, raw);
   }
 
+  /// 切换分支成功后更新记录的分支名（卡片/详情展示用）。
+  static void setBranch(String repoRoot, String branch) {
+    final raw = _readRaw(repoRoot);
+    raw['branch'] = branch;
+    _write(repoRoot, raw);
+  }
+
   /// 记录 pull 带来的文件变更（「更新后的阅读感知」打标数据）。
   /// 覆盖同名条目；超过 [_maxRecentChanges] 条时整体清空——打标只是
   /// 提示，不是账本，与其算淘汰不如提示"这轮更新很多"。

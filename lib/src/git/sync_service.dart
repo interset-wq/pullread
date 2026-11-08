@@ -212,6 +212,154 @@ class GitSyncService {
     }
   }
 
+  /// 列出本地可切换的分支（读取本地 `refs/remotes/origin/*`，克隆/pull 时
+  /// 已经拿到全部远端分支引用，因此离线也能列出）。
+  ///
+  /// 返回的 [RepoBranches.current] 是当前 HEAD 分支；切换分支不会联网，
+  /// 只是检出对应提交——需要新提交时再点同步。
+  Future<RepoBranches> listBranches({required Directory repoDir}) {
+    final path = repoDir.path;
+    return Isolate.run(() {
+      try {
+        return _listBranchesAt(path);
+      } catch (e) {
+        // 原生错误对象不能跨 isolate 发送，统一转普通异常
+        throw Exception('$e');
+      }
+    }).timeout(const Duration(minutes: 2));
+  }
+
+  static RepoBranches _listBranchesAt(String path) {
+    final r = Repository.open(path);
+    try {
+      final names = <String>{};
+      for (final b in Branch.list(repo: r, type: GitBranch.remote)) {
+        try {
+          final full = b.name;
+          if (!full.startsWith('origin/')) continue;
+          final short = full.substring('origin/'.length);
+          // origin/HEAD 是符号引用，不是可检出的分支
+          if (short.isEmpty || short == 'HEAD' || short.endsWith('/HEAD')) {
+            continue;
+          }
+          names.add(short);
+        } finally {
+          b.free();
+        }
+      }
+      String? current;
+      try {
+        current = _currentBranch(r);
+      } on Object {
+        // 空仓库/HEAD 异常时仍可列出远端分支
+      }
+      if (current != null && current.isNotEmpty) names.add(current);
+      final sorted = names.toList()
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      return RepoBranches(current: current, branches: sorted);
+    } finally {
+      r.free();
+    }
+  }
+
+  /// 切换到 [branch]（只读切换，不做任何本地提交）。
+  ///
+  /// 本地分支不存在时从 `refs/remotes/origin/<branch>` 建一个并设置
+  /// upstream；已存在则直接检出（可能落后于远端，需再同步）。仓库内容
+  /// 由应用独占读取、不允许编辑，故用 force checkout 覆盖工作区。
+  Future<void> switchBranch({
+    required Directory repoDir,
+    required String branch,
+  }) async {
+    final name = branch.trim();
+    if (!isSafeBranchName(name)) {
+      throw const SyncException('分支名不合法');
+    }
+    final path = repoDir.path;
+    try {
+      await Isolate.run(() {
+        try {
+          _switchBranchAt(path, name);
+        } on Object catch (e) {
+          // 原生错误对象不能跨 isolate 发送，统一转普通异常
+          throw Exception('$e');
+        }
+      }).timeout(const Duration(minutes: 2));
+    } on TimeoutException {
+      throw const SyncException('切换分支超时，请稍后重试');
+    } on Object catch (e) {
+      final message = '$e'.replaceFirst(RegExp(r'^Exception: '), '');
+      throw SyncException('切换分支失败：$message');
+    }
+  }
+
+  /// 分支名护栏：拒绝空名、路径穿越、控制字符和 git 不接受的前缀。
+  static bool isSafeBranchName(String name) {
+    if (name.isEmpty || name.length > 200) return false;
+    if (name.startsWith('/') || name.endsWith('/')) return false;
+    if (name.startsWith('-') || name.contains('..') || name.contains('//')) {
+      return false;
+    }
+    if (name.contains(RegExp(r'[\s\\~^:?*\x00-\x1f]'))) return false;
+    return !name.endsWith('.lock');
+  }
+
+  static void _switchBranchAt(String path, String branch) {
+    final r = Repository.open(path);
+    try {
+      final current = _currentBranch(r);
+      if (current == branch) return;
+
+      Branch? local;
+      try {
+        local = Branch.lookup(repo: r, name: branch);
+      } on Object {
+        local = null;
+      }
+      if (local == null) {
+        final remoteName = 'origin/$branch';
+        Branch remote;
+        try {
+          remote = Branch.lookup(
+            repo: r,
+            name: remoteName,
+            type: GitBranch.remote,
+          );
+        } on Object {
+          throw SyncException(
+            '本地没有分支“$branch”的远端引用，请先同步一次再切换',
+          );
+        }
+        final commit = Commit.lookup(repo: r, oid: remote.target);
+        try {
+          local = Branch.create(repo: r, name: branch, target: commit);
+          local.setUpstream(remoteName);
+        } finally {
+          commit.free();
+          remote.free();
+        }
+      }
+      try {
+        Checkout.reference(
+          repo: r,
+          name: 'refs/heads/$branch',
+          strategy: const {
+            GitCheckout.force,
+            GitCheckout.recreateMissing,
+          },
+        );
+        r.setHead('refs/heads/$branch');
+        // Checkout 只更新工作区，不清理「新分支里不存在」的旧文件；
+        // reset --hard 让索引与工作区都对齐新 HEAD（仓库只读，无用户改动）。
+        _checkoutHead(r);
+      } finally {
+        local.free();
+      }
+    } finally {
+      r.free();
+    }
+  }
+
   /// 目标目录预检：有效仓库 → 报「已存在」；上次异常留下的半成品 → 清掉。
   ///
   /// 删除前再次校验目标必须是 [parentDir] 的直接子目录、且目录名安全：
@@ -540,6 +688,17 @@ class CloneCancelToken {
   void cancel() => _cancelled = true;
 
   bool get isCancelled => _cancelled;
+}
+
+/// 可切换分支列表：本地已有的远端分支（升序）+ 当前分支。
+class RepoBranches {
+  const RepoBranches({required this.current, required this.branches});
+
+  /// 当前 HEAD 分支；detached HEAD 或读取失败时为 null。
+  final String? current;
+
+  /// 可切换的分支名（不含 `origin/` 前缀）。
+  final List<String> branches;
 }
 
 /// pull 的完整结果：结果类型 + fast-forward 时本次变更的文件清单。

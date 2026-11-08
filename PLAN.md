@@ -23,8 +23,9 @@
 
 ## 2. 当前状态（2026-11-08）
 
-- 最新发布：`v1.12.0-rc3`（prerelease，arm64 APK）。`main` 已包含设置页两级重构、
-  P1 阅读链路、搜索/收藏/`.mdx`/告警块等修复。
+- 最新发布：`v1.12.0-rc3`（prerelease，arm64 APK）；`main` 已包含设置页两级重构、
+  P1 阅读链路、搜索/收藏/`.mdx`/告警块、mermaid 导出等修复。分支切换已实现待随
+  `v1.12.0-rc4` 发布。
 - CI：`analyze-and-test` 正常；`build-apk` 偶尔因 Gradle 发行包 504 失败，属基础设施
   抖动，重跑即可，不要为此改构建配置。
 - 待真机验收：行选区高亮、设置页两级导航与恢复默认、SAF 写回、图标切换、音量键翻页。
@@ -33,20 +34,16 @@
 
 | 任务 | 状态 | 涉及文件 |
 | --- | --- | --- |
-| issue #4-1：mermaid 图表保存 / 分享到相册 | 本地开发，待提交 | `lib/src/ui/markdown_viewer.dart`、`lib/src/ui/image_actions.dart` |
-| 告警块围栏保护（代码块里的 `> [!NOTE]`） | 提交 `7ce39d5`，待推送 | `lib/src/notes/gfm_alerts.dart`、`test/gfm_alerts_test.dart` |
+| issue #4-2：仓库切换分支 | 本地开发，待提交 | `lib/src/git/sync_service.dart`、`lib/src/git/repo_meta.dart`、`lib/src/ui/repo_page.dart`、`test/switch_branch_test.dart` |
 
 ## 4. 队列（按优先级）
 
-1. **issue #4-2 仓库切换分支**（Git 层）：只读 checkout 远端分支，不做本地提交；
-   切换后重建索引缓存、保留阅读进度/收藏；切换前提示会丢弃的内容。需要单独设计
-   数据安全与失败回滚，先在 issue 里定方案。
-2. **文内查找同章节精确滚动**：给懒加载正文块记录源码行范围，命中后滚到具体块；
+1. **文内查找同章节精确滚动**：给懒加载正文块记录源码行范围，命中后滚到具体块；
    需要真机手感验证，暂缓到设备可用。
-3. **UTF-16 文本支持**：`decodeTextBytes` 增加 BOM 检测；本地编辑器保存时保留原编码。
-4. **`.mdx` 渲染增强**：当前按 Markdown 渲染，JSX 组件以文本降级展示；后续评估是否
+2. **UTF-16 文本支持**：`decodeTextBytes` 增加 BOM 检测；本地编辑器保存时保留原编码。
+3. **`.mdx` 渲染增强**：当前按 Markdown 渲染，JSX 组件以文本降级展示；后续评估是否
    隐藏 import/export 行。
-5. **设置搜索与别名目录**（`docs/settings-redesign.md` 阶段三，可选）。
+4. **设置搜索与别名目录**（`docs/settings-redesign.md` 阶段三，可选）。
 
 ## 5. 真机验收清单（设备可用后）
 
@@ -56,6 +53,7 @@
 - [ ] 图标切换（仅 release 包）：五个 alias 切换后桌面图标与启动背景正确。
 - [ ] 音量键翻页。
 - [ ] mermaid 长按保存/分享：相册有图、分享面板能发出、深色主题下底色正确。
+- [ ] 切换分支：列表正确、切换后目录/正文更新、切回原分支阅读进度仍在、离线可用。
 
 ## 6. 最近完成
 
@@ -65,3 +63,5 @@
 - 搜索只搜阅读页真正渲染的正文（剥 front matter、归一化 HTML 图片）。
 - 首页过滤已删除文件（幽灵卡片）；`.mdx` 统一按 Markdown 阅读。
 - 移除遗留 `repro_two_repos_test`，真实网络克隆测试对瞬时网络错误重试一次。
+- issue #4-1：mermaid 图表可长按/全屏分享保存为 PNG（`0a2b86c`）。
+- issue #4-2：仓库页可切换远端分支（只读 checkout，保留阅读进度/收藏）。

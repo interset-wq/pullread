@@ -58,6 +58,25 @@ shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
   `master`) causes libgit2 to wipe and re-clone the whole repository. Let libgit2
   check out the remote HEAD, then store the real branch with `readHeadBranch`.
 
+## Branch switching
+
+- The repo page menu ("切换分支") lists **local remote-tracking refs**
+  (`refs/remotes/origin/*`), so switching works offline; no fetch is performed before
+  the dialog. `origin/HEAD` is skipped.
+- `listBranches()` / `switchBranch()` run in `Isolate.run` (2-minute timeout) and
+  convert native errors to plain `Exception` before crossing the isolate boundary.
+- If the local branch is missing, create it from the remote ref and call
+  `setUpstream('origin/<name>')`; otherwise check out the existing local branch (it may
+  lag behind the remote until the next pull).
+- Checkout uses `GitCheckout.force` (the clone is read-only and has no user commits),
+  then `Repository.setHead('refs/heads/<name>')`, then `reset --hard` to align the index
+  and drop files that only exist on the previous branch.
+- Branch names are validated (`isSafeBranchName`) before touching the repo: no empty
+  names, `..`, `//`, leading `-`/`/`, whitespace, control characters or `.lock` suffix.
+- The UI updates `RepoMeta.branch`, drops `NoteIndexCache` and `recentChanges` (both are
+  snapshots of the old branch) and rescans. Reading progress/favorites are path-keyed
+  in `RepoMeta` and are deliberately kept, so switching back restores them.
+
 ## Sync awareness
 
 - `checkRemote()` fetches in an isolate, then counts commits behind with

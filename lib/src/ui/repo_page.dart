@@ -458,6 +458,8 @@ class _RepoPageState extends State<RepoPage> {
                   );
                 case 'updates':
                   _checkUpdates();
+                case 'branch':
+                  _switchBranch();
                 case 'links':
                   _checkLinks();
               }
@@ -498,6 +500,17 @@ class _RepoPageState extends State<RepoPage> {
                       Icon(Icons.system_update_alt, size: 20),
                       SizedBox(width: 12),
                       Text('检查远端更新'),
+                    ],
+                  ),
+                ),
+              if (!LocalFolderService.isLocalMirror(widget.repoDir.path))
+                const PopupMenuItem(
+                  value: 'branch',
+                  child: Row(
+                    children: [
+                      Icon(Icons.alt_route, size: 20),
+                      SizedBox(width: 12),
+                      Text('切换分支'),
                     ],
                   ),
                 ),
@@ -889,6 +902,103 @@ class _RepoPageState extends State<RepoPage> {
           _progress = RepoMeta.readAllProgress(widget.repoDir.path);
         });
       }),
+    );
+  }
+
+  /// 切换仓库分支：列出本地已有的远端分支，选中后只读检出。
+  ///
+  /// 切换后清掉文件索引缓存与「最近更新」打标（都是当前分支的快照），
+  /// 但保留阅读进度 / 收藏（按路径记录，切回原分支仍在）。失败时不动
+  /// 当前分支，只提示错误。
+  Future<void> _switchBranch() async {
+    final messenger = ScaffoldMessenger.of(context);
+    RepoBranches info;
+    try {
+      info = await GitSyncService().listBranches(repoDir: widget.repoDir);
+    } on Object catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('读取分支失败：$e')));
+      return;
+    }
+    if (!mounted) return;
+    if (info.branches.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('这个仓库暂时没有可切换的分支')),
+      );
+      return;
+    }
+    final theme = Theme.of(context);
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('切换分支'),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final b in info.branches)
+                ListTile(
+                  leading: Icon(
+                    b == info.current ? Icons.check_circle : Icons.alt_route,
+                    color: b == info.current
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(b),
+                  subtitle: b == info.current ? const Text('当前分支') : null,
+                  onTap: () => Navigator.pop(dialogContext, b),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+        ],
+      ),
+    );
+    if (selected == null || selected == info.current) return;
+    if (!mounted) return;
+    try {
+      await runWithPullProgress<void>(
+        context,
+        title: '正在切换分支',
+        action: (_) async {
+          await GitSyncService().switchBranch(
+            repoDir: widget.repoDir,
+            branch: selected,
+          );
+        },
+      );
+    } on SyncException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      return;
+    } on Object catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('切换分支失败：$e')));
+      return;
+    }
+    // 索引缓存和更新打标都是旧分支的快照，直接失效；进度/收藏按路径保存
+    // 在 meta 里，不清理。
+    NoteIndexCache.remove(widget.repoDir.path);
+    RepoMeta.clearRecentChanges(widget.repoDir.path);
+    RepoMeta.setBranch(widget.repoDir.path, selected);
+    if (!mounted) return;
+    setState(() {
+      _allNotes = const [];
+      _recentChanges = const {};
+      _contentResults = null;
+      _expandedDirs.clear();
+    });
+    await _refresh();
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('已切换到 $selected'),
+        duration: const Duration(seconds: 1),
+      ),
     );
   }
 

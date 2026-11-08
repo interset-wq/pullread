@@ -48,7 +48,12 @@
 - **Index cache** (`lib/src/notes/note_index.dart`): repository file lists are
   scanned in a background isolate (never recursive `listSync` on the UI thread),
   cached to `<reposRoot>/.meta/index/<repoName>.json`, and rendered
-  stale-while-revalidate. Remove the cache when deleting a repo/local folder.
+  stale-while-revalidate. Remove the cache when deleting a repo/local folder or
+  switching branches (the list is a snapshot of the old branch).
+- **Branch switching** (`lib/src/ui/repo_page.dart` → `GitSyncService.switchBranch`):
+  the "切换分支" menu item appears for Git repos only. After a successful switch the
+  page clears the index cache and update markers, then rescans; reading progress and
+  favorites are path-keyed and survive. Details in `docs/git-sync.md`.
 - **Full-text search** (`lib/src/search/`): the repo page can switch between
   filename and body search; the home search icon opens
   `lib/src/ui/global_search_page.dart` across repositories and local folders

@@ -117,6 +117,9 @@ rationale live in the docs below; read the matching doc before editing that area
   crossing the isolate boundary.
 - Clone's timeout must `Isolate.kill` the worker and clean the target directory.
 - Never pass `checkoutBranch` to clone; read the real branch with `readHeadBranch`.
+- Branch switching is read-only too: only checkout existing local/remote refs, never
+  commit or push; validate the branch name and clear the index cache afterwards
+  (details in `docs/git-sync.md`).
 - Pull is not cancellable; a diverged branch asks before delete + re-clone.
 - Every test that touches URLs or paths uses temporary directories only.
 
