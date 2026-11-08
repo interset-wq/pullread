@@ -22,7 +22,8 @@ import 'home_feed.dart';
 import 'open_note.dart';
 import 'pull_progress.dart';
 import 'repo_page.dart';
-import 'settings_page.dart';
+import 'settings/settings_page.dart';
+import 'settings/theme_mode_selector.dart';
 import 'tag_page.dart';
 import 'updates_page.dart';
 
@@ -233,7 +234,9 @@ class _HomePageState extends State<HomePage> {
     if (pending > 0) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text('$pending 个修改尚未写回原文件夹（设置 → 未写回的修改）'),
+          content: Text(
+            '$pending 个修改尚未写回原文件夹（设置 → 存储与数据 → 未写回的修改）',
+          ),
         ),
       );
     }
@@ -351,53 +354,8 @@ class _HomePageState extends State<HomePage> {
     unawaited(_loadBookmarks());
   }
 
-  /// 主题三档选择（首页「更多」菜单进入，替代原来占位的主题图标）。
   void _showThemeSheet(AppPrefs prefs) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: ListenableBuilder(
-          listenable: prefs,
-          builder: (context, _) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('主题'),
-              ),
-              RadioGroup<ThemeMode>(
-                groupValue: prefs.mode,
-                onChanged: (mode) {
-                  if (mode != null) prefs.setMode(mode);
-                  Navigator.pop(sheetContext);
-                },
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final entry in const [
-                      (ThemeMode.system, '跟随系统', Icons.brightness_auto),
-                      (ThemeMode.light, '浅色', Icons.light_mode),
-                      (ThemeMode.dark, '深色', Icons.dark_mode),
-                    ])
-                      RadioListTile<ThemeMode>(
-                        value: entry.$1,
-                        title: Row(
-                          children: [
-                            Icon(entry.$3, size: 20),
-                            const SizedBox(width: 12),
-                            Text(entry.$2),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    showThemeModeSheet(context, prefs);
   }
 
   @override

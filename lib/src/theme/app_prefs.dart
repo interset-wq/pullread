@@ -170,6 +170,20 @@ class AppPrefs extends ChangeNotifier {
     }
   }
 
+  /// 清空全部搜索历史。
+  Future<void> clearSearchHistory() async {
+    if (_searchHistory.isEmpty) return;
+    _searchHistory = const [];
+    notifyListeners();
+    try {
+      final sp =
+          await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
+      await sp.remove(_searchHistoryKey);
+    } on Object {
+      // 保存失败不影响本次会话
+    }
+  }
+
   // 仓库页目录树模式：目录就地展开/折叠。默认关闭——经典模式（点目录
   // 进入下一页，类似文件资源管理器）才是主要导航方式，树模式下目录
   // 没有独立路由，指向目录的本地链接无法跳转

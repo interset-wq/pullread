@@ -168,3 +168,58 @@
 - 待处理：`feat/settings-redesign`（另一 agent，含设置两级重构与 Windows
   `deleteRepo` 路径修复）尚未合并；其删除了旧 `settings_page.dart`，合并时需把
   「清空阅读历史也清 local 根」搬到新的 `settings/data_settings_page.dart`。
+
+## 2026-11-07 12:10 设置页两级重构
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Windows）
+- 分支：`feat/settings-redesign`（基于 `8c6aa14`）
+- 操作：
+  - 新增 `lib/src/ui/settings/`：根页、阅读/外观/仓库/文件显示/存储与数据/关于子页，
+    以及 `settings_components.dart`、`theme_mode_selector.dart`
+  - 删除旧的单页 `lib/src/ui/settings_page.dart`；`home_page.dart` 改用新入口，
+    主题弹层复用 `showThemeModeSheet`
+  - 首页只保留 6 个导航行与当前值；子页按卡片分组，长说明收进 `?` 帮助弹层
+  - 滑杆使用本地 draft，只在 `onChangeEnd` 写盘；默认用户名失焦/提交才保存
+  - 长代码块折叠关闭时禁用阈值控件；每个子页提供「恢复本页默认」
+  - 危险操作独立分组并二次确认；待写回与冲突数量显示在数据页和首页角标
+  - 数据页的阅读历史/收藏计数与清空移入 isolate，避免 UI 线程扫描仓库目录
+  - 非 Android 隐藏桌面图标组；新增「清空搜索历史」及 `AppPrefs.clearSearchHistory()`
+  - 关于页「检查更新」改为「获取最新版本」；仓库页改为「检查远端更新」
+  - 修复 Windows `deleteRepo` 在路径含 `/` 时被 cmd 误判为开关的问题
+  - 同步更新 README/AGENTS 设置路径与 `docs/settings-redesign.md` 实施状态
+- 验证：
+  - `flutter analyze --fatal-infos` 通过
+  - 新增 `test/settings_page_test.dart`（导航、当前值、滑杆写盘时机、用户名保存、
+    320 dp/2.0 文本/深色布局）；`test/app_prefs_test.dart` 增加清空搜索历史用例
+  - `settings_page_test` 7 项通过；`clone_safety_test` 11 项通过
+  - 全量 `flutter test` 209 项通过
+  - `flutter analyze --fatal-infos` 通过
+
+## 2026-11-07 12:26 Push settings redesign branch
+
+- 操作人：opencode / deepseek-v4.1-flash-free（Windows）
+- 分支：`feat/settings-redesign`
+- 提交：`531ff4f feat(settings): split settings into two-level pages`；
+  `a780d33 fix(git): normalize delete paths on Windows`
+- 推送：`git push -u origin feat/settings-redesign` 成功，远程跟踪已建立
+- 验证：提交前 `flutter analyze --fatal-infos` 通过，全量 `flutter test` 209 项通过
+- 未合并到 `main`，未创建 PR
+
+## 2026-11-07 Fix issue #2 table math pipes
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Windows）。
+- 分支：`feat/settings-redesign`。
+- 提交：`009dc95 fix(render): keep math pipes intact in tables`。
+- 修复：GFM 表格按 `|` 切列会截断公式中的绝对值/范数；渲染前用 `protectTableMathPipes()` 占位，`MathNode` 还原，阅读页与编辑器预览共用。
+- 验证：`flutter analyze --fatal-infos` 通过；全量 `flutter test` 213 项通过；新增 `test/table_math_test.dart`。
+- 推送：`git push origin feat/settings-redesign` 成功（`a2ae9c4..009dc95`）。
+- 未合并 `main`，未创建 PR。
+
+## 2026-11-08 Merge settings redesign into main
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 操作：把 `feat/settings-redesign` 合入 `main`；冲突处理：
+  - `math_render.dart` 直接采用 `main`（PR #3 + 金额正则），分支里的同一修复不重复保留
+  - 删除旧 `settings_page.dart`，把「清空阅读历史 / 收藏也覆盖本地镜像」搬进
+    `settings/data_settings_page.dart`
+- 验证：`flutter analyze --fatal-infos` 与全量 `flutter test` 通过。

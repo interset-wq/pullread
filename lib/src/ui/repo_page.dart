@@ -493,9 +493,24 @@ class _RepoPageState extends State<RepoPage> {
               if (!LocalFolderService.isLocalMirror(widget.repoDir.path))
                 const PopupMenuItem(
                   value: 'updates',
-                  child: Text('检查更新'),
+                  child: Row(
+                    children: [
+                      Icon(Icons.system_update_alt, size: 20),
+                      SizedBox(width: 12),
+                      Text('检查远端更新'),
+                    ],
+                  ),
                 ),
-              const PopupMenuItem(value: 'links', child: Text('检查断链')),
+              const PopupMenuItem(
+                value: 'links',
+                child: Row(
+                  children: [
+                    Icon(Icons.link_off, size: 20),
+                    SizedBox(width: 12),
+                    Text('检查断链'),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
