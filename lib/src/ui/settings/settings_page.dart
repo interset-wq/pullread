@@ -97,7 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   SettingsNavTile(
                     icon: Icons.menu_book_outlined,
                     title: '阅读与显示',
-                    subtitle: '行距、边距、阅读行为与代码块',
+                    subtitle: '行距、边距与代码块',
                     value:
                         '${prefs.lineHeight.toStringAsFixed(2)} / ${prefs.pageMargin.round()} dp',
                     onTap: () => _push(ReadingSettingsPage(prefs: prefs)),
@@ -112,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   SettingsNavTile(
                     icon: Icons.cloud_sync_outlined,
                     title: '仓库与同步',
-                    subtitle: '默认平台、用户名、自动同步与目录树',
+                    subtitle: '平台、用户名与同步',
                     value: prefs.platform.displayName,
                     onTap: () => _push(RepoSettingsPage(prefs: prefs)),
                   ),
@@ -142,7 +142,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Padding(
                 padding: EdgeInsets.zero,
                 child: Text(
-                  'PullRead · 把笔记仓库装进口袋',
+                  'PullRead · 克隆一次，常读常新',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

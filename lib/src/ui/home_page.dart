@@ -1282,7 +1282,7 @@ class _EmptyState extends StatelessWidget {
             size: 72, color: theme.colorScheme.primary.withAlpha(120)),
         const SizedBox(height: 16),
         Center(
-          child: Text('把你的仓库装进口袋',
+          child: Text('克隆一次，常读常新',
               style: theme.textTheme.titleMedium),
         ),
         const SizedBox(height: 24),
