@@ -291,3 +291,13 @@
 - 规则：`AGENTS.md` 要求 `pubspec.lock` 变化时同步许可证清单，copyleft 依赖需评审。
 - 验证：`flutter analyze --fatal-infos` 无问题；全量 `flutter test` 246 项通过。
 - gh-pages 分支由另一 agent 负责，本次未触碰。
+
+## 2026-11-09 Release v1.12.0
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 首次正式版：`v1.12.0+26`，无 prerelease 后缀；包含分支切换、mermaid 导出、
+  设置页视觉统一、透明应用内 logo、跨平台 README 与第三方许可证页。
+- Android 真机（DIO-AN00 / Android 12）已通过设置/许可证、切换分支、mermaid 导出；
+  其余手势与写回项仍在 `PLAN.md` 待验收。
+- iOS 未签名 IPA 由 `.github/workflows/ios.yml` 独立构建，不进入 GitHub Release；
+  iPad 验收由其他 agent 按 `docs/ios-test-plan.md` 执行。

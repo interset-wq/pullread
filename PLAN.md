@@ -23,8 +23,8 @@
 
 ## 2. 当前状态（2026-11-09）
 
-- 最新发布：`v1.12.0-rc5`（prerelease，arm64 APK）；`main` 已包含设置页视觉统一、
-  透明应用内 logo、分支切换与 mermaid 导出。
+- 最新发布：`v1.12.0`（正式版，arm64 APK）；包含设置页视觉统一、透明应用内
+  logo、分支切换、mermaid 导出、跨平台 README 与第三方许可证页。
 - 定位升级为跨平台、移动优先：Android 主要发布，iPadOS/iOS 源码构建并等待真机验收，
   Windows 为次级桌面目标；Linux/macOS 尚未接入。
 - 许可证：`THIRD_PARTY_NOTICES.md` + `LICENSES/` 覆盖 124 个 pub 包、libgit2
