@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>Pull 拉读 · 页堆（透明底 · 应用内大 mark）</title>
+  <g transform="translate(2 2) scale(0.984)">
+    <g fill="#1F6F54">
+      <path d="M116 40 H140 V96 H160 L128 138 L96 96 H116 Z"/>
+      <rect x="48" y="152" width="160" height="26" rx="13"/>
+      <rect x="64" y="192" width="128" height="26" rx="13"/>
+    </g>
+  </g>
+</svg>

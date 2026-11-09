@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>Pull 拉读 · 拉（透明底 · 应用内大 mark）</title>
+  <g transform="translate(2 2) scale(0.984)">
+    <g fill="#1F6F54">
+      <path fill-rule="evenodd" d="
+        M88 40 H168 A16 16 0 0 1 184 56 V168 A16 16 0 0 1 168 184 H88 A16 16 0 0 1 72 168 V56 A16 16 0 0 1 88 40 Z
+        M116 24 H140 V120 H116 Z"/>
+      <path d="M116 120 H140 V196 H160 L128 236 L96 196 H116 Z"/>
+    </g>
+  </g>
+</svg>

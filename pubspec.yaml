@@ -114,8 +114,13 @@ flutter:
 
   assets:
     - assets/icons/
-    # 应用内 logo（透明底）；assets/icons/ 一套为不透明桌面图标，不在此列
+    # 应用内 logo（透明底，五个款式一套，mark 加大由 SVG 源直出）；
+    # assets/icons/ 一套为不透明桌面图标，不在此列
     - assets/icon/app_logo.png
+    - assets/icon/app_logo_page.png
+    - assets/icon/app_logo_arrow.png
+    - assets/icon/app_logo_converge.png
+    - assets/icon/app_logo_tray.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

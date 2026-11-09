@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>Pull 拉读 · 书</title>
+  <!-- 摊开的书 + 负空间向下箭头（纸感底 + 松绿） -->
+  <rect width="256" height="256" rx="56" fill="#FBFAF6"/>
+  <g transform="translate(38.4 38.4) scale(0.7)">
+    <path fill="#1F6F54" fill-rule="evenodd" d="
+      M40 62 C70 48 102 50 128 62 C154 50 186 48 216 62 V182 C186 168 154 170 128 182 C102 170 70 168 40 182 Z
+      M116 70 H140 V122 H156 L128 162 L100 122 H116 Z"/>
+  </g>
+</svg>
