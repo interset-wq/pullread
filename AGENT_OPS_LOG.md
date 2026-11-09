@@ -317,3 +317,12 @@
   import/export 与 `{/* … */}` 注释；围栏代码、缩进示例与原始源码视图保留。
 - 阅读页与 `RepoSearchService` 共用同一预处理，避免搜索命中导入语句。
 - 测试：单行/多行 import、export 对象与组件、MDX 注释、代码块保护。
+
+## 2026-11-09 Settings search
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 新增 `settings_search.dart`：24 条设置的标题/分区/别名目录，AND 子串匹配。
+- 设置根页 AppBar 搜索入口；结果带面包屑，点击进入对应子页。
+- `SettingsAnchor` + `SettingsFocusScope`：进入子页后自动滚到目标行；
+  `SettingsBody` 改为 `SingleChildScrollView` + `Column` 以支持屏幕外锚点。
+- 测试：别名/多词匹配、空查询、搜索结果跳转与滚动位置。

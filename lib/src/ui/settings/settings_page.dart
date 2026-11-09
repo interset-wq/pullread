@@ -12,6 +12,7 @@ import 'file_display_settings_page.dart';
 import 'reading_settings_page.dart';
 import 'repo_settings_page.dart';
 import 'settings_components.dart';
+import 'settings_search.dart';
 import 'theme_mode_selector.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -85,7 +86,16 @@ class _SettingsPageState extends State<SettingsPage> {
     final theme = Theme.of(context);
     final isAndroid = Platform.isAndroid;
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      appBar: AppBar(
+        title: const Text('设置'),
+        actions: [
+          IconButton(
+            tooltip: '搜索设置',
+            icon: const Icon(Icons.search),
+            onPressed: () => _push(SettingsSearchPage(prefs: widget.prefs)),
+          ),
+        ],
+      ),
       body: AnimatedBuilder(
         animation: widget.prefs,
         builder: (context, _) {

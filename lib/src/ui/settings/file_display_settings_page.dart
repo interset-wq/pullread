@@ -6,9 +6,12 @@ import '../../theme/app_prefs.dart';
 import 'settings_components.dart';
 
 class FileDisplaySettingsPage extends StatelessWidget {
-  const FileDisplaySettingsPage({required this.prefs, super.key});
+  const FileDisplaySettingsPage({required this.prefs, this.focus, super.key});
 
   final AppPrefs prefs;
+
+  /// 从设置搜索进入时要滚动到的锚点 id。
+  final String? focus;
 
   Future<void> _reset() => prefs.resetIgnoreRules();
 
@@ -69,11 +72,13 @@ class FileDisplaySettingsPage extends StatelessWidget {
       builder: (context, _) => SettingsSubpage(
         title: '文件显示',
         onReset: _reset,
+        focus: focus,
         children: [
           SettingsSection(
             title: '隐藏项',
             children: [
               SettingsSwitchTile(
+                anchor: 'ignoreDefaults',
                 icon: Icons.visibility_off_outlined,
                 title: '隐藏默认忽略项',
                 subtitle: '点开头的文件与目录',
@@ -82,6 +87,7 @@ class FileDisplaySettingsPage extends StatelessWidget {
                 help: '.git 始终忽略；开启后其他以点开头的文件和目录也会从仓库列表隐藏。',
               ),
               SettingsNavTile(
+                anchor: 'ignoreRules',
                 icon: Icons.rule_outlined,
                 title: '自定义隐藏规则',
                 subtitle: prefs.ignoreRules.isEmpty
