@@ -15,8 +15,9 @@
 - SAF authorization **must request write permission**
   (`pickDirectory(writePermission: true)`), otherwise the editor cannot write back.
 - `.txt` is mirrored and opened as an ordinary code file, with no special case. Text
-  decoding goes through `lib/src/utils/text_encoding.dart` (strict UTF-8 first, GBK
-  fallback, pure Dart).
+  decoding goes through `lib/src/utils/text_encoding.dart` (BOM-aware UTF-8 /
+  UTF-16 LE/BE first, strict UTF-8, then GBK fallback; pure Dart). The editor keeps
+  the detected encoding and BOM when saving.
 - **Local Markdown editor** (`lib/src/ui/markdown_editor.dart`): opened from the
   reader's "edit" action for mirrored Markdown. Source/preview toggle, manual save,
   unsaved-changes prompt on exit. Saving writes both the mirror (dart:io) and the

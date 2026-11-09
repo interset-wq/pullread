@@ -301,3 +301,11 @@
   其余手势与写回项仍在 `PLAN.md` 待验收。
 - iOS 未签名 IPA 由 `.github/workflows/ios.yml` 独立构建，不进入 GitHub Release；
   iPad 验收由其他 agent 按 `docs/ios-test-plan.md` 执行。
+
+## 2026-11-09 UTF-16 text support
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- `text_encoding.dart`：新增 `TextFileEncoding` 与 BOM 检测；支持 UTF-16 LE/BE
+  （含 BOM、代理对/emoji）解码与写回，UTF-8 BOM 原样保留；GBK 回退不变。
+- `markdown_editor.dart`：保存时按检测到的原编码写回，不再只记 UTF-8/GBK。
+- 测试：新增 UTF-16 编解码、残缺字节、编辑器保存保留 UTF-16 BOM 用例。

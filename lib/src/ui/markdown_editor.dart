@@ -45,8 +45,8 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   late final TextEditingController _controller;
   late String _savedText;
 
-  /// 原文件是否为 UTF-8；否则按 GBK 写回，避免悄悄改编码。
-  late final bool _utf8;
+  /// 原文件编码；保存时按同一编码写回，避免悄悄改编码。
+  late final TextFileEncoding _encoding;
   bool _preview = false;
   bool _saving = false;
 
@@ -56,7 +56,7 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   void initState() {
     super.initState();
     final bytes = File(widget.filePath).readAsBytesSync();
-    _utf8 = isUtf8Bytes(bytes);
+    _encoding = detectTextEncoding(bytes);
     _savedText = decodeTextBytes(bytes);
     _controller = TextEditingController(text: _savedText);
   }
@@ -73,7 +73,7 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
     if (_saving) return false;
     setState(() => _saving = true);
     final text = _controller.text;
-    final encoded = encodeTextBytes(text, asUtf8: _utf8);
+    final encoded = encodeTextBytes(text, encoding: _encoding);
     var mirrorOk = false;
     var sourceOk = false;
     String? sourceError;
@@ -119,11 +119,7 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   Future<bool> _writeBackSource(List<int> bytes) async {
     final folder = await LocalFolderService.matchMirror(widget.mirrorRoot);
     if (folder == null) return false;
-    return LocalFolderService.writeBack(
-      folder,
-      widget.relativePath,
-      bytes,
-    );
+    return LocalFolderService.writeBack(folder, widget.relativePath, bytes);
   }
 
   Future<void> _confirmDiscard() async {
@@ -190,7 +186,9 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
           actions: [
             IconButton(
               tooltip: _preview ? '编辑' : '预览',
-              icon: Icon(_preview ? Icons.edit_outlined : Icons.visibility_outlined),
+              icon: Icon(
+                _preview ? Icons.edit_outlined : Icons.visibility_outlined,
+              ),
               onPressed: () => setState(() => _preview = !_preview),
             ),
             IconButton(
@@ -247,7 +245,8 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
       generators: [
         SpanNodeGeneratorWithTag(
           tag: 'math',
-          generator: (element, config, visitor) => MathNode(element.textContent),
+          generator: (element, config, visitor) =>
+              MathNode(element.textContent),
         ),
         SpanNodeGeneratorWithTag(
           tag: 'mathblock',
@@ -346,7 +345,10 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
             code,
             language: 'mermaid',
             theme: highlightTheme,
-            textStyle: currentCodeFontStyle().copyWith(fontSize: 13, height: 1.5),
+            textStyle: currentCodeFontStyle().copyWith(
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
         ),
       );
@@ -362,7 +364,10 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
             language: language.isEmpty ? 'text' : language,
             theme: highlightTheme,
             padding: const EdgeInsets.all(12),
-            textStyle: currentCodeFontStyle().copyWith(fontSize: 13, height: 1.5),
+            textStyle: currentCodeFontStyle().copyWith(
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
         ),
       ),

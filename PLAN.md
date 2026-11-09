@@ -50,10 +50,9 @@
 
 1. **文内查找同章节精确滚动**：给懒加载正文块记录源码行范围，命中后滚到具体块；
    需要真机手感验证，暂缓到设备可用。
-2. **UTF-16 文本支持**：`decodeTextBytes` 增加 BOM 检测；本地编辑器保存时保留原编码。
-3. **`.mdx` 渲染增强**：当前按 Markdown 渲染，JSX 组件以文本降级展示；后续评估是否
+2. **`.mdx` 渲染增强**：当前按 Markdown 渲染，JSX 组件以文本降级展示；后续评估是否
    隐藏 import/export 行。
-4. **设置搜索与别名目录**（`docs/settings-redesign.md` 阶段三，可选）。
+3. **设置搜索与别名目录**（`docs/settings-redesign.md` 阶段三，可选）。
 
 ## 5. 真机验收清单（设备可用后）
 
@@ -90,3 +89,5 @@ CI 产物为未签名 IPA，需用 Apple ID 重签后安装。
   clone→read→pull 循环 + Android/iPadOS/Windows 平台矩阵。
 - 第三方许可证：新增 `THIRD_PARTY_NOTICES.md` 与 `LICENSES/`，关于页可查看全部
   依赖许可证原文。
+- 文本编码：新增 UTF-16 LE/BE（含 BOM）识别；本地编辑器保存时保留 UTF-8 BOM /
+  UTF-16 编码，不再只区分 UTF-8 与 GBK。
