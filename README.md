@@ -152,18 +152,23 @@ PullRead 只是给它一个舒服的阅读界面。
 `INSTALL_FAILED_UPDATE_INCOMPATIBLE` 时，先卸载旧包或使用临时
 `applicationIdSuffix`，不要提交签名改动。
 
-### iPadOS / iOS（源码构建）
+### iPadOS / iOS（源码构建 / CI 未签名包）
 
-需要 macOS、Xcode 与 CocoaPods：
+需要 macOS 与 Xcode：
 
 ```bash
 flutter pub get
-cd ios && pod install && cd ..
 flutter build ios --release
 ```
 
-当前没有 App Store 或 TestFlight 签名包；iPad 大屏布局、分屏和手势仍属于
-真机验收项。Bundle id 为 `com.intersetwq.pullread`。
+也可以在 GitHub Actions 手动运行 **iOS build** 工作流，下载未签名 IPA
+`PullRead-unsigned.ipa`。该包没有签名，安装到 iPad/iPhone 前需要用
+Sideloadly、AltStore 或 Xcode 以个人 Apple ID / 开发者证书重签
+（免费 Apple ID 的有效期为 7 天）。
+
+最低系统为 iOS 15.0，覆盖 iPad（第 5 代，最高 iPadOS 16）。当前没有
+App Store 或 TestFlight 签名包；iPad 大屏布局、分屏和手势仍属于真机验收项。
+Bundle id 为 `com.intersetwq.pullread`。
 
 ### Windows（桌面端源码构建）
 

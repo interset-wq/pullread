@@ -1,0 +1,53 @@
+name: iOS build
+
+# 手动触发：在 macOS runner 上构建未签名的 iOS release 包，产出可直接用于
+# 自签工具（Sideloadly / AltStore / Xcode）的 unsigned IPA。正式分发仍需要
+# Apple Developer 证书；CI 不保存任何签名证书或描述文件。
+#
+# 产物：pullread-ios-unsigned（Artifacts），内含 PullRead-unsigned.ipa。
+# 安装到真机前必须用个人 Apple ID 或开发者证书重签（免费账号 7 天有效期）。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # --no-codesign：runner 上没有开发者证书。Flutter 仍会完整编译
+      # Runner.app（arm64），只是不执行 codesign。
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          cd build/ios/iphoneos
+          test -d Runner.app
+          rm -rf Payload PullRead-unsigned.ipa
+          mkdir Payload
+          cp -R Runner.app Payload/Runner.app
+          # IPA 本质是含 Payload/Runner.app 的 zip；未签名包由安装工具重签。
+          zip -rq PullRead-unsigned.ipa Payload
+          shasum -a 256 PullRead-unsigned.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: pullread-ios-unsigned
+          path: build/ios/iphoneos/PullRead-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
