@@ -9,7 +9,12 @@
 ## 1. 安装与签名
 
 1. 在 Actions 运行页下载 `pullread-ios-unsigned`，解压得到
-   `PullRead-unsigned.ipa`。
+   `PullRead-unsigned.ipa`。也可用 gh：
+
+   ```bash
+   gh run list --workflow=ios.yml --limit 1
+   gh run download <run-id> -n pullread-ios-unsigned
+   ```
 2. 任选一种方式重签并安装：
    - **Sideloadly**（Windows/macOS）：连接 iPad，拖入 IPA，填 Apple ID；
    - **AltStore**：在 iPad 上通过 AltServer 安装；
