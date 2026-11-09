@@ -1,0 +1,61 @@
+# CocoaPods integration for the iOS Runner.
+# 这个文件此前缺失：构建时由工具临时生成，插件 pod 虽被集成，但
+# `-force_load` 进来的 libgit2.a 在 Release 的 Dead Code Stripping 下被
+# 整体剥除（Dart AOT 仅经 dlsym 运行时调用 libgit2，链接期零引用），
+# 真机上 `DynamicLibrary.process()` 报 "failed to look up symbol"（issue #6）。
+# 下方 post_install 在链接 flags 中追加 `-Wl,-no_dead_strip` 保住符号。
+
+platform :ios, '15.0'
+
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podspec_setup
+
+target 'Runner' do
+  use_frameworks!
+
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+  end
+
+  # 保住 FFI 运行时查找的 libgit2 符号（issue #6）：
+  # Dart AOT 不在链接期引用 libgit2，Dead Code Stripping 会把
+  # force_load 的对象当死代码剥除，导致真机上符号查找失败。
+  # 只需作用于 Runner 聚合目标；其余 Pod 目标维持工具默认行为。
+  installer.aggregate_targets.each do |aggregate_target|
+    aggregate_target.xcconfigs.each do |config_name, config_file|
+      flags = config_file.attributes['OTHER_LDFLAGS'] || '$(inherited)'
+      unless flags.include?('-no_dead_strip')
+        config_file.attributes['OTHER_LDFLAGS'] = "#{flags} -Wl,-no_dead_strip"
+        config_file.save_as(aggregate_target.xcconfig_path(config_name))
+      end
+    end
+  end
+end
