@@ -54,7 +54,7 @@ PullRead 只是给它一个舒服的阅读界面。
 | --- | --- | --- |
 | **Android** | 主要发布平台，已提供 arm64 APK | [GitHub Releases](https://github.com/interset-wq/pullread/releases) |
 | **iPadOS / iOS** | 同一代码库，源码构建；iPad 大屏适配与真机验收进行中 | 在 macOS + Xcode 上 `flutter build ios`（暂无签名安装包） |
-| **Windows** | 次级桌面目标，源码构建；桌面目录选择、键盘/鼠标操作可用 | 在 Windows + Visual Studio 上 `flutter build windows` |
+| **Windows** | 次级桌面目标，源码构建；桌面目录选择与键鼠滚动可用，尚未做真机验收 | 在 Windows + Visual Studio 上 `flutter build windows` |
 | **Linux / macOS** | 尚未接入平台目录与构建流程 | 欢迎贡献 |
 
 > 每个设备的克隆副本、阅读进度和收藏都保存在本机（`<应用文档目录>/repos` 与
