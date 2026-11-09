@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart'
+    show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:git2dart/git2dart.dart';
-import 'package:git2dart_binaries/git2dart_binaries.dart'
-    show AndroidSSLHelper;
+import 'package:git2dart_binaries/git2dart_binaries.dart' show AndroidSSLHelper;
 
 import 'src/theme/app_prefs.dart';
 import 'src/ui/brand_splash.dart';
@@ -12,10 +14,29 @@ import 'src/ui/home_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  _registerBundledLicenses();
   // 立刻 runApp：libgit2 / CA 证书初始化要几百毫秒到数秒，放在 runApp 之前
   // 会让 Flutter 的 SurfaceView 先挂上一块黑屏（与深色/浅色模式无关）。
   // 重量级初始化挪到 _bootstrap，期间显示品牌闪屏页。
   runApp(const ReaderApp());
+}
+
+/// 把不经过 pub 分发、但会随应用打包的许可证注册到 Flutter 的许可证页。
+///
+/// pub 包的 LICENSE 由 Flutter 构建时自动收集进 NOTICES；这里的 libgit2
+/// （git2dart_binaries 提供）与 JetBrains Mono 字体不在其中，需要手动登记，
+/// 否则「关于 → 开源许可证」会漏掉原生库和字体。
+void _registerBundledLicenses() {
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(const [
+      'libgit2',
+    ], await rootBundle.loadString('LICENSES/libgit2-COPYING.txt'));
+  });
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(const [
+      'JetBrains Mono',
+    ], await rootBundle.loadString('LICENSES/JetBrainsMono-OFL.txt'));
+  });
 }
 
 /// 启动初始化：Android 上必须先初始化 libgit2、再配置 CA 证书路径，
@@ -47,10 +68,12 @@ class _ReaderAppState extends State<ReaderApp> {
 
   @override
   Widget build(BuildContext context) {
-    const transitions = PageTransitionsTheme(builders: {
-      TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-    });
+    const transitions = PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    );
     const snackbar = SnackBarThemeData(behavior: SnackBarBehavior.floating);
     const card = CardThemeData(elevation: 0, clipBehavior: Clip.antiAlias);
     return FutureBuilder<AppPrefs>(

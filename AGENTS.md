@@ -43,9 +43,11 @@ with the code in the same commit (see "Maintenance").
 
 ## 2. Stack and identity
 
-- **Framework**: Flutter, Dart 3 / Flutter 3.47+. iOS + Android are the product
-  targets; the Windows desktop target exists for local preview only. iOS work cannot
-  be verified on this machine (no macOS).
+- **Framework**: Flutter, Dart 3 / Flutter 3.47+. The product is cross-platform but
+  mobile-first: Android is the primary release target, iOS/iPadOS is built from
+  source and awaiting real-device acceptance, Windows is a secondary desktop target
+  built from source. Linux/macOS have no platform directory yet. iOS/Windows work
+  cannot be verified on this machine (no macOS / Windows host).
 - **Package id**: `com.intersetwq.pullread` for Android `applicationId`/`namespace`
   and the iOS bundle id. Kotlin `MainActivity` lives in
   `android/app/src/main/kotlin/com/intersetwq/pullread/`. Renamed from
@@ -53,6 +55,10 @@ with the code in the same commit (see "Maintenance").
   its data is not migrated.
 - **No new heavy dependencies without justification**. The Git layer is already the
   riskiest part of the project.
+- **Dependency licenses are tracked in `THIRD_PARTY_NOTICES.md`**. When
+  `pubspec.lock` changes, update the inventory; new bundled binaries, fonts or
+  assets must also be registered in `main.dart`'s `LicenseRegistry`. A GPL/LGPL/MPL
+  addition needs an explicit distribution review before merge.
 
 ---
 

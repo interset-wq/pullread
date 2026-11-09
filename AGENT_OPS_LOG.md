@@ -274,3 +274,20 @@
 - 合并：merge commit `cd9949d`，远端 `feat/icon-logos` 已删除。
 - 后续：README 中硬编码的个人渲染脚本路径已改为占位符（`7c03837`）。
 - 说明：新增 logo 变体尚未接入 UI（首页/关于页仍用 book 款），留待后续接线。
+
+## 2026-11-09 Cross-platform README, licenses and repo metadata
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 定位：升级为跨平台、移动优先（Android 主要发布；iPadOS/iOS 源码构建、待真机；
+  Windows 次级桌面目标；Linux/macOS 未接入）。README 采用主 slogan
+  「克隆一次，常读常新」/ "Clone once. Read, pull, repeat."，并明确各设备独立、
+  不做跨设备同步。
+- README：重写核心工作流、平台矩阵、功能、构建、架构、约束、路线图、文档索引与发布流程。
+- 许可证：新增 `THIRD_PARTY_NOTICES.md`（124 个 hosted 包 + 原生组件）、
+  `LICENSES/libgit2-COPYING.txt`（GPL-2.0 + linking exception）、
+  `LICENSES/JetBrainsMono-OFL.txt`（OFL-1.1）；`pubspec.yaml` 打包 `LICENSES/`。
+- 代码：`main.dart` 把 libgit2 / 字体许可证注册进 `LicenseRegistry`；关于页新增
+  「开源许可证」入口（`showLicensePage`）并保留 MIT 外链，页脚改为新 slogan。
+- 规则：`AGENTS.md` 要求 `pubspec.lock` 变化时同步许可证清单，copyleft 依赖需评审。
+- 验证：`flutter analyze --fatal-infos` 无问题；全量 `flutter test` 246 项通过。
+- gh-pages 分支由另一 agent 负责，本次未触碰。

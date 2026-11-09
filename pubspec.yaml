@@ -114,6 +114,9 @@ flutter:
 
   assets:
     - assets/icons/
+    # 第三方许可证全文（libgit2 / JetBrains Mono），由 main.dart 注册到
+    # LicenseRegistry，供「设置 → 关于 → 开源许可证」在应用内显示
+    - LICENSES/
     # 应用内 logo（透明底，五个款式一套，mark 加大由 SVG 源直出）；
     # assets/icons/ 一套为不透明桌面图标，不在此列
     - assets/icon/app_logo.png

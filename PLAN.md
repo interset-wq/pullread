@@ -21,21 +21,25 @@
 - 本机没有 Android 真机、没有 macOS：涉及手势 / SAF 写回 / 图标切换 / 音量键的改动
   只能靠 analyze + 测试，真机验收项集中在第 5 节。
 
-## 2. 当前状态（2026-11-08）
+## 2. 当前状态（2026-11-09）
 
-- 最新发布：`v1.12.0-rc4`（prerelease，arm64 APK）；`main` 又合入设置页视觉统一、
-  透明应用内 logo 源文件与 PR #5。`v1.12.0-rc5` 待发布。
+- 最新发布：`v1.12.0-rc5`（prerelease，arm64 APK）；`main` 已包含设置页视觉统一、
+  透明应用内 logo、分支切换与 mermaid 导出。
+- 定位升级为跨平台、移动优先：Android 主要发布，iPadOS/iOS 源码构建并等待真机验收，
+  Windows 为次级桌面目标；Linux/macOS 尚未接入。
+- 许可证：`THIRD_PARTY_NOTICES.md` + `LICENSES/` 覆盖 124 个 pub 包、libgit2
+  （GPL-2.0 + linking exception）、JetBrains Mono（OFL-1.1）；关于页接入
+  `showLicensePage`。升级依赖时必须同步清单。
 - CI：`analyze-and-test` 正常；`build-apk` 偶尔因 Gradle 发行包 504 失败，属基础设施
   抖动，重跑即可，不要为此改构建配置。
-- 待真机验收：行选区高亮、设置页两级导航与恢复默认、SAF 写回、图标切换、音量键翻页。
-- 设置页视觉已与首页/书签/标签/更新收件箱统一：扁平列表、20 dp 单色图标、
-  去掉卡片与 tonal 圆形图标。
+- 待真机验收：行选区高亮、设置页两级导航与恢复默认、SAF 写回、图标切换、音量键翻页、
+  分支切换、mermaid 保存。
 
 ## 3. 进行中（主责 agent 占用文件）
 
 | 任务 | 状态 | 涉及文件 |
 | --- | --- | --- |
-| issue #4-2：仓库切换分支 | 本地开发，待提交 | `lib/src/git/sync_service.dart`、`lib/src/git/repo_meta.dart`、`lib/src/ui/repo_page.dart`、`test/switch_branch_test.dart` |
+| 跨平台定位与仓库元信息 | README/许可证已改，待提交；GitHub description/topics 待更新 | `README.md`、`THIRD_PARTY_NOTICES.md`、`LICENSES/`、`AGENTS.md`、`PLAN.md` |
 
 ## 4. 队列（按优先级）
 
@@ -68,3 +72,7 @@
 - issue #4-2：仓库页可切换远端分支（只读 checkout，保留阅读进度/收藏）。
 - 设置页去掉卡片/圆形图标，改为与全站一致的扁平列表；「恢复默认」改为 AppBar
   文字按钮。
+- 跨平台定位：README 重写为主 slogan「克隆一次，常读常新」+ 核心
+  clone→read→pull 循环 + Android/iPadOS/Windows 平台矩阵。
+- 第三方许可证：新增 `THIRD_PARTY_NOTICES.md` 与 `LICENSES/`，关于页可查看全部
+  依赖许可证原文。

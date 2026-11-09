@@ -103,6 +103,27 @@ class _AboutPageState extends State<AboutPage> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.history_edu_outlined),
                 title: const Text('开源许可证'),
+                subtitle: const Text('第三方依赖、libgit2 与字体'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: 'PullRead 拉读',
+                  applicationVersion: version == null ? null : 'v$version',
+                  applicationLegalese: '© 2026 interset-wq · MIT License',
+                  applicationIcon: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Image.asset(
+                      'assets/icon/app_logo.png',
+                      width: 48,
+                      height: 48,
+                    ),
+                  ),
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('项目许可证'),
                 subtitle: const Text('MIT License'),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () => _open(Uri.parse(_licenseUrl)),
@@ -126,7 +147,7 @@ class _AboutPageState extends State<AboutPage> {
               const SizedBox(height: 24),
               Center(
                 child: Text(
-                  '把笔记仓库装进口袋的原生阅读器',
+                  '克隆一次，常读常新。',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
