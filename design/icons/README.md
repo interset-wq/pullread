@@ -16,11 +16,12 @@ PullRead 全部品牌图标的矢量源，任何尺寸/底色变体都从这里�
 
 ## 渲染方法
 
-用 logo-design skill 的渲染脚本（chrome 后端，无 PIL）：
+用任意保留 alpha 的 SVG 渲染器即可（本仓库使用 logo-design skill 的 headless
+chrome 脚本，路径按本机环境替换）：
 
 ```bash
-python "C:/Users/d111k/.atomcode/skills/logo-design/scripts/render_png.py" \
-  design/icons/appicon-book.svg --out-dir temp/icon-design/render --size 1024
+python <render_png.py> design/icons/appicon-book.svg \
+  --out-dir temp/icon-design/render --size 1024
 ```
 
 - 应用内 logo 输出 192px；桌面图标源用 1024px（flutter_launcher_icons 输入）
