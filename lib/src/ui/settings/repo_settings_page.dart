@@ -80,9 +80,7 @@ class _RepoSettingsPageState extends State<RepoSettingsPage> {
                       if (platform.webBase.isNotEmpty)
                         RadioListTile<GitPlatform>(
                           value: platform,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                          ),
+                          contentPadding: EdgeInsets.zero,
                           title: Text(platform.displayName),
                           subtitle: Text(platform.webBase),
                         ),
@@ -95,7 +93,7 @@ class _RepoSettingsPageState extends State<RepoSettingsPage> {
             title: '默认用户名',
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: TextField(
                   controller: _ownerController,
                   focusNode: _ownerFocus,

@@ -50,7 +50,8 @@
 
 1. **两级结构**：设置首页不超过 6 行，任何原有设置最多 2 次点击可达。
 2. **按任务分组**：按「我在读 / 我在找仓库 / 我在清理数据」分，而不是按数据类型。
-3. **一页一件事**：每个子页只放 2–4 个小组，组内用一张卡片包住。
+3. **一页一件事**：每个子页只放 2–4 个小组，组标题 + 连续列表行（与书签 /
+   标签 / 更新收件箱同一套列表语言，不用独立卡片）。
 4. **一句话说明**：副标题只留一行；长解释收进右侧 `?` 帮助弹层，不占列表高度。
 5. **危险操作靠后**：数据页底部单独「危险操作」组，红色图标/文字 + 二次确认。
 6. **平台诚实**：不生效的设置直接不显示，而不是显示后静默失败。
@@ -72,11 +73,11 @@
 ```
 
 首页只保留导航行，不放开关和滑杆；每行右侧显示当前值（如「跟随系统」「1.75」
-「3 条规则」），左侧用 40 dp 的 tonal 圆形图标。
+「3 条规则」），左侧用 20 dp 单色 primary 图标（与书签/标签列表一致）。
 
 ### 3.2 阅读与显示
 
-页内再分 4 张卡片：
+页内再分 4 个分组：
 
 - **排版**：正文行距、页边距；可选增加「阅读字号」（见 6.3）。
 - **阅读行为**：屏幕常亮、手势翻页、表格不换行、折叠块默认展开。
@@ -132,20 +133,25 @@
 
 ## 4. 视觉与组件规范
 
-### 4.1 分组卡片
+> 2026-11-08 修订：第一版用了浅色卡片 + 40 dp tonal 圆形图标 + 缩进分割线，
+> 实际观感与首页、书签、标签、更新收件箱不一致（那些页面是纯列表 + 20 dp
+> 单色图标 + 16 dp 外边距）。现已改为同一套扁平列表语言，不再使用卡片。
 
-- 分组标题放在卡片外，`labelLarge` + `onSurfaceVariant`，左对齐。
-- 卡片：`Card` + `surfaceContainerLow`，圆角 12 dp，`elevation: 0`；
-  组内用 `Divider(height: 1, indent: 56)` 分隔。
-- 页面左右 padding 16 dp；组间距 24 dp；卡片底部 32 dp。
+### 4.1 分组
+
+- 分组标题 `titleSmall` + `w600`，左对齐；需要解释时右侧放 `?`。
+- 分组之间留 24 dp；组内不用卡片、不用缩进分割线，连续排列。
+- 页面左右 padding 16 dp；内容区最大宽度 720 dp。
 
 ### 4.2 行样式
 
-- **导航行**（`SettingsNavTile`）：leading 40 dp tonal icon，title，单行 subtitle，
-  trailing 为当前值 + `chevron_right`。
-- **开关行**：`SwitchListTile`，不要 chevron；subtitle 最多一行。
-- **滑杆行**（`SettingsSliderTile`）：标题和数值同一行（数值用 `labelLarge` 的
-  小胶囊），滑杆独占下一行，宽度撑满卡片内容区；拖动时实时更新数值标签，
+- **导航行**（`SettingsNavTile`）：leading 20 dp primary icon，title，单行 subtitle，
+  trailing 为当前值 + `chevron_right`；`contentPadding: EdgeInsets.zero`
+  （外层已有 16 dp）。
+- **开关行**：`SwitchListTile`，不要 chevron；secondary 为 20 dp primary icon，
+  subtitle 最多一行。
+- **滑杆行**（`SettingsSliderTile`）：标题和数值同一行（数值用 primary 色
+  `labelLarge`，不加胶囊底色），滑杆独占下一行；拖动时实时更新数值标签，
   `onChangeEnd` 才写偏好。
 - **危险行**：icon 与 title 用 `colorScheme.error`，仍保留二次确认。
 
@@ -171,8 +177,9 @@
 3. **用户名改为失焦/提交保存**：不要每个字符触发 `setDefaultOwner`。
 4. **依赖项禁用**：长代码块折叠关闭时，折叠阈值行降为 50% 透明度并禁用，
    副标题提示「先开启长代码块折叠」。
-5. **恢复本页默认**：子页 AppBar 右侧溢出菜单提供；只重置本页偏好，
-   不删除仓库、历史、收藏；完成后 SnackBar 提示。
+5. **恢复默认**：子页 AppBar 右侧 `TextButton` 提供（与标签页「清除筛选」、
+   更新收件箱「全部已读」一致）；只重置本页偏好，不删除仓库、历史、收藏；
+   完成后 SnackBar 提示。
 6. **删除确认**：标题 + 后果 + 数量；确认按钮用 error 色，取消为普通 TextButton。
 7. **待写回角标**：首页「存储与数据」行显示数量角标；数据页内仍保留明细。
 8. **搜索（第二阶段）**：设置首页 AppBar 放搜索图标，按设置名和别名检索
@@ -191,7 +198,7 @@
    - `file_display_settings_page.dart`
    - `data_settings_page.dart`
    - `about_page.dart`（把私有 `_AboutPage` 公开并移出）
-   - `settings_components.dart`（分组卡片、导航行、滑杆行）
+   - `settings_components.dart`（分组、导航行、滑杆行）
 2. 保持 `SettingsPage(prefs: prefs)` 构造签名，首页入口不变；子页同样接收 `AppPrefs`。
 3. 所有长说明压缩为一行；完整解释放进 `showModalBottomSheet` 帮助层。
 4. 应用图标组按 `Platform.isAndroid` 显示。

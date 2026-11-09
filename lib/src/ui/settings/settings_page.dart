@@ -140,7 +140,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.zero,
                 child: Text(
                   'PullRead · 把笔记仓库装进口袋',
                   style: theme.textTheme.bodySmall?.copyWith(

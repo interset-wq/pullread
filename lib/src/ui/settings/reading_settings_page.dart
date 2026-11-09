@@ -133,7 +133,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> {
             title: '代码块',
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                padding: const EdgeInsets.only(top: 12, bottom: 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -142,7 +142,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> {
                         Icon(
                           Icons.code_outlined,
                           size: 20,
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: theme.colorScheme.primary,
                         ),
                         const SizedBox(width: 12),
                         const Expanded(child: Text('代码字体')),

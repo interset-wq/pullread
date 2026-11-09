@@ -50,14 +50,10 @@ void main() {
 
     expect(find.text('正文行距'), findsOneWidget);
     expect(find.byType(Slider), findsAtLeastNWidgets(2));
-    expect(find.text('恢复本页默认'), findsNothing);
-
-    await tester.tap(find.byTooltip('更多'));
-    await tester.pumpAndSettle();
-    expect(find.text('恢复本页默认'), findsOneWidget);
+    expect(find.text('恢复默认'), findsOneWidget);
 
     await prefs.setLineHeight(2.1);
-    await tester.tap(find.text('恢复本页默认'));
+    await tester.tap(find.text('恢复默认'));
     await tester.pumpAndSettle();
     expect(prefs.lineHeight, 1.75);
   });

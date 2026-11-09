@@ -41,26 +41,14 @@ class SettingsSubpage extends StatelessWidget {
         title: Text(title),
         actions: [
           if (onReset != null)
-            PopupMenuButton<String>(
-              tooltip: '更多',
-              onSelected: (_) async {
+            TextButton(
+              onPressed: () async {
                 await onReset!();
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context)
                     .showSnackBar(const SnackBar(content: Text('已恢复本页默认')));
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(
-                  value: 'reset',
-                  child: Row(
-                    children: [
-                      Icon(Icons.restart_alt, size: 20),
-                      SizedBox(width: 12),
-                      Text('恢复本页默认'),
-                    ],
-                  ),
-                ),
-              ],
+              child: const Text('恢复默认'),
             ),
         ],
       ),
@@ -89,53 +77,27 @@ class SettingsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (title != null) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title!,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+          if (title != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title!,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                if (help != null)
-                  SettingsHelpButton(title: title!, message: help!),
-              ],
+                  if (help != null)
+                    SettingsHelpButton(title: title!, message: help!),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-          ],
-          Card(
-            margin: EdgeInsets.zero,
-            elevation: 0,
-            color: theme.colorScheme.surfaceContainerLow,
-            clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: SettingsCard(children: children),
-          ),
+          ...children,
         ],
       ),
-    );
-  }
-}
-
-class SettingsCard extends StatelessWidget {
-  const SettingsCard({required this.children, super.key});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) const Divider(height: 1, indent: 56),
-          children[i],
-        ],
-      ],
     );
   }
 }
@@ -167,21 +129,11 @@ class SettingsNavTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final foreground = destructive ? scheme.error : null;
-    final background = destructive
-        ? scheme.errorContainer
-        : scheme.primaryContainer;
-    final iconColor = destructive
-        ? scheme.onErrorContainer
-        : scheme.onPrimaryContainer;
+    final iconColor = destructive ? scheme.error : scheme.primary;
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      contentPadding: EdgeInsets.zero,
       enabled: enabled,
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-        child: Icon(icon, size: 20, color: iconColor),
-      ),
+      leading: Icon(icon, size: 20, color: enabled ? iconColor : null),
       title: Text(
         title,
         style: foreground == null ? null : TextStyle(color: foreground),
@@ -250,9 +202,10 @@ class SettingsSwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SwitchListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      secondary: Icon(icon),
+      contentPadding: EdgeInsets.zero,
+      secondary: Icon(icon, size: 20, color: theme.colorScheme.primary),
       title: help == null
           ? Text(title)
           : Row(
@@ -304,13 +257,13 @@ class SettingsSliderTile extends StatelessWidget {
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        padding: const EdgeInsets.only(top: 8, bottom: 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                Icon(icon, size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -322,18 +275,11 @@ class SettingsSliderTile extends StatelessWidget {
                           if (help != null)
                             SettingsHelpButton(title: title, message: help!),
                           const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              valueLabel,
-                              style: theme.textTheme.labelLarge,
+                          Text(
+                            valueLabel,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],

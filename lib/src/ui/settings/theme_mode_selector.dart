@@ -11,10 +11,18 @@ String themeModeLabel(ThemeMode mode) => switch (mode) {
 };
 
 class ThemeModeSelector extends StatelessWidget {
-  const ThemeModeSelector({required this.prefs, this.onSelected, super.key});
+  const ThemeModeSelector({
+    required this.prefs,
+    this.onSelected,
+    this.tilePadding = EdgeInsets.zero,
+    super.key,
+  });
 
   final AppPrefs prefs;
   final ValueChanged<ThemeMode>? onSelected;
+
+  /// 页面内与正文共用 16 dp 外边距时为 0；底部弹窗里需要自带左右留白。
+  final EdgeInsetsGeometry tilePadding;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +45,7 @@ class ThemeModeSelector extends StatelessWidget {
             ])
               RadioListTile<ThemeMode>(
                 value: entry.$1,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                contentPadding: tilePadding,
                 title: Row(
                   children: [
                     Icon(entry.$3, size: 20),
@@ -64,6 +72,7 @@ Future<void> showThemeModeSheet(BuildContext context, AppPrefs prefs) {
           const Padding(padding: EdgeInsets.all(16), child: Text('主题')),
           ThemeModeSelector(
             prefs: prefs,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16),
             onSelected: (_) => Navigator.pop(sheetContext),
           ),
         ],
