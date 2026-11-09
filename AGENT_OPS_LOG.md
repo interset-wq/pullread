@@ -309,3 +309,11 @@
   （含 BOM、代理对/emoji）解码与写回，UTF-8 BOM 原样保留；GBK 回退不变。
 - `markdown_editor.dart`：保存时按检测到的原编码写回，不再只记 UTF-8/GBK。
 - 测试：新增 UTF-16 编解码、残缺字节、编辑器保存保留 UTF-16 BOM 用例。
+
+## 2026-11-09 MDX module syntax
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- `markdown_source.dart`：新增 `stripMdxModuleSyntax()`，剥离 `.mdx` 顶层
+  import/export 与 `{/* … */}` 注释；围栏代码、缩进示例与原始源码视图保留。
+- 阅读页与 `RepoSearchService` 共用同一预处理，避免搜索命中导入语句。
+- 测试：单行/多行 import、export 对象与组件、MDX 注释、代码块保护。
