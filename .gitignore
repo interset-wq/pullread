@@ -1,0 +1,19 @@
+# Local tooling and generated files
+.agents/
+.atomcode/
+.dart_tool/
+.flutter-plugins-dependencies
+build/
+temp/
+skills-lock.json
+
+# Flutter platform folders from the source branch
+android/
+ios/
+windows/
+macos/
+linux/
+
+# Source and design assets not used by the site
+assets/
+design/
