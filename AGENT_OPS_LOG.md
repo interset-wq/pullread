@@ -253,3 +253,24 @@
 - 验证：`flutter analyze --fatal-infos` 无问题；全量 `flutter test` 246 项通过。
 - 提交：`91f7066 feat(git): switch repository branches`，已推送 `main`。
 - 版本：`1.12.0-rc4+24`，待打 tag 发布 prerelease。
+
+## 2026-11-08 Settings visual alignment
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 背景：用户反馈设置页虽然信息架构更合理，但视觉与首页/书签/标签/更新收件箱不一致。
+- 变更（`eab9662`）：去掉 `surfaceContainerLow` 卡片、40 dp tonal 圆形图标和缩进分割线；
+  改为 `titleSmall` 分组标题 + 连续列表行、20 dp primary 单色图标、`contentPadding: 0`
+  （外层统一 16 dp）；「恢复本页默认」从溢出菜单改为 AppBar `TextButton('恢复默认')`。
+  行为、偏好键与两级信息架构不变。
+- 文档：更新 `docs/settings-redesign.md` 的视觉规范与 `PLAN.md`。
+- 验证：`flutter analyze --fatal-infos` 无问题；全量 `flutter test` 246 项通过。
+
+## 2026-11-08 Review PR #5 (icon logos)
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 审查：仅新增 4 个透明应用内 logo PNG（192×192 RGBA，四角 alpha=0）、
+  `design/icons/` SVG 源与 README，更新 `pubspec.yaml` 资源声明和 `docs/platform.md`；
+  无代码/依赖变更。CI `analyze-and-test` 与 `build-apk` 均通过。
+- 合并：merge commit `cd9949d`，远端 `feat/icon-logos` 已删除。
+- 后续：README 中硬编码的个人渲染脚本路径已改为占位符（`7c03837`）。
+- 说明：新增 logo 变体尚未接入 UI（首页/关于页仍用 book 款），留待后续接线。
