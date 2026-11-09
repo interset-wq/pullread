@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -136,14 +138,16 @@ class _AboutPageState extends State<AboutPage> {
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () => _open(Uri.parse(_repoUrl)),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.system_update_outlined),
-                title: const Text('获取最新版本'),
-                subtitle: const Text('前往 GitHub Releases 下载最新 APK'),
-                trailing: const Icon(Icons.open_in_new, size: 18),
-                onTap: () => _open(Uri.parse(kReleaseUrl)),
-              ),
+              // 「下载最新 APK」只对 Android 有意义：iOS 拿到的是装不了的文件
+              if (Platform.isAndroid)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.system_update_outlined),
+                  title: const Text('获取最新版本'),
+                  subtitle: const Text('前往 GitHub Releases 下载最新 APK'),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () => _open(Uri.parse(kReleaseUrl)),
+                ),
               const SizedBox(height: 24),
               Center(
                 child: Text(
