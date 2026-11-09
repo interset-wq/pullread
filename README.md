@@ -265,6 +265,7 @@ lib/
 | [`docs/reading.md`](docs/reading.md) | 阅读流程、搜索、索引、标签、存储、设置 |
 | [`docs/local-folders.md`](docs/local-folders.md) | SAF、桌面目录、增量镜像与写回 |
 | [`docs/platform.md`](docs/platform.md) | 平台适配、启动链、图标与 Android 构建 |
+| [`docs/ios-test-plan.md`](docs/ios-test-plan.md) | iOS / iPadOS 真机验收清单与重签步骤 |
 | [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | 第三方依赖与原生组件许可证清单 |
 
 参与开发前请先读 `AGENTS.md` 和 `PLAN.md`；`main` 只接受 PR 或维护者 merge

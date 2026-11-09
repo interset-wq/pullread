@@ -157,6 +157,7 @@ rationale live in the docs below; read the matching doc before editing that area
 | Local folders, SAF mirroring, editor, pending write-backs | `docs/local-folders.md` |
 | Platform adaptation, startup chain, launcher icons | `docs/platform.md` |
 | Render performance baseline | `docs/perf.md` |
+| iOS / iPadOS real-device acceptance | `docs/ios-test-plan.md` |
 | Settings redesign proposal | `docs/settings-redesign.md` |
 | UX audit (reference) | `docs/user-feedback.md` |
 | Roadmap, priorities and file ownership | `PLAN.md` |

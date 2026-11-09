@@ -30,6 +30,11 @@
 - 许可证：`THIRD_PARTY_NOTICES.md` + `LICENSES/` 覆盖 124 个 pub 包、libgit2
   （GPL-2.0 + linking exception）、JetBrains Mono（OFL-1.1）；关于页接入
   `showLicensePage`。升级依赖时必须同步清单。
+- iOS：`.github/workflows/ios.yml` 已在 macOS runner 构建成功，产出未签名
+  `PullRead-unsigned.ipa`；iPad 真机验收由其他 agent 按 `docs/ios-test-plan.md`
+  执行。
+- Android 真机（DIO-AN00 / Android 12）：设置/许可证、切换分支、mermaid 导出
+  已通过；其余手势与写回项待测。
 - CI：`analyze-and-test` 正常；`build-apk` 偶尔因 Gradle 发行包 504 失败，属基础设施
   抖动，重跑即可，不要为此改构建配置。
 - 待真机验收：行选区高亮、设置页两级导航与恢复默认、SAF 写回、图标切换、音量键翻页、
@@ -52,13 +57,22 @@
 
 ## 5. 真机验收清单（设备可用后）
 
+### Android（DIO-AN00 / Android 12）
+
+- [x] 设置页：扁平列表、两级导航、关于页许可证入口（2026-11-09 通过）。
+- [x] 切换分支：列表、切换、切回后进度/书签保留（2026-11-09 通过）。
+- [x] mermaid 长按保存/分享：相册有图、深色主题底色正确（2026-11-09 通过）。
 - [ ] 代码页长按选区：高亮行与手指位置一致，跨几十行不累积偏移。
-- [ ] 设置页：两级导航、滑杆松手才落盘、「恢复本页默认」、320 dp + 2.0 字号不溢出。
+- [ ] 设置页：滑杆松手才落盘、320 dp + 2.0 字号不溢出。
 - [ ] 本地文件夹：SAF 授权写权限、编辑保存回原文件夹、失败进待写回列表。
 - [ ] 图标切换（仅 release 包）：五个 alias 切换后桌面图标与启动背景正确。
 - [ ] 音量键翻页。
-- [ ] mermaid 长按保存/分享：相册有图、分享面板能发出、深色主题下底色正确。
-- [ ] 切换分支：列表正确、切换后目录/正文更新、切回原分支阅读进度仍在、离线可用。
+
+### iOS / iPadOS（iPad 第 5 代，由其他 agent 执行）
+
+清单见 `docs/ios-test-plan.md`。重点是安装/重签、许可证页、分支切换、
+mermaid 保存、本地文件夹持久授权、分屏与安全区、音量键翻页。
+CI 产物为未签名 IPA，需用 Apple ID 重签后安装。
 
 ## 6. 最近完成
 
