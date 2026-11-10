@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:36px;padding:60px 48px;align-items:flex-start}
+.phone{width:390px;height:845px;flex:none;background:#FBFAF6;border-radius:28px;overflow:hidden;position:relative;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-34px;left:6px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.bar{display:flex;align-items:center;gap:12px;padding:14px 14px 12px}
+.bar .bt{width:22px;height:22px;flex:none}
+.bar .ttl{font-size:17px;font-weight:600;color:#26241E;flex:1;min-width:0}
+.bar .act{font-size:13.5px;color:#1F6F54;font-weight:600;white-space:nowrap}
+/* 分组头：仓库名 + 时间 + 计数 */
+.gh{display:flex;align-items:baseline;gap:8px;padding:16px 16px 8px}
+.gh .r{font-size:14px;font-weight:700;color:#1F6F54}
+.gh .t{font-size:11.5px;color:#A5A296}
+.gh .c{margin-left:auto;font-size:11.5px;color:#A5A296;background:#F1EFE7;border-radius:999px;padding:2px 9px}
+/* 更新行 */
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.row:active{background:#F4F2EB}
+.ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
+.ic.md{background:#F1EFE7;color:#5A5850}
+.ic.code{background:#FDF6E7;color:#B0762A}
+.nm{flex:1;min-width:0}
+.n1{font-size:14.5px;font-weight:500;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n2{font-size:12px;color:#A5A296;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{flex:none;font-size:11.5px;font-weight:600;color:#1F6F54;background:#E9F2ED;border-radius:999px;padding:4px 10px}
+.hair{height:1px;background:#F2F0E8;margin:0 14px}
+/* 空态（全部已读） */
+.empty{position:absolute;left:0;right:0;bottom:60px;text-align:center;color:#A5A296;font-size:13.5px;line-height:1.8}
+.empty::before{content:"";display:block;height:1px;background:#F2F0E8;margin:0 16px 18px}
+.empty .eic{margin:0 auto 12px;width:52px;height:52px;border-radius:18px;background:#EDF5F0;color:#1F6F54;
+  display:flex;align-items:center;justify-content:center}
+/* 书签弹层 */
+.scrim{position:absolute;inset:0;background:rgba(30,40,30,.28);z-index:3}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#FFFFFF;border-radius:20px 20px 0 0;z-index:4;
+  padding:10px 0 28px;box-shadow:0 -8px 30px rgba(30,40,30,.12)}
+.handle{width:40px;height:4px;border-radius:2px;background:#D4D1C5;margin:0 auto 14px}
+.sh{display:flex;align-items:baseline;gap:8px;padding:0 18px 10px}
+.sh .t{font-size:16px;font-weight:700;color:#26241E}
+.sh .n{font-size:12px;color:#A5A296}
+.bm{display:flex;align-items:center;gap:12px;padding:12px 18px}
+.bm:active{background:#F4F2EB}
+.bmi{width:36px;height:36px;border-radius:10px;background:#EDF5F0;color:#1F6F54;display:flex;align-items:center;justify-content:center;flex:none}
+.bm .n1{font-size:14.5px;font-weight:600;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bm .n2{font-size:12px;color:#A5A296;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bm .del{margin-left:auto;flex:none;color:#B0ADA2;display:flex;padding:6px}
+.bhair{height:1px;background:#F2F0E8;margin:0 18px}
+</style></head><body>
+
+<!-- 帧 1：更新收件箱 · 手机 -->
+<div class="phone"><div class="tag">更新收件箱 · 手机<small>分组带时间 + 相关度排序 + 空态</small></div>
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">更新收件箱</div>
+    <span class="act">全部已读</span>
+  </div>
+  <div class="gh"><span class="r">math</span><span class="t">1 天前同步</span><span class="c">45 项</span></div>
+  <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+    <div class="nm"><div class="n1">03-决策树.md</div><div class="n2">machine-learning · 正文更新</div></div>
+    <span class="chip">更新</span></div>
+  <div class="hair"></div>
+  <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+    <div class="nm"><div class="n1">05-线性回归的求解.md</div><div class="n2">machine-learning · 正文更新</div></div>
+    <span class="chip">更新</span></div>
+  <div class="hair"></div>
+  <div class="row"><div class="ic code"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B0762A" stroke-width="1.8"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></div>
+    <div class="nm"><div class="n1" style="font-family:Consolas,monospace;font-size:13.5px">.gitignore</div><div class="n2">仓库根 · 配置变更（低相关，弱化）</div></div></div>
+  <div class="hair"></div>
+  <div class="row"><div class="ic code"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B0762A" stroke-width="1.8"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></div>
+    <div class="nm"><div class="n1" style="font-family:Consolas,monospace;font-size:13.5px">setup.py</div><div class="n2">data-analysis/numpy · 配置变更</div></div></div>
+  <div class="empty">
+    <div class="eic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="2"><path d="M4 12l5 5L20 6"/></svg></div>
+    收件箱空空如也<br>点「全部更新」检查各仓库有没有新内容
+  </div>
+</div>
+
+<!-- 帧 2：书签 · 手机（底部弹层，条目带来源文件） -->
+<div class="phone"><div class="tag">书签 · 手机<small>底部弹层 · 条目补来源文件与进度</small></div>
+  <div style="filter:blur(1px);opacity:.55">
+    <div class="bar">
+      <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+      <div class="ttl">01-哈希表原理</div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.4l6.1-.8z"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#4A4840"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+    </div>
+    <div style="padding:18px 20px;font-size:15px;line-height:2;color:#3A382F">
+      <div style="font-size:20px;font-weight:700;color:#26241E;margin-bottom:8px">数组的局限与哈希表的登场</div>
+      数组按下标访问是 O(1)：a[7] 直接算地址。这个能力的前提是下标必须是连续的小整数。键恰好满足这个条件时……
+    </div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sh"><span class="t">书签</span><span class="n">2 条</span></div>
+    <div class="bm"><div class="bmi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.9"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg></div>
+      <div style="flex:1;min-width:0"><div class="n1">数组的局限与哈希表的登场</div>
+      <div class="n2">01-哈希表原理.md · fundamentals · 3% · 11-10 11:26</div></div>
+      <span class="del"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="1.8"><path d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"/></svg></span></div>
+    <div class="bhair"></div>
+    <div class="bm"><div class="bmi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.9"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg></div>
+      <div style="flex:1;min-width:0"><div class="n1">向量化：先想 numpy 再写循环</div>
+      <div class="n2">07-实战技巧.md · math · 41% · 11-09 20:14</div></div>
+      <span class="del"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="1.8"><path d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"/></svg></span></div>
+  </div>
+</div>
+</body></html>
