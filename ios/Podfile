@@ -1,0 +1,66 @@
+# CocoaPods integration for the iOS Runner.
+#
+# The project uses Swift Package Manager for most plugins, but
+# git2dart_binaries only ships a podspec, so CocoaPods still runs for it.
+# Committing this file makes that integration deterministic instead of
+# letting the Flutter tool regenerate it on every clean checkout.
+#
+# issue #6: git2dart_binaries force_loads a static libgit2.a, but Dart AOT
+# calls libgit2 through dlsym at runtime, so the linker sees no references
+# and Release's Dead Code Stripping removes the objects. The device then
+# throws "libgit2 lifecycle exception: failed to look up symbol". Disable
+# dead-code stripping for the Runner aggregate target below.
+
+platform :ios, '15.0'
+
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+  end
+
+  # Keep `-force_load`ed libgit2 objects alive in Release (issue #6).
+  # DEAD_CODE_STRIPPING is an Xcode build setting, not an ld flag; setting
+  # it to NO on the Runner aggregate xcconfig stops Xcode from adding
+  # `-dead_strip` to the final link.
+  installer.aggregate_targets.each do |aggregate_target|
+    aggregate_target.xcconfigs.each do |config_name, config_file|
+      config_file.attributes['DEAD_CODE_STRIPPING'] = 'NO'
+      config_file.save_as(aggregate_target.xcconfig_path(config_name))
+    end
+  end
+end
