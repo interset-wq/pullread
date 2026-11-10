@@ -1200,6 +1200,13 @@ html.js .reveal.is-visible {
     height: 440px;
   }
 
+  .hero-visual::before {
+    top: 60px;
+    width: 300px;
+    height: 380px;
+    border-radius: 28px;
+  }
+
   .hero-phone {
     width: 190px;
     height: 394px;
