@@ -84,16 +84,21 @@
 
 ## 4. iOS / iPad 特有项
 
-### 4.1 本地文件夹（重点，预期可能与 Android 不同）
+### 4.1 本地文件夹（重点）
 
-- [ ] 首页「打开本地文件夹」：iOS 文件选择器能选择目录或文件。
+- [ ] 首页「打开本地文件夹」：弹出的是**文件夹**选择器（不是文件选择器），
+      能选中「我的 iPhone / iCloud 云盘 / 第三方文件 App」里的目录。
 - [ ] 授权后能镜像并阅读 Markdown / 代码 / 图片。
 - [ ] 编辑 Markdown → 保存：原文件夹内容同步更新。
-- [ ] **杀掉应用再启动**：原文件夹授权是否仍然有效？若失效，记录现象。
+- [ ] **杀掉应用再启动**：原文件夹仍可同步、编辑并写回（security-scoped
+      bookmark 生效）；若失效，记录是否弹出了重新授权提示。
+- [ ] 在「文件」App 里移动/重命名该文件夹后再同步：不发生删除或覆盖。
 - [ ] 写回失败是否进入「设置 → 存储与数据 → 未写回的修改」。
 
-> iOS 的目录持久授权与 Android SAF 不同，`file_selector` 在 iOS 上可能只提供
-> 临时访问。此项以实际行为为准，不要求一次通过，但必须记录。
+> iOS 通过 `UIDocumentPickerViewController` + security-scoped bookmark 持久授权
+>（实现见 `ios/Runner/FolderAccess.swift` 与 `lib/src/local/ios_folder_access.dart`），
+> 不再依赖 `file_selector`。书签失效时应用会保留已有镜像而不是清空，重新授权后
+> 再增量同步。
 
 ### 4.2 手势与输入
 

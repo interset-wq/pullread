@@ -10,6 +10,16 @@
   real path. A `.pullread_local` marker distinguishes local sources; "sync" means
   re-mirror. Mirror only md/ipynb/code/images (skip files >32 MB); append a numeric
   suffix on name collisions.
+- **iOS** cannot keep access to a picked path across launches. `IosFolderAccess`
+  (`lib/src/local/ios_folder_access.dart`) calls the native `pullread/folder` channel
+  (`ios/Runner/FolderAccess.swift`): `UIDocumentPickerViewController` for folders,
+  a security-scoped bookmark stored with the folder record (`LocalFolder.bookmark`,
+  encoded as `uri||name||bookmark`), and balanced
+  `startAccessingSecurityScopedResource()` / `stopAccessingSecurityScopedResource()`
+  around every mirror sync, source stat and write-back. `file_selector` on iOS has no
+  directory picker and no bookmark support, so it must not be used for this path.
+  When the bookmark cannot be resolved, keep the existing mirror instead of pruning
+  it; the user can still read and re-authorize later.
 - Incremental sync compares source-side `(size, mtime)` snapshots stored in
   `.pullread_manifest.json` at the mirror root.
 - SAF authorization **must request write permission**

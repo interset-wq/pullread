@@ -22,18 +22,19 @@
   音量键的改动只能靠 analyze + 测试，真机验收项集中在第 5 节；iPad 由其他 agent
   按 `docs/ios-test-plan.md` 执行。
 
-## 2. 当前状态（2026-11-09）
+## 2. 当前状态（2026-11-10）
 
 - 最新发布：`v1.12.0`（正式版，arm64 APK）；包含设置页视觉统一、透明应用内
   logo、分支切换、mermaid 导出、跨平台 README 与第三方许可证页。
 - 定位升级为跨平台、移动优先：Android 主要发布，iPadOS/iOS 源码构建并等待真机验收，
   Windows 为次级桌面目标；Linux/macOS 尚未接入。
-- 许可证：`THIRD_PARTY_NOTICES.md` + `LICENSES/` 覆盖 124 个 pub 包、libgit2
+- 许可证：`THIRD_PARTY_NOTICES.md` + `LICENSES/` 覆盖 125 个 pub 包、libgit2
   （GPL-2.0 + linking exception）、JetBrains Mono（OFL-1.1）；关于页接入
   `showLicensePage`。升级依赖时必须同步清单。
 - iOS：`.github/workflows/ios.yml` 已在 macOS runner 构建成功，产出未签名
-  `PullRead-unsigned.ipa`；iPad 真机验收由其他 agent 按 `docs/ios-test-plan.md`
-  执行。
+  `PullRead-unsigned.ipa`；issue #6 的 libgit2 符号与 #10 的 CA 初始化已修复，
+  本地文件夹改为原生目录选择器 + security-scoped bookmark。iPad 真机验收由其他
+  agent 按 `docs/ios-test-plan.md` 执行。
 - Android 真机（DIO-AN00 / Android 12）：设置/许可证、切换分支、mermaid 导出
   已通过；其余手势与写回项待测。
 - CI：`analyze-and-test` 正常；`build-apk` 偶尔因 Gradle 发行包 504 失败，属基础设施
@@ -91,6 +92,8 @@ CI 产物为未签名 IPA，需用 Apple ID 重签后安装。
   clone→read→pull 循环 + Android/iPadOS/Windows 平台矩阵。
 - 第三方许可证：新增 `THIRD_PARTY_NOTICES.md` 与 `LICENSES/`，关于页可查看全部
   依赖许可证原文。
+- iOS 本地文件夹：`UIDocumentPickerViewController` + security-scoped bookmark，
+  重启后仍可同步与写回；授权失效时保留旧镜像（issue #7）。
 - 文本编码：新增 UTF-16 LE/BE（含 BOM）识别；本地编辑器保存时保留 UTF-8 BOM /
   UTF-16 编码，不再只区分 UTF-8 与 GBK。
 - `.mdx` 阅读增强：隐藏顶层 import/export 与 MDX 注释，代码块与源码视图保留；

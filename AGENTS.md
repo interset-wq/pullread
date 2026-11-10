@@ -21,8 +21,9 @@ with the code in the same commit (see "Maintenance").
   number-one priority.
 - Browse the original directory structure. **Never flatten the tree.**
 - Global search across repositories and local folders.
-- Local folders (SAF on Android / directory picker on desktop) with the same reading
-  pipeline as Git repositories, plus a Markdown editor that writes back.
+- Local folders (SAF on Android / security-scoped bookmarks on iOS / directory
+  picker on desktop) with the same reading pipeline as Git repositories, plus a
+  Markdown editor that writes back.
 - Reading progress, bookmarks, tags, link checking and update awareness.
 
 **Out of scope — do not add**
@@ -70,7 +71,7 @@ with the code in the same commit (see "Maintenance").
 | `lib/src/git/` | libgit2 FFI wrapper (`sync_service.dart`), repo metadata (`repo_meta.dart`) |
 | `lib/src/notes/` | Note scanning/index, Markdown source, notebook conversion, TOC, tags, link check, code outline |
 | `lib/src/search/` | Filename/full-text search, snippets, search models |
-| `lib/src/local/` | SAF/desktop folder authorization and incremental mirroring |
+| `lib/src/local/` | SAF/iOS-bookmark/desktop folder authorization and incremental mirroring |
 | `lib/src/ui/` | Pages and shared widgets (reader, code view, image cache/actions, settings, …) |
 | `lib/src/theme/` | `AppPrefs`, app theme |
 | `lib/src/utils/` | Text encoding, directory size, small helpers |
@@ -154,7 +155,7 @@ rationale live in the docs below; read the matching doc before editing that area
 | Git/sync internals, change markers, Android build requirements | `docs/git-sync.md` |
 | Markdown/notebook rendering, math, images, mermaid, code viewer | `docs/rendering.md` |
 | Reading flow, find, bookmarks, index/search, tags, link check, storage, settings | `docs/reading.md` |
-| Local folders, SAF mirroring, editor, pending write-backs | `docs/local-folders.md` |
+| Local folders, SAF/bookmark mirroring, editor, pending write-backs | `docs/local-folders.md` |
 | Platform adaptation, startup chain, launcher icons | `docs/platform.md` |
 | Render performance baseline | `docs/perf.md` |
 | iOS / iPadOS real-device acceptance | `docs/ios-test-plan.md` |

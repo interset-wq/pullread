@@ -10,24 +10,38 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../notes/note_index.dart';
 import '../notes/note_scanner.dart';
 import '../git/repo_meta.dart';
+import 'ios_folder_access.dart';
 import 'mirror_state.dart';
 
 /// 一条本地文件夹记录。
 /// [uri] 在 Android 上是 SAF tree URI（content://…，授权一次持久化），
-/// 在桌面端是用户选中的目录绝对路径。
+/// 在 iOS 与桌面端是用户选中的目录绝对路径。
 class LocalFolder {
-  const LocalFolder({required this.uri, required this.name});
+  const LocalFolder({required this.uri, required this.name, this.bookmark});
 
   final String uri;
   final String name;
 
-  /// 持久化编码 `uri||name`（URI 不含 `||`，可安全切分）。
+  /// iOS 的 security-scoped bookmark（base64）。Android/桌面为 null。
+  ///
+  /// 路径本身在 iOS 沙盒里无法长期访问；书签才是真正的授权凭证，应用
+  /// 重启后靠它重新拿到读写权限。
+  final String? bookmark;
+
+  /// 持久化编码 `uri||name[||bookmark]`。
+  /// URI 与 base64 书签都不含 `||`，可安全切分；旧记录只有前两段。
   static LocalFolder decode(String s) {
-    final i = s.indexOf('||');
-    return LocalFolder(uri: s.substring(0, i), name: s.substring(i + 2));
+    final parts = s.split('||');
+    if (parts.length < 2) return LocalFolder(uri: s, name: s);
+    return LocalFolder(
+      uri: parts[0],
+      name: parts[1],
+      bookmark: parts.length > 2 && parts[2].isNotEmpty ? parts[2] : null,
+    );
   }
 
-  String encode() => '$uri||$name';
+  String encode() =>
+      bookmark == null ? '$uri||$name' : '$uri||$name||$bookmark';
 }
 
 /// 本地文件夹服务：系统选择器授权 → 镜像到应用私有目录 → 与 git 仓库
@@ -121,6 +135,18 @@ class LocalFolderService {
       if (picked == null) return null;
       return LocalFolder(uri: picked.uri, name: picked.name);
     }
+    if (Platform.isIOS) {
+      // 系统文件夹选择器 + security-scoped bookmark；file_selector 的 iOS
+      // 实现没有目录选择，也没有持久授权，不能用来做本地文件夹。
+      final picked = await IosFolderAccess.pickFolder();
+      if (picked == null) return null;
+      final name = picked.path.split('/').last;
+      return LocalFolder(
+        uri: picked.path,
+        name: name.isEmpty ? 'folder' : name,
+        bookmark: picked.bookmark,
+      );
+    }
     // 桌面（Windows 预览）：选真实目录，镜像走 dart:io
     final path = await getDirectoryPath();
     if (path == null) return null;
@@ -135,6 +161,8 @@ class LocalFolderService {
     try {
       if (Platform.isAndroid) {
         await Saf().releasePersistedPermission(folder.uri);
+      } else if (Platform.isIOS) {
+        await IosFolderAccess.release(folder.name);
       }
     } on Object {
       // 权限已失效也无碍
@@ -167,8 +195,33 @@ class LocalFolderService {
   /// 把 [folder] 的源文件增量同步到 [target]，返回本次实际写入的文件数。
   /// 单独暴露镜像目录是为了让测试能直接指定临时目录（不经过 path_provider）。
   @visibleForTesting
-  static Future<int> syncInto(LocalFolder folder, Directory target) =>
-      Platform.isAndroid ? _syncSaf(folder, target) : _syncFromPath(folder, target);
+  static Future<int> syncInto(LocalFolder folder, Directory target) async {
+    if (Platform.isIOS) return _syncIos(folder, target);
+    return Platform.isAndroid ? _syncSaf(folder, target) : _syncFromPath(folder, target);
+  }
+
+  /// iOS：先拿安全作用域授权，再按真实路径镜像。
+  ///
+  /// 授权失败时**不清空镜像**：用户至少还能读上次同步的内容，重新授权后
+  /// 再增量同步（与源目录不可读时的处理一致）。
+  static Future<int> _syncIos(LocalFolder folder, Directory target) async {
+    final scoped = await IosFolderAccess.startAccess(
+      name: folder.name,
+      bookmark: folder.bookmark,
+    );
+    if (scoped == null) {
+      _writeMarker(target);
+      return 0;
+    }
+    try {
+      return await _syncFromPath(
+        LocalFolder(uri: scoped.path, name: folder.name),
+        target,
+      );
+    } finally {
+      await IosFolderAccess.stopAccess(scoped.path);
+    }
+  }
 
   static Future<int> _syncSaf(LocalFolder folder, Directory target) async {
     final manifest = _readManifest(target);
@@ -406,8 +459,24 @@ class LocalFolderService {
         return null;
       }
     }
+    if (Platform.isIOS) {
+      final scoped = await IosFolderAccess.startAccess(
+        name: folder.name,
+        bookmark: folder.bookmark,
+      );
+      if (scoped == null) return null;
+      try {
+        return _pathStamp(scoped.path, segments);
+      } finally {
+        await IosFolderAccess.stopAccess(scoped.path);
+      }
+    }
+    return _pathStamp(folder.uri, segments);
+  }
+
+  static MirrorStamp? _pathStamp(String root, List<String> segments) {
     final file = File(
-      '${folder.uri}${Platform.pathSeparator}'
+      '$root${Platform.pathSeparator}'
       '${segments.join(Platform.pathSeparator)}',
     );
     if (!file.existsSync()) return null;
@@ -443,10 +512,31 @@ class LocalFolderService {
         return false;
       }
     }
+    if (Platform.isIOS) {
+      final scoped = await IosFolderAccess.startAccess(
+        name: folder.name,
+        bookmark: folder.bookmark,
+      );
+      if (scoped == null) return false;
+      try {
+        return await _writeBackToPath(scoped.path, segments, name, bytes);
+      } finally {
+        await IosFolderAccess.stopAccess(scoped.path);
+      }
+    }
+    return _writeBackToPath(folder.uri, segments, name, bytes);
+  }
+
+  static Future<bool> _writeBackToPath(
+    String root,
+    List<String> segments,
+    String name,
+    List<int> bytes,
+  ) async {
     try {
       final parentPath = segments.isEmpty
-          ? folder.uri
-          : '${folder.uri}${Platform.pathSeparator}'
+          ? root
+          : '$root${Platform.pathSeparator}'
               '${segments.join(Platform.pathSeparator)}';
       // 不替用户在源侧重建目录结构：父目录没了就报失败，留给人工处理
       final parent = Directory(parentPath);

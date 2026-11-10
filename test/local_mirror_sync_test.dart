@@ -107,4 +107,35 @@ void main() {
     await LocalFolderService.syncInto(folder, mirror);
     expect(File('${mirror.path}/a.md').readAsStringSync(), 'v2 from pc');
   });
+
+  group('LocalFolder 持久化', () {
+    test('旧记录（无书签）仍可解码，编码保持两段', () {
+      final f = LocalFolder.decode('/docs/notes||notes');
+      expect(f.uri, '/docs/notes');
+      expect(f.name, 'notes');
+      expect(f.bookmark, isNull);
+      expect(f.encode(), '/docs/notes||notes');
+    });
+
+    test('iOS 书签随记录编码、解码', () {
+      const bookmark = 'Ym9va21hcms+/=';
+      final f = LocalFolder(
+        uri: '/private/var/mobile/notes',
+        name: 'notes-2',
+        bookmark: bookmark,
+      );
+      expect(f.encode(), '/private/var/mobile/notes||notes-2||$bookmark');
+
+      final decoded = LocalFolder.decode(f.encode());
+      expect(decoded.uri, '/private/var/mobile/notes');
+      expect(decoded.name, 'notes-2');
+      expect(decoded.bookmark, bookmark);
+    });
+
+    test('空书签段视作无书签（旧版写回的三段格式）', () {
+      final f = LocalFolder.decode('/a/b||b||');
+      expect(f.bookmark, isNull);
+      expect(f.encode(), '/a/b||b');
+    });
+  });
 }

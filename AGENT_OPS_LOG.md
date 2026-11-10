@@ -332,3 +332,15 @@
 - 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
 - 处理测试员 issue #6~#10 与 PR #9/#11；#9 的 Podfile 修正后合并。
 - `main.dart`：iOS 也执行内置 CA 解包与 `Libgit2.setSSLCertLocations`（issue #10）。
+
+## 2026-11-10 iOS local folders
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- issue #7：iOS 本地文件夹改为原生 `UIDocumentPickerViewController` +
+  security-scoped bookmark（`ios/Runner/FolderAccess.swift`、
+  `lib/src/local/ios_folder_access.dart`），不再依赖 `file_selector`。
+- `LocalFolder` 新增可选 `bookmark`，编码兼容旧的 `uri||name` 记录。
+- 每次镜像、读取源侧时间戳、写回都成对 start/stop 安全作用域访问；书签失效
+  时保留旧镜像并跳过清理，避免误删可读内容。
+- 测试：新增 LocalFolder 新旧格式编解码用例；全套 259 个测试通过。
+- 未在本机编译 iOS（无 macOS/Xcode），由 iOS CI 与真机验收确认。
