@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
   <title>Pull 拉读 · 拉</title>
   <!-- 抽页成箭：一页从书封中缝抽出化作箭头（纸感底 + 松绿） -->
-  <rect width="256" height="256" rx="56" fill="#FBFAF6"/>
-  <g transform="translate(38.4 38.4) scale(0.7)">
+  <rect width="256" height="256" rx="56" fill="#E3D6BC"/>
+  <g transform="translate(28.16 28.16) scale(0.78)">
     <g fill="#1F6F54">
       <path fill-rule="evenodd" d="
         M88 40 H168 A16 16 0 0 1 184 56 V168 A16 16 0 0 1 168 184 H88 A16 16 0 0 1 72 168 V56 A16 16 0 0 1 88 40 Z

@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
   <title>Pull 拉读 · 页堆</title>
   <!-- 页堆箭（圆角纸感底）：legacy 图标与设置页预览用 -->
-  <rect width="256" height="256" rx="56" fill="#FBFAF6"/>
-  <g transform="translate(38.4 38.4) scale(0.7)">
+  <rect width="256" height="256" rx="56" fill="#E3D6BC"/>
+  <g transform="translate(28.16 28.16) scale(0.78)">
     <g fill="#1F6F54">
       <path d="M116 40 H140 V96 H160 L128 138 L96 96 H116 Z"/>
       <rect x="48" y="152" width="160" height="26" rx="13"/>

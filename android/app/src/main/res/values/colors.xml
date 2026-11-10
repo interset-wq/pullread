@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 品牌纸白（素雅纸感）：闪屏与自适应图标背景统一用色 -->
+    <!-- 品牌纸白（素雅纸感）：闪屏、状态栏与页面底色 -->
     <color name="brand_paper">#FBFAF6</color>
+    <!-- 启动图标专用纸色：比闪屏深一档，避免浅色 Dock/桌面上图标轮廓糊在一起 -->
+    <color name="brand_icon_paper">#E3D6BC</color>
 </resources>
