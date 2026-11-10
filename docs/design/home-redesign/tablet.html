@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:36px;padding:56px 48px;align-items:flex-start;flex-wrap:wrap}
+.frame{background:#FBFAF6;border-radius:24px;overflow:hidden;position:relative;flex:none;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-36px;left:8px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.badge{background:#E5443B;color:#fff;border-radius:9px;font-size:11px;padding:1px 5px;
+  position:absolute;top:-8px;right:-10px;font-weight:600}
+.hd{display:flex;align-items:center;padding:26px 28px 14px}
+.sec{display:flex;align-items:center;font-size:13px;color:#8A887E;margin:20px 0 10px;letter-spacing:.02em}
+.sec .more{margin-left:auto;font-size:12px;color:#1F6F54;font-weight:600}
+.card{background:#fff;border:1px solid #E5E2D8;border-radius:18px;padding:16px 18px;
+  display:flex;align-items:center;gap:14px;min-width:0;overflow:hidden}
+.chev{flex:none;margin-left:auto}
+.seg{display:flex;background:#ECEAE2;border-radius:12px;padding:3px}
+.seg div{flex:1;text-align:center;font-size:14px;padding:9px 0;border-radius:10px;color:#8A887E;font-weight:600}
+.seg .on{background:#fff;color:#1F6F54;box-shadow:0 1px 4px rgba(30,40,30,.12)}
+.sub{font-size:12.5px;color:#A5A296;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mono{border-radius:14px;background:#1F6F54;color:#FBFAF6;display:flex;align-items:center;
+  justify-content:center;font-weight:700;flex:none}
+/* 竖屏 */
+.port{width:820px}
+.port .inner{padding:0 72px}   /* 居中限宽内容带 */
+/* 横屏 */
+.land{width:1180px}
+.land .body{display:flex;height:760px;overflow:hidden}
+.land .left{width:400px;flex:none;border-right:1px solid #EFEDE5;overflow:hidden}
+.land .right{flex:1;padding:20px 28px;min-width:0;overflow:hidden}
+/* 大内容组件 */
+.bighero{background:#fff;border:1px solid #E5E2D8;border-radius:20px;padding:22px 24px;
+  display:flex;gap:18px;align-items:center}
+.play{width:64px;height:64px;border-radius:50%;background:#E9F2ED;display:flex;align-items:center;
+  justify-content:center;flex:none}
+.bigbar{height:5px;background:#EEEBE2;border-radius:3px;margin-top:10px;overflow:hidden}
+.bigbar i{display:block;height:100%;background:#1F6F54;border-radius:3px}
+.thumb{width:52px;height:52px;border-radius:12px;background:#EDF5F0;display:flex;align-items:center;
+  justify-content:center;flex:none;color:#1F6F54;font-weight:800;font-size:18px}
+.syncdot{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#5A9B7E}
+.syncdot i{width:7px;height:7px;border-radius:50%;background:#2A8464;display:inline-block}
+.empty{border:1.5px dashed #D4D1C5;border-radius:18px;padding:20px;text-align:center;color:#8A887E;font-size:14px;line-height:1.8}
+</style></head><body>
+
+<!-- ══ 平板竖屏 · 只有 1 个仓库 ══ -->
+<div class="frame port" style="height:1000px"><div class="tag">迭代九 · 平板竖屏 · 少内容态<small>1 个仓库：元素放大填充</small></div>
+<div style="height:100%;overflow:hidden">
+  <div class="hd">
+    <svg width="36" height="36" viewBox="0 0 256 256"><path fill="#1F6F54" fill-rule="evenodd" d="M40 62 C70 48 102 50 128 62 C154 50 186 48 216 62 V182 C186 168 154 170 128 182 C102 170 70 168 40 182 Z M116 70 H140 V122 H156 L128 162 L100 122 H116 Z"/></svg>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:22px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <div style="position:relative"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5"/></svg>
+      <span class="badge">86</span></div>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#4A4840"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+    </div>
+  </div>
+  <div class="inner">
+    <!-- 大 hero：继续阅读升级为视觉主体 -->
+    <div class="bighero">
+      <div class="play"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M9 7.5v9l7-4.5z" fill="#1F6F54"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:#1F6F54;font-weight:700;letter-spacing:.06em">继续阅读 · frontend</div>
+        <div style="font-size:21px;font-weight:700;color:#26241E;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">02-组件与生命周期.md</div>
+        <div class="bigbar"><i style="width:50%"></i></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#A5A296;margin-top:6px">
+          <span>上次读到 3.2 节 · 昨天 21:47</span><span style="color:#1F6F54;font-weight:600">已读 50%</span>
+        </div>
+      </div>
+      <div style="text-align:center;flex:none;padding:0 8px">
+        <div style="font-size:13px;color:#8A887E">剩余约</div>
+        <div style="font-size:22px;font-weight:800;color:#1F6F54">12<span style="font-size:13px;font-weight:600"> 分钟</span></div>
+      </div>
+    </div>
+    <div class="sec">最近阅读<span class="more">全部 ›</span></div>
+    <!-- 双列缩略卡：视觉重量填充 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="card"><div class="thumb">01</div>
+        <div style="flex:1;min-width:0"><div style="font-size:15.5px;font-weight:600;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">01-环境搭建与工程配置.md</div>
+        <div class="sub">frontend · 昨天读完</div></div></div>
+      <div class="card"><div class="thumb">03</div>
+        <div style="flex:1;min-width:0"><div style="font-size:15.5px;font-weight:600;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">03-布局组件实战.md</div>
+        <div class="sub">frontend · 上周六</div></div></div>
+    </div>
+    <div class="sec">仓库 · 1<span style="margin-left:auto"></span></div>
+    <div class="seg" style="margin-bottom:14px"><div class="on">仓库 · 1</div><div>本地文件夹</div></div>
+    <!-- 单 repo 全宽大卡 + 丰富元信息，不再是小格子 -->
+    <div class="card" style="padding:20px 22px">
+      <div class="mono" style="width:56px;height:56px;font-size:23px">M</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:19px;font-weight:700;color:#26241E;display:flex;align-items:center;gap:8px">math
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#C99A2E"><path d="M14 3l7 7-4 1-4 4 .5 5L10 16l-5.5 4L8 14.5 4.5 11l5-.5z" transform="rotate(8 12 12)"/></svg>
+        </div>
+        <div class="sub" style="font-size:13px">atomgit.com/interset-…</div>
+        <div style="display:flex;gap:16px;margin-top:8px;align-items:center">
+          <span class="syncdot"><i></i>已同步 · 21 小时前</span>
+          <span style="font-size:12px;color:#8A887E">最近读 AGENTS.md</span>
+          <span style="font-size:12px;color:#8A887E">142 个文件</span>
+        </div>
+      </div>
+      <svg class="chev" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══ 平板横屏 · 只有 1 个仓库 ══ -->
+<div class="frame land" style="height:800px"><div class="tag">迭代九 · 平板横屏 · 少内容态<small>左阅读右仓库，双栏都有实感</small></div>
+<div class="body">
+  <div class="left">
+    <div class="hd">
+      <svg width="34" height="34" viewBox="0 0 256 256"><path fill="#1F6F54" fill-rule="evenodd" d="M40 62 C70 48 102 50 128 62 C154 50 186 48 216 62 V182 C186 168 154 170 128 182 C102 170 70 168 40 182 Z M116 70 H140 V122 H156 L128 162 L100 122 H116 Z"/></svg>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <div style="position:relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5"/></svg>
+        <span class="badge" style="top:-8px;right:-9px">86</span></div>
+      </div>
+    </div>
+    <div style="padding:0 24px">
+      <div class="bighero" style="padding:18px 20px">
+        <div class="play" style="width:54px;height:54px"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M9 7.5v9l7-4.5z" fill="#1F6F54"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11.5px;color:#1F6F54;font-weight:700;letter-spacing:.06em">继续阅读 · frontend</div>
+          <div style="font-size:17px;font-weight:700;color:#26241E;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">02-组件与生命周期.md</div>
+          <div class="bigbar" style="margin-top:8px"><i style="width:50%"></i></div>
+          <div style="font-size:12px;color:#A5A296;margin-top:6px">上次读到 3.2 节 · 已读 50%</div>
+        </div>
+      </div>
+      <div class="sec">最近阅读<span class="more">全部 ›</span></div>
+      <div class="card" style="margin-bottom:10px"><div class="thumb" style="width:46px;height:46px;font-size:16px">01</div>
+        <div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:600;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">01-环境搭建与工程配置.md</div>
+        <div class="sub">frontend · 昨天读完</div></div></div>
+      <div class="card" style="margin-bottom:10px"><div class="thumb" style="width:46px;height:46px;font-size:16px">03</div>
+        <div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:600;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">03-布局组件实战.md</div>
+        <div class="sub">frontend · 上周六</div></div></div>
+      <div class="card"><div class="thumb" style="width:46px;height:46px;font-size:16px">05</div>
+        <div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:600;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">05-状态管理入门.md</div>
+        <div class="sub">frontend · 上上周</div></div></div>
+    </div>
+  </div>
+  <div class="right">
+    <div style="display:flex;align-items:center">
+      <div class="seg" style="flex:1;max-width:380px"><div class="on">仓库 · 1</div><div>本地文件夹</div></div>
+      <svg style="margin-left:auto" width="22" height="22" viewBox="0 0 24 24" fill="#4A4840"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+    </div>
+    <!-- 单 repo：大卡 + 仓库内热点（填充右栏，不空） -->
+    <div class="card" style="padding:20px 22px;margin-top:16px">
+      <div class="mono" style="width:56px;height:56px;font-size:23px">M</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:19px;font-weight:700;color:#26241E;display:flex;align-items:center;gap:8px">math
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#C99A2E"><path d="M14 3l7 7-4 1-4 4 .5 5L10 16l-5.5 4L8 14.5 4.5 11l5-.5z" transform="rotate(8 12 12)"/></svg>
+        </div>
+        <div class="sub" style="font-size:13px">atomgit.com/interset-… · 142 个文件</div>
+        <div style="display:flex;gap:16px;margin-top:8px;align-items:center">
+          <span class="syncdot"><i></i>已同步 · 21 小时前</span>
+          <span style="font-size:12px;color:#8A887E">最近读 AGENTS.md</span>
+        </div>
+      </div>
+      <svg class="chev" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+    <!-- 仓库内热点目录：内容少时的填充区（来自真实扫描数据） -->
+    <div class="sec">仓库内热门目录</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="card" style="padding:14px 16px"><div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:600;color:#26241E">01-Flutter 入门</div>
+        <div class="sub">12 篇 · 最近 05-状态管理入门.md</div></div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="card" style="padding:14px 16px"><div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:600;color:#26241E">02-组件进阶</div>
+        <div class="sub">8 篇 · 最近 02-组件与生命周期.md</div></div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="card" style="padding:14px 16px"><div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:600;color:#26241E">examples</div>
+        <div class="sub">6 篇 · 最近 counter_app.dart</div></div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="card" style="padding:14px 16px"><div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:600;color:#26241E">docs</div>
+        <div class="sub">21 篇 · 最近 AGENTS.md</div></div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    </div>
+    <div class="empty" style="margin-top:16px">想读点新的？<br>右上角 + 添加一个仓库，或切到「本地文件夹」打开本地笔记</div>
+  </div>
+</div></div>
+</body></html>

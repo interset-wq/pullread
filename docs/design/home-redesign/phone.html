@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:36px;padding:56px 48px;align-items:flex-start;flex-wrap:wrap}
+.phone{width:400px;flex:none;background:#FBFAF6;border-radius:28px;overflow:hidden;
+  box-shadow:0 12px 40px rgba(30,40,30,.14);position:relative}
+.tag{position:absolute;top:-36px;left:6px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.frame{overflow:hidden;position:relative;background:#FBFAF6}
+.hd{display:flex;align-items:center;padding:26px 20px 14px}
+.badge{background:#E5443B;color:#fff;border-radius:9px;font-size:11px;padding:1px 5px;
+  position:absolute;top:-8px;right:-10px;font-weight:600}
+.fab{position:absolute;right:18px;bottom:18px;width:52px;height:52px;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;
+  background:#1F6F54;color:#FBFAF6;box-shadow:0 6px 16px rgba(31,111,84,.35)}
+.sec{display:flex;align-items:center;font-size:13px;color:#8A887E;margin:18px 20px 8px;letter-spacing:.02em}
+.sec .more{margin-left:auto;font-size:12px;color:#1F6F54;font-weight:600}
+.row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #F2F0E8}
+.card{background:#fff;border:1px solid #E5E2D8;border-radius:16px;padding:13px 16px;
+  display:flex;align-items:center;gap:12px;margin-bottom:10px;min-width:0;overflow:hidden}
+.mono{width:40px;height:40px;border-radius:12px;background:#1F6F54;color:#FBFAF6;display:flex;
+  align-items:center;justify-content:center;font-size:17px;font-weight:700;flex:none}
+.chev{flex:none;margin-left:auto}
+.seg{display:flex;background:#ECEAE2;border-radius:12px;padding:3px;margin:14px 16px 0}
+.seg div{flex:1;text-align:center;font-size:13.5px;padding:8px 0;border-radius:10px;color:#8A887E;font-weight:600}
+.seg .on{background:#fff;color:#1F6F54;box-shadow:0 1px 4px rgba(30,40,30,.12)}
+.hero{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid #EFEDE5}
+.hero .meta{font-size:11px;color:#8A887E;letter-spacing:.06em}
+.hero .ttl{font-size:16px;font-weight:600;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.bar{height:3px;background:#EFEDE5;border-radius:2px;margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;background:#1F6F54;border-radius:2px}
+.sub{font-size:12px;color:#A5A296;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 平板 */
+.tab{width:620px;flex:none;background:#FBFAF6;border-radius:24px;overflow:hidden;
+  box-shadow:0 12px 40px rgba(30,40,30,.14);position:relative}
+.tab .sec{margin:16px 24px 8px}
+.land{width:960px;flex:none;background:#FBFAF6;border-radius:24px;overflow:hidden;
+  box-shadow:0 12px 40px rgba(30,40,30,.14);position:relative}
+.land .body{display:flex;height:700px;overflow:hidden}
+.land .left{width:340px;flex:none;border-right:1px solid #EFEDE5;overflow:hidden}
+.land .right{flex:1;padding:20px 20px 0;min-width:0;overflow:hidden}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2 .card{margin-bottom:0;min-width:0;overflow:hidden}
+.pill{display:inline-flex;align-items:center;gap:6px}
+</style></head><body>
+
+<!-- ══ 手机：细节打磨后的定稿态（仓库 Tab） ══ -->
+<div class="phone"><div class="tag">迭代五 · 手机定稿细节<small>打磨版</small></div>
+<div class="frame" style="height:840px">
+  <div class="hd">
+    <svg width="34" height="34" viewBox="0 0 256 256"><path fill="#1F6F54" fill-rule="evenodd" d="M40 62 C70 48 102 50 128 62 C154 50 186 48 216 62 V182 C186 168 154 170 128 182 C102 170 70 168 40 182 Z M116 70 H140 V122 H156 L128 162 L100 122 H116 Z"/></svg>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:18px">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <div style="position:relative"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5"/></svg>
+      <span class="badge">86</span></div>
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="#4A4840"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+    </div>
+  </div>
+  <div class="hero">
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z" fill="#1F6F54" stroke="none"/></svg>
+    <div style="flex:1;min-width:0">
+      <div class="meta">继续阅读 · frontend · 已读 50%</div>
+      <div class="ttl">02-组件与生命周期.md</div>
+      <div class="bar"><i style="width:50%"></i></div>
+    </div>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+  </div>
+  <div class="sec">最近阅读<span class="more">全部 ›</span></div>
+  <div style="padding:0 20px">
+    <div class="row"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A887E" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+      <div style="font-size:14.5px;color:#3A382F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">01-环境搭建与工程配置.md <span style="color:#B0ADA2">· frontend</span></div></div>
+    <div class="row"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A887E" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+      <div style="font-size:14.5px;color:#3A382F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">03-布局组件实战.md <span style="color:#B0ADA2">· frontend</span></div></div>
+    <div class="row"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A887E" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+      <div style="font-size:14.5px;color:#3A382F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">05-状态管理入门.md <span style="color:#B0ADA2">· frontend</span></div></div>
+  </div>
+  <div class="seg"><div class="on">仓库 · 4</div><div>本地文件夹 · 1</div></div>
+  <div style="padding:12px 16px 0">
+    <div class="card">
+      <div class="mono">M</div>
+      <div style="flex:1;min-width:0">
+        <div class="pill" style="font-size:15.5px;font-weight:600;color:#26241E">math
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#C99A2E"><path d="M14 3l7 7-4 1-4 4 .5 5L10 16l-5.5 4L8 14.5 4.5 11l5-.5z" transform="rotate(8 12 12)"/></svg>
+        </div>
+        <div class="sub">同步于 21 小时前 · 最近 AGENTS.md</div>
+      </div>
+      <svg class="chev" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+    <div class="card">
+      <div class="mono">L</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15.5px;font-weight:600;color:#26241E">languages</div>
+        <div class="sub">同步于 2 天前 · 最近 01-C语言入门.md</div>
+      </div>
+      <svg class="chev" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="mono">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15.5px;font-weight:600;color:#26241E">ai</div>
+        <div class="sub">同步于 1 天前 · 最近 AGENTS.md</div>
+      </div>
+      <svg class="chev" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+  </div>
+  <div class="fab">+</div>
+</div></div>
+</body></html>

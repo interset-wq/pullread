@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:36px;padding:60px 48px;align-items:flex-start}
+.phone{width:390px;height:845px;flex:none;background:#FBFAF6;border-radius:28px;overflow:hidden;position:relative;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-34px;left:6px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.bar{display:flex;align-items:center;gap:12px;padding:14px 14px 10px}
+.bar .bt{width:22px;height:22px;flex:none}
+.bar .ttl{font-size:17px;font-weight:600;color:#26241E;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 面包屑行（GH Mobile 式） */
+.crumb{display:flex;align-items:center;gap:6px;padding:6px 16px 4px;font-size:12.5px;white-space:nowrap;overflow:hidden}
+.crumb b{color:#1F6F54;font-weight:600;flex:none}
+.crumb .sep{color:#C9C6BA;flex:none}
+.crumb .cur{color:#26241E;font-weight:600;flex:none}
+/* 搜索条：白卡描边统一 token */
+.search{margin:10px 14px 4px;display:flex;align-items:center;gap:9px;background:#fff;
+  border:1px solid #E5E2D8;border-radius:12px;padding:9px 12px;font-size:14px;color:#B0ADA2}
+.search .sw{margin-left:auto;color:#8A887E;display:flex}
+/* 列表 */
+.rows{padding:6px 6px}
+.row{display:flex;align-items:center;gap:13px;padding:11px 12px;border-radius:12px}
+.row:active{background:#F4F2EB}
+.ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
+.ic.dir{background:#EDF5F0;color:#1F6F54}
+.ic.md{background:#F1EFE7;color:#5A5850}
+.ic.code{background:#FDF6E7;color:#B0762A}
+.nm{flex:1;min-width:0}
+.n1{font-size:15px;font-weight:500;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n2{font-size:12px;color:#A5A296;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg{font-size:12px;color:#1F6F54;font-weight:600;flex:none}
+.prog{height:3px;background:#EFEDE5;border-radius:2px;margin-top:6px;overflow:hidden;max-width:120px}
+.prog i{display:block;height:100%;background:#1F6F54;border-radius:2px}
+.hair{height:1px;background:#F2F0E8;margin:2px 14px}
+/* 少内容态引导 */
+.guide{position:absolute;left:16px;right:16px;bottom:18px;border:1.5px dashed #D4D1C5;border-radius:16px;
+  padding:14px 16px;display:flex;align-items:center;gap:12px;background:#fff}
+.guide .tx{font-size:12.5px;color:#8A887E;line-height:1.6}
+.guide .tx b{color:#3A382F;font-size:13px}
+</style></head><body>
+
+<!-- 帧 1：目录树常态（面包屑 + 计数 + 进度） -->
+<div class="phone"><div class="tag">目录树页 · 常态<small>面包屑 + 文件夹计数 + 文件进度</small></div>
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">basics</div>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.7"><path d="M20 11A8 8 0 106.3 6.3M20 5V1h-4" transform="rotate(140 12 12) translate(0 3)"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="#4A4840"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+  </div>
+  <div class="crumb"><b>ai</b><span class="sep">/</span><b>rag</b><span class="sep">/</span><span class="cur">basics</span></div>
+  <div class="search">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    搜索文件
+    <span class="sw"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A887E" stroke-width="1.8"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span>
+  </div>
+  <div class="rows">
+    <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+      <div class="nm"><div class="n1">01-大模型基础概念.md</div>
+        <div class="n2"><span style="display:inline-block;width:110px" class="prog"><i style="width:80%"></i></span></div></div>
+      <span class="pg">80%</span></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+      <div class="nm"><div class="n1">02-开发环境与常用工具.md</div></div></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+      <div class="nm"><div class="n1">03-使用LLM-API开发应用.md</div></div></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+      <div class="nm"><div class="n1">05-Prompt工程与函数调用.md</div>
+        <div class="n2"><span style="display:inline-block;width:110px" class="prog"><i style="width:4%"></i></span></div></div>
+      <span class="pg">4%</span></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic code"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B0762A" stroke-width="1.8"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></div>
+      <div class="nm"><div class="n1" style="font-family:Consolas,monospace">hash_table.c</div>
+        <div class="n2">C · 253 行</div></div></div>
+  </div>
+</div>
+
+<!-- 帧 2：少内容态（rag 根：6 文件夹 + README → 计数 + 引导） -->
+<div class="phone"><div class="tag">目录树页 · 少内容态<small>文件夹计数 + 底部轻引导</small></div>
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">rag</div>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.7"><path d="M20 11A8 8 0 106.3 6.3M20 5V1h-4" transform="rotate(140 12 12) translate(0 3)"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="#4A4840"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+  </div>
+  <div class="crumb"><b>ai</b><span class="sep">/</span><span class="cur">rag</span></div>
+  <div class="search">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    搜索文件
+    <span class="sw"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A887E" stroke-width="1.8"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span>
+  </div>
+  <div class="rows">
+    <div class="row"><div class="ic dir"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+      <div class="nm"><div class="n1">advanced-rag</div><div class="n2">8 个文件</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic dir"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+      <div class="nm"><div class="n1">agentic-rag</div><div class="n2">5 个文件</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic dir"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+      <div class="nm"><div class="n1">basics</div><div class="n2">9 个文件 · 读到 80%</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic dir"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+      <div class="nm"><div class="n1">engineering</div><div class="n2">6 个文件</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+      <div class="nm"><div class="n1">README.md</div></div></div>
+  </div>
+  <div class="guide">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M12 11v6M9 14h6"/></svg>
+    <div class="tx"><b>继续往深走</b><br>点开任意文件夹查看里面的笔记与代码，右上角搜索可跨全仓库找文件</div>
+  </div>
+</div>
+</body></html>

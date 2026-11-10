@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:40px;padding:60px 48px;align-items:flex-start}
+.frame{background:#FBFAF6;border-radius:24px;overflow:hidden;position:relative;flex:none;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-36px;left:8px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.sbar{display:flex;align-items:center;gap:9px;margin:16px 20px 0;background:#fff;border:1px solid #E5E2D8;
+  border-radius:12px;padding:12px 13px;font-size:15px;color:#26241E}
+.sbar .x{margin-left:auto;color:#B0ADA2;display:flex}
+.mods{display:flex;align-items:center;gap:10px;margin:14px 20px 4px}
+.seg{display:flex;background:#F1EFE7;border-radius:999px;padding:3px;flex:none}
+.seg span{font-size:13px;color:#5A5850;padding:6px 14px;border-radius:999px;white-space:nowrap}
+.seg span.on{background:#fff;color:#1F6F54;font-weight:600;box-shadow:0 1px 3px rgba(30,40,30,.1)}
+.sr{font-size:13px;color:#5A5850;background:#fff;border:1px solid #E5E2D8;border-radius:999px;
+  padding:6px 14px;white-space:nowrap}
+.sr.on{background:#E9F2ED;border-color:#BFE0D0;color:#1F6F54;font-weight:600}
+.gh{font-size:14px;font-weight:700;color:#1F6F54;padding:18px 24px 8px}
+.res{padding:12px 24px 0}
+.rh{display:flex;align-items:baseline;gap:10px}
+.rh .f{font-size:15.5px;font-weight:600;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.rh .cnt{font-size:12.5px;color:#1F6F54;font-weight:600;flex:none}
+.rp{font-size:12.5px;color:#A5A296;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snip{font-size:13.5px;color:#5A5850;line-height:1.8;margin-top:6px}
+.hl{background:#CDEBDD;color:#14563F;border-radius:3px;padding:0 2px;font-weight:600}
+.hair{height:1px;background:#F2F0E8;margin:14px 24px 0}
+/* 横屏：结果限宽居中，搜索条上置 */
+.land{width:1020px;height:760px}
+.land .col{max-width:760px;margin:0 auto;padding-bottom:20px}
+/* 竖屏 */
+.port{width:640px;height:940px}
+.port .col{max-width:640px;margin:0 auto}
+</style></head><body>
+
+<!-- 平板横屏：搜索上置 + 结果限宽居中 -->
+<div class="frame land"><div class="tag">搜索 · 平板横屏<small>搜索条上置 · 结果列限宽居中</small></div>
+  <div class="col">
+    <div class="sbar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      numpy
+      <span class="x"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+    </div>
+    <div class="mods">
+      <div class="seg"><span class="on">正文</span><span>仅标题</span></div>
+      <span class="sr on">全部</span><span class="sr">math</span><span class="sr">languages</span>
+    </div>
+    <div class="gh">math · 12 处</div>
+    <div class="res">
+      <div class="rh"><span class="f">07-实战技巧.md</span><span class="cnt">17 处</span></div>
+      <div class="rp">data-analysis/numpy/07-实战技巧.md</div>
+      <div class="snip"><span class="hl">NumPy</span> 的性能优化、常见陷阱、内存布局、与 pandas 的交互模式。import <span class="hl">numpy</span> as np —— 能向量化就别写循环，<span class="hl">NumPy</span> 的向量化操作底层是 C 实现。</div>
+    </div>
+    <div class="hair"></div>
+    <div class="res">
+      <div class="rh"><span class="f">03-运算与广播.md</span><span class="cnt">4 处</span></div>
+      <div class="rp">data-analysis/numpy/03-运算与广播.md</div>
+      <div class="snip"><span class="hl">NumPy</span> 的核心优势是向量化运算：不用写循环，直接对整个数组操作。广播机制让不同形状的数组也能运算。</div>
+    </div>
+  </div>
+</div>
+
+<!-- 平板竖屏：同手机结构居中限宽 -->
+<div class="frame port"><div class="tag">搜索 · 平板竖屏<small>同手机结构 · 居中限宽</small></div>
+  <div class="col">
+    <div class="sbar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      numpy
+      <span class="x"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+    </div>
+    <div class="mods">
+      <div class="seg"><span class="on">正文</span><span>仅标题</span></div>
+      <span class="sr on">全部</span><span class="sr">math</span><span class="sr">languages</span>
+    </div>
+    <div class="gh">math · 12 处</div>
+    <div class="res">
+      <div class="rh"><span class="f">07-实战技巧.md</span><span class="cnt">17 处</span></div>
+      <div class="rp">data-analysis/numpy/07-实战技巧.md</div>
+      <div class="snip"><span class="hl">NumPy</span> 的性能优化、常见陷阱、内存布局、与 pandas 的交互模式。import <span class="hl">numpy</span> as np —— 能向量化就别写循环。</div>
+    </div>
+  </div>
+</div>
+</body></html>

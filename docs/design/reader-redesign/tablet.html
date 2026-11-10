@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:36px;padding:60px 48px;align-items:flex-start}
+.frame{background:#FBFAF6;border-radius:24px;overflow:hidden;position:relative;flex:none;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-36px;left:8px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.bar{display:flex;align-items:center;gap:14px;padding:16px 20px 10px}
+.bar .bt{width:22px;height:22px;flex:none}
+.bar .ttl{font-size:17px;font-weight:600;color:#26241E;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog{height:2.5px;background:#EFEDE5;position:relative}
+.prog i{position:absolute;left:0;top:0;bottom:0;width:50%;background:#1F6F54}
+.h2{font-size:18px;font-weight:700;color:#1A1912;margin:18px 0 10px}
+.li{padding-left:17px;position:relative;margin-bottom:9px}
+.li i{position:absolute;left:2px;top:11px;width:5px;height:5px;border-radius:50%;background:#1F6F54}
+.code{font-family:Consolas,monospace;font-size:13px;background:#F1EFE7;border-radius:5px;padding:1px 6px;color:#3A382F}
+.tblwrap{position:relative;border:1px solid #E5E2D8;border-radius:12px;overflow:hidden;margin:8px 0}
+table{border-collapse:collapse;width:130%;font-size:13.5px}
+th{background:#EDF5F0;font-weight:600;color:#26241E;padding:9px 11px;text-align:left;border-bottom:1px solid #E5E2D8}
+td{padding:9px 11px;border-bottom:1px solid #F2F0E8;color:#2A2820}
+td .code{background:#F6F4EC}
+.wrapbtn{position:absolute;top:9px;right:9px;width:27px;height:27px;border-radius:8px;
+  background:#FBFAF6;border:1px solid #E5E2D8;display:flex;align-items:center;justify-content:center;z-index:2}
+.scrollbar{height:3px;background:#EEEBE2;border-radius:2px;margin:6px 2px 0;position:relative;overflow:hidden}
+.scrollbar i{position:absolute;left:0;top:0;height:100%;width:62%;background:#C9C6BA;border-radius:2px}
+/* 平板横屏：TOC 常驻侧栏 */
+.toc{width:260px;flex:none;border-right:1px solid #EFEDE5;background:#F7F5EE;overflow:hidden}
+.toc .th{font-size:12px;font-weight:700;color:#8A887E;letter-spacing:.08em;padding:18px 20px 8px}
+.ti{padding:8px 20px;font-size:13.5px;color:#5A5850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ti.l1{padding-left:20px;font-weight:600;color:#2A2820}
+.ti.l2{padding-left:38px}
+.ti.on{background:#E9F2ED;color:#1F6F54;font-weight:600;border-right:3px solid #1F6F54}
+/* 竖屏内容列 */
+.port{width:640px;height:900px}
+.port .col{max-width:560px;margin:0 auto;padding:16px 24px 60px}
+.fabrow{position:absolute;right:16px;bottom:18px;display:flex;flex-direction:column;align-items:center;gap:10px;z-index:4}
+.ftoc{width:48px;height:48px;border-radius:16px;background:#1F6F54;display:flex;align-items:center;
+  justify-content:center;box-shadow:0 5px 14px rgba(31,111,84,.32)}
+.fmini{width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #E5E2D8;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(30,40,30,.12)}
+.land{width:980px;height:740px}
+.land .body{display:flex;height:100%;overflow:hidden}
+.land .read{flex:1;min-width:0;overflow:hidden;padding:16px 34px 50px}
+.pill{position:absolute;bottom:14px;left:0;right:0;display:flex;gap:10px;padding:0 20px;z-index:2}
+.pill div{flex:1;max-width:300px;border:1px solid #E5E2D8;border-radius:999px;padding:9px 14px;font-size:12.5px;
+  color:#3A382F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#fff}
+</style></head><body>
+
+<!-- 平板横屏：TOC 常驻侧栏 + 阅读双栏 -->
+<div class="frame land"><div class="tag">平板横屏 · 双栏<small>TOC 常驻侧栏 · 不再需要浮动钮</small></div>
+<div class="body">
+  <div class="toc">
+    <div class="th">02-组件与生命周期.md</div>
+    <div class="ti l1">一、无状态组件</div>
+    <div class="ti l2 on">唯一阶段：build</div>
+    <div class="ti l1">二、有状态组件</div>
+    <div class="ti l2">生命周期表</div>
+    <div class="ti l2">调用顺序</div>
+    <div class="ti l2">状态保留详解</div>
+    <div class="ti l1">三、常用实践</div>
+    <div class="ti l2">计时器示例</div>
+    <div class="ti l2">监听器清理</div>
+    <div class="ti l1">四、常见错误</div>
+    <div class="ti l2">在 build 中 setState</div>
+    <div class="ti l2">异步陷阱</div>
+    <div class="ti l1">五、小结</div>
+  </div>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+    <div class="bar">
+      <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+      <div class="ttl">02-组件与生命周期.md</div>
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M12 3l2.7 5.7 6.3.8-4.6 4.3 1.2 6.2-5.6-3-5.6 3 1.2-6.2L3 9.5l6.3-.8z"/></svg>
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="#4A4840"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+    </div>
+    <div class="prog"><i></i></div>
+    <div class="read">
+      <div class="h2">有状态组件</div>
+      <div class="li"><i></i>创建、构建、更新与销毁各阶段由框架在特定时机回调。</div>
+      <div class="tblwrap">
+        <table>
+          <tr><th>阶段</th><th>函数名</th><th>返回</th></tr>
+          <tr><td>创建</td><td><span class="code">createState()</span></td><td>Widget</td></tr>
+          <tr><td></td><td><span class="code">initState()</span></td><td>State</td></tr>
+          <tr><td></td><td><span class="code">didChangeDependencies()</span></td><td>initSt…</td></tr>
+          <tr><td>构建与更新</td><td><span class="code">build()</span></td><td>构建 …</td></tr>
+          <tr><td></td><td><span class="code">didUpdateWidget()</span></td><td>父组件…</td></tr>
+        </table>
+        <div class="wrapbtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.9"><path d="M7 10l-3 3 3 3M17 10l3 3-3 3M4 13h16"/></svg>
+        </div>
+      </div>
+      <div class="scrollbar"><i></i></div>
+      <div class="h2">调用顺序</div>
+      <div class="li"><i></i>创建：<span class="code">createState → initState → build</span></div>
+      <div class="li"><i></i>更新：<span class="code">didUpdateWidget → build</span></div>
+      <div class="li"><i></i>销毁：<span class="code">deactivate → dispose</span></div>
+    </div>
+    <div class="pill" style="left:286px"><div>‹ 01-环境搭建与…</div><div>03-布局组件 ›</div></div>
+  </div>
+</div></div>
+
+<!-- 平板竖屏：居中宽栏 + TOC 常驻浮动钮 -->
+<div class="frame port"><div class="tag">平板竖屏 · 居中宽栏<small>阅读行宽受限 · TOC 常驻浮动钮</small></div>
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">02-组件与生命周期.md</div>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M12 3l2.7 5.7 6.3.8-4.6 4.3 1.2 6.2-5.6-3-5.6 3 1.2-6.2L3 9.5l6.3-.8z"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="#4A4840"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+  </div>
+  <div class="prog"><i></i></div>
+  <div class="col">
+    <div class="h2">无状态组件</div>
+    <div class="li"><i></i>唯一阶段：<span class="code">build</span>。组件被创建或父组件状态变化导致重新构建时调用。</div>
+    <div class="h2">有状态组件</div>
+    <div class="tblwrap">
+      <table>
+        <tr><th>阶段</th><th>函数名</th><th>返回</th></tr>
+        <tr><td>创建</td><td><span class="code">createState()</span></td><td>Widget</td></tr>
+        <tr><td></td><td><span class="code">initState()</span></td><td>State</td></tr>
+        <tr><td></td><td><span class="code">didChangeDependencies()</span></td><td>initSt…</td></tr>
+        <tr><td>构建与更新</td><td><span class="code">build()</span></td><td>构建 …</td></tr>
+      </table>
+      <div class="wrapbtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.9"><path d="M7 10l-3 3 3 3M17 10l3 3-3 3M4 13h16"/></svg>
+      </div>
+    </div>
+    <div class="scrollbar"><i></i></div>
+    <div class="h2">调用顺序</div>
+    <div class="li"><i></i>创建：<span class="code">createState → initState → build</span></div>
+    <div class="li"><i></i>更新：<span class="code">didUpdateWidget → build</span></div>
+  </div>
+  <div class="fabrow">
+    <div class="fmini"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="2"><path d="M12 19V5M6 11l6-6 6 6"/></svg></div>
+    <div class="fmini"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+    <div class="ftoc"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="1.9"><path d="M4 6h16M4 10h16M4 14h10"/></svg></div>
+  </div>
+</div>
+</body></html>
