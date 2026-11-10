@@ -37,13 +37,16 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.byType(FloatingActionButton), findsNWidgets(3),
-        reason: '目录 + 回顶/回底三个按钮应始终显示');
+    // 规范 3：目录主钮 + 回顶/回底副钮应始终显示（自定义样式，非 FAB 类型）
+    expect(find.byTooltip('目录'), findsOneWidget);
+    expect(find.byTooltip('回到顶部'), findsOneWidget);
+    expect(find.byTooltip('跳到文末'), findsOneWidget);
 
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -800));
     await tester.pumpAndSettle();
 
-    expect(find.byType(FloatingActionButton), findsNWidgets(3),
-        reason: '滚动后按钮仍然显示');
+    expect(find.byTooltip('目录'), findsOneWidget, reason: '滚动后按钮仍然显示');
+    expect(find.byTooltip('回到顶部'), findsOneWidget, reason: '滚动后按钮仍然显示');
+    expect(find.byTooltip('跳到文末'), findsOneWidget, reason: '滚动后按钮仍然显示');
   });
 }
