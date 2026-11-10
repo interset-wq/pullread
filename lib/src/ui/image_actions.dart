@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -102,6 +103,13 @@ Future<void> showImageActions(
           GallerySaveOutcome.unsupported => '该图片格式无法存入相册，请使用分享',
           GallerySaveOutcome.failed => '保存失败，请稍后重试',
         }),
+        // iOS/Android 权限被拒后 SnackBar 里给一条直接出路，避免死胡同
+        action: outcome == GallerySaveOutcome.denied
+            ? SnackBarAction(
+                label: '去设置',
+                onPressed: () => AppSettings.openAppSettings(),
+              )
+            : null,
       ),
     );
     return;

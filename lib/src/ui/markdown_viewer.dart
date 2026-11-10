@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'package:flutter_highlight/themes/github.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:markdown/markdown.dart' as m;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:mermaid_flutter/mermaid_flutter.dart';
@@ -824,7 +825,15 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     if (outcome == GallerySaveOutcome.saved) {
       messenger.showSnackBar(const SnackBar(content: Text('已保存到相册「PullRead」')));
     } else if (outcome == GallerySaveOutcome.denied) {
-      messenger.showSnackBar(const SnackBar(content: Text('未获得相册权限，仅生成分享文件')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('未获得相册权限，仅生成分享文件'),
+          action: SnackBarAction(
+            label: '去设置',
+            onPressed: () => AppSettings.openAppSettings(),
+          ),
+        ),
+      );
     }
     await shareImageBytes(png, name: name, text: _title, extension: '.png');
   }
@@ -1744,15 +1753,37 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     );
   }
 
+  /// 链接打不开时的轻提示（挂在当前 Scaffold 上，忽略已挂起的路由）。
+  void _showLinkHint(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   /// 链接点击：外部链接浏览器打开；#锚点页内跳转；
   /// 相对路径链接解析为仓库内文件（笔记进阅读页，其余进代码查看器）。
+  /// mailto:/tel: 走系统处理；打不开时给出提示而不是静默不动。
   Future<void> _onLinkTap(String href) async {
     final url = href.trim();
     if (url.isEmpty) return;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    final scheme = url.indexOf('://');
+    final isExternal = url.startsWith('http://') || url.startsWith('https://');
+    final isSystemScheme = !isExternal &&
+        scheme > 0 &&
+        const ['mailto', 'tel', 'sms'].contains(
+          url.substring(0, scheme).toLowerCase(),
+        );
+    if (isExternal || isSystemScheme) {
       final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      try {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          _showLinkHint('当前设备没有能打开此链接的应用');
+        }
+      } on Object {
+        _showLinkHint('打开链接失败');
       }
       return;
     }
@@ -2828,6 +2859,12 @@ Future<void> _showMermaidExport(
           GallerySaveOutcome.unsupported => '该图片格式无法存入相册，请使用分享',
           GallerySaveOutcome.failed => '保存失败，请稍后重试',
         }),
+        action: outcome == GallerySaveOutcome.denied
+            ? SnackBarAction(
+                label: '去设置',
+                onPressed: () => AppSettings.openAppSettings(),
+              )
+            : null,
       ),
     );
     return;

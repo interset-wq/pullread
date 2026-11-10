@@ -21,6 +21,7 @@ PullRead 本体以 [MIT](../LICENSE) 发布。本文件列出随应用一起分�
 | [`flutter_highlight`](https://pub.dev/packages/flutter_highlight) | 0.7.0 | MIT | highlight.js 代码高亮绑定 |
 | [`flutter_svg`](https://pub.dev/packages/flutter_svg) | 2.3.2 | MIT | SVG 图片渲染 |
 | [`archive`](https://pub.dev/packages/archive) | 4.5.2 | MIT | 压缩包/归档处理 |
+| [`app_settings`](https://pub.dev/packages/app_settings) | 9.0.1 | MIT | 权限被拒后跳转系统设置 |
 | [`fast_gbk`](https://pub.dev/packages/fast_gbk) | 1.0.0 | BSD-3-Clause | GBK 文本解码 |
 | [`http`](https://pub.dev/packages/http) | 1.6.0 | BSD-3-Clause | 图片缓存与条件请求 |
 | [`path_provider`](https://pub.dev/packages/path_provider) | 2.1.6 | BSD-3-Clause | 应用文档/缓存目录 |
@@ -53,12 +54,13 @@ libgit2 采用 GPL-2.0 + linking exception：把**未修改的** libgit2 链接�
 
 ## 3. 完整依赖清单
 
-下表包含 `pubspec.lock` 中全部 124 个 hosted 包（不含 Flutter/Dart SDK 自带包）。
+下表包含 `pubspec.lock` 中全部 125 个 hosted 包（不含 Flutter/Dart SDK 自带包）。
 「传递」表示由直接依赖间接引入，实际同样随应用打包；「开发」仅用于构建、图标生成
 和测试，不进入应用包。
 
 | 包 | 版本 | 许可证 | 使用 |
 | --- | --- | --- | --- |
+| [`app_settings`](https://pub.dev/packages/app_settings) | 9.0.1 | MIT | 运行时 |
 | [`archive`](https://pub.dev/packages/archive) | 4.5.2 | MIT | 运行时 |
 | [`fast_gbk`](https://pub.dev/packages/fast_gbk) | 1.0.0 | BSD-3-Clause | 运行时 |
 | [`file_selector`](https://pub.dev/packages/file_selector) | 1.1.0 | BSD-3-Clause | 运行时 |
