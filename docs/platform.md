@@ -25,9 +25,9 @@ user sees a single splash.
 
 Hard constraints:
 
-1. `main()` must call `runApp` immediately. libgit2/CA initialization happens in
-   `_bootstrap()` after the first frame; doing it before `runApp` shows a black
-   surface for hundreds of ms to seconds.
+1. `main()` must call `runApp` immediately. libgit2/CA initialization (Android and
+   iOS) happens in `_bootstrap()` after the first frame; doing it before `runApp`
+   shows a black surface for hundreds of ms to seconds.
 2. All five `activity-alias` entries must use `android:theme="@style/LaunchTheme"`;
    otherwise a release build (launched from an alias) shows black in dark mode.
 3. `NormalTheme` must also use `@drawable/launch_background` as `windowBackground`;

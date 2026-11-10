@@ -326,3 +326,9 @@
 - `SettingsAnchor` + `SettingsFocusScope`：进入子页后自动滚到目标行；
   `SettingsBody` 改为 `SingleChildScrollView` + `Column` 以支持屏幕外锚点。
 - 测试：别名/多词匹配、空查询、搜索结果跳转与滚动位置。
+
+## 2026-11-10 iOS bootstrap and PR triage
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 处理测试员 issue #6~#10 与 PR #9/#11；#9 的 Podfile 修正后合并。
+- `main.dart`：iOS 也执行内置 CA 解包与 `Libgit2.setSSLCertLocations`（issue #10）。

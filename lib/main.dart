@@ -39,10 +39,14 @@ void _registerBundledLicenses() {
   });
 }
 
-/// 启动初始化：Android 上必须先初始化 libgit2、再配置 CA 证书路径，
+/// 启动初始化：Android 与 iOS 都必须先初始化 libgit2、再配置 CA 证书路径，
 /// 否则 HTTPS 克隆报 "the SSL certificate is invalid"。
+///
+/// iOS 没有 libgit2 能直接读取的系统证书路径，因此和 Android 一样把
+/// `git2dart_binaries` 内置的 `cacert.pem` 解包到应用沙盒。`AndroidSSLHelper`
+/// 的命名虽带 Android，实现是纯 Dart（rootBundle + path_provider），iOS 可用。
 Future<AppPrefs> _bootstrap() async {
-  if (Platform.isAndroid) {
+  if (Platform.isAndroid || Platform.isIOS) {
     Libgit2.version;
     final certPath = await AndroidSSLHelper.initialize();
     Libgit2.setSSLCertLocations(file: certPath);

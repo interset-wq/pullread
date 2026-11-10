@@ -24,10 +24,11 @@ Uses libgit2 through FFI (`git2dart`). Only clone/fetch/pull capabilities are us
 - Tests for URL/path handling must use temporary directories only, never real user
   data directories.
 
-## Android TLS bootstrap
+## Android / iOS TLS bootstrap
 
 `git2dart_binaries` statically links OpenSSL, which cannot see the Android system
-certificate store. In `_bootstrap()` (`lib/main.dart`) the order **must** be:
+certificate store; iOS likewise has no system CA path that libgit2 reads. In
+`_bootstrap()` (`lib/main.dart`) the order **must** be:
 
 1. `WidgetsFlutterBinding.ensureInitialized()`
 2. `Libgit2.version` (load the native library)
@@ -35,8 +36,9 @@ certificate store. In `_bootstrap()` (`lib/main.dart`) the order **must** be:
 4. `Libgit2.setSSLCertLocations(file: certPath)`
 
 Otherwise HTTPS clones fail with `the SSL certificate is invalid`. The CA bundle is
-shipped with `git2dart_binaries`; do not add one. This bootstrap runs *after*
-`runApp` (see "Startup") so the first frame is not blocked.
+shipped with `git2dart_binaries`; do not add one — `AndroidSSLHelper.initialize()`
+is platform-agnostic (rootBundle + path_provider) and is also used on iOS. This
+bootstrap runs *after* `runApp` (see "Startup") so the first frame is not blocked.
 
 ## Isolates, timeout and cancellation
 
