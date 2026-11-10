@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:40px;padding:60px 48px;align-items:flex-start}
+.frame{background:#FFFFFF;border-radius:24px;overflow:hidden;position:relative;flex:none;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-36px;left:8px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.bar{display:flex;align-items:center;gap:12px;padding:16px 20px 14px;border-bottom:1px solid #EFEDE5}
+.bar .bt{width:22px;height:22px;flex:none}
+.bar .ttl{font-size:18px;font-weight:600;color:#26241E;flex:1;min-width:0}
+.bar .act{font-size:14px;color:#1F6F54;font-weight:600;white-space:nowrap}
+/* 竖屏：同手机结构，居中限宽 640 */
+.port{width:640px;height:940px}
+.port .col{max-width:640px;margin:0 auto}
+/* 横屏双栏：左收件箱列表 + 右详情/预览 */
+.land{width:1020px;height:760px}
+.land .body{display:flex;height:100%;overflow:hidden}
+.land .list{width:420px;flex:none;border-right:1px solid #EFEDE5;overflow:hidden;background:#FBFAF6}
+.land .detail{flex:1;min-width:0;overflow:hidden}
+.gh{display:flex;align-items:baseline;gap:8px;padding:18px 20px 8px}
+.gh .r{font-size:15px;font-weight:700;color:#1F6F54}
+.gh .t{font-size:12px;color:#A5A296}
+.gh .c{margin-left:auto;font-size:12px;color:#A5A296;background:#F1EFE7;border-radius:999px;padding:3px 10px}
+.row{display:flex;align-items:center;gap:13px;padding:13px 20px}
+.row.on{background:#E9F2ED;border-right:3px solid #1F6F54}
+.ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.ic.md{background:#F1EFE7;color:#5A5850}
+.ic.code{background:#FDF6E7;color:#B0762A}
+.nm{flex:1;min-width:0}
+.n1{font-size:15px;font-weight:500;color:#26241E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n2{font-size:12.5px;color:#A5A296;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{flex:none;font-size:12px;font-weight:600;color:#1F6F54;background:#fff;border-radius:999px;padding:4px 11px}
+.row.on .chip{background:#fff}
+.hair{height:1px;background:#F2F0E8;margin:0 20px}
+/* 右栏：变更详情（diff 摘要式） */
+.dh{padding:18px 24px 6px;font-size:17px;font-weight:600;color:#26241E;font-family:Consolas,monospace}
+.dp{padding:0 24px 8px;font-size:12.5px;color:#A5A296}
+.diff{margin:12px 24px;border:1px solid #E5E2D8;border-radius:12px;overflow:hidden;font-family:Consolas,monospace;font-size:12.5px;line-height:1.9}
+.dl{padding:3px 14px;white-space:pre;overflow:hidden}
+.dl.add{background:#EDF7F1;color:#14563F}
+.dl.del{background:#FBEFEC;color:#8C3A2E;color:#7A3B2E}
+.dl.ctx{color:#5A5850;background:#FBFAF6}
+.dact{display:flex;gap:10px;padding:14px 24px}
+.btn{font-size:13.5px;font-weight:600;border-radius:11px;padding:9px 18px}
+.btn.pri{background:#1F6F54;color:#fff}
+.btn.sec{background:#fff;color:#3A382F;border:1px solid #E5E2D8}
+</style></head><body>
+
+<!-- 平板横屏：收件箱列表 + 变更详情双栏 -->
+<div class="frame land"><div class="tag">收件箱 · 平板横屏<small>列表 + 变更详情双栏（diff 摘要）</small></div>
+<div class="body">
+  <div class="list">
+    <div class="bar" style="border-bottom:none;padding-bottom:4px">
+      <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+      <div class="ttl">更新收件箱</div>
+      <span class="act">全部已读</span>
+    </div>
+    <div class="gh"><span class="r">math</span><span class="t">1 天前同步</span><span class="c">45 项</span></div>
+    <div class="row on"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+      <div class="nm"><div class="n1">03-决策树.md</div><div class="n2">machine-learning · 正文更新</div></div>
+      <span class="chip">更新</span></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+      <div class="nm"><div class="n1">05-线性回归的求解.md</div><div class="n2">machine-learning · 正文更新</div></div>
+      <span class="chip">更新</span></div>
+    <div class="hair"></div>
+    <div class="row"><div class="ic code"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B0762A" stroke-width="1.8"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></div>
+      <div class="nm"><div class="n1" style="font-family:Consolas,monospace;font-size:14px">setup.py</div><div class="n2">data-analysis/numpy · 配置变更</div></div></div>
+  </div>
+  <div class="detail">
+    <div class="dh">03-决策树.md</div>
+    <div class="dp">machine-learning · 正文更新 · +36 −8 · 昨天 22:41</div>
+    <div class="diff">
+      <div class="dl ctx">@@ 决策树的结构 @@</div>
+      <div class="dl del">- 决策树的每个内部节点代表一个判断，叶子节点是预测结果。树的深度决定了模型的复杂度。</div>
+      <div class="dl add">+ 决策树的每个内部节点代表一次判断（一个特征阈值），叶子节点给出预测结果。</div>
+      <div class="dl add">+ 深度越深模型越复杂：训练集上更准，但更容易过拟合——剪枝和最小叶样本数是常用约束。</div>
+      <div class="dl ctx">  训练决策树 = 递归选择「最能把数据分开」的特征与阈值。</div>
+    </div>
+    <div class="dact">
+      <span class="btn pri">打开阅读</span>
+      <span class="btn sec">标记已读</span>
+    </div>
+  </div>
+</div></div>
+
+<!-- 平板竖屏：同手机结构居中限宽 -->
+<div class="frame port"><div class="tag">收件箱 · 平板竖屏<small>同手机结构 · 居中限宽</small></div>
+  <div class="col">
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">更新收件箱</div>
+    <span class="act">全部已读</span>
+  </div>
+  <div class="gh"><span class="r">math</span><span class="t">1 天前同步</span><span class="c">45 项</span></div>
+  <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+    <div class="nm"><div class="n1">03-决策树.md</div><div class="n2">machine-learning · 正文更新</div></div>
+    <span class="chip">更新</span></div>
+  <div class="hair"></div>
+  <div class="row"><div class="ic md"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></div>
+    <div class="nm"><div class="n1">05-线性回归的求解.md</div><div class="n2">machine-learning · 正文更新</div></div>
+    <span class="chip">更新</span></div>
+  <div class="hair"></div>
+  <div class="row"><div class="ic code"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B0762A" stroke-width="1.8"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></div>
+    <div class="nm"><div class="n1" style="font-family:Consolas,monospace;font-size:14px">.gitignore</div><div class="n2">仓库根 · 配置变更（低相关，弱化）</div></div></div>
+  </div>
+</div>
+</body></html>

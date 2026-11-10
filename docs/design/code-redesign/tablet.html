@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:36px;padding:60px 48px;align-items:flex-start}
+.frame{background:#FFFFFF;border-radius:24px;overflow:hidden;position:relative;flex:none;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-36px;left:8px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.bar{display:flex;align-items:center;gap:12px;padding:14px 16px 12px;background:#FBFAF6;border-bottom:1px solid #E5E2D8}
+.bar .bt{width:22px;height:22px;flex:none}
+.bar .ttl{font-size:16.5px;font-weight:600;color:#26241E;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Consolas,monospace}
+.chips{display:flex;align-items:center;gap:8px;padding:10px 16px 12px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#3A382F;background:#F1EFE7;
+  border-radius:999px;padding:5px 11px;white-space:nowrap}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:#1F6F54}
+.code{padding:12px 0;font-family:Consolas,monospace;font-size:13px;line-height:2.0;position:relative}
+.cw{white-space:pre;display:flex}
+.ln{width:48px;flex:none;text-align:right;padding-right:16px;color:#B8B5AA;user-select:none;flex:none}
+.cl{color:#24292E;white-space:pre;overflow:hidden}
+.k{color:#CF222E;font-weight:500}.s{color:#0A3069}.c{color:#6E7781;font-style:italic}.n{color:#0550AE}
+.fade{position:absolute;top:0;right:0;bottom:0;width:28px;background:linear-gradient(to left,#FFFFFF,rgba(255,255,255,0))}
+.scroll{height:3px;background:#EEEBE2;border-radius:2px;margin:6px 16px 0;position:relative}
+.scroll i{position:absolute;left:0;top:0;height:100%;width:55%;background:#C9C6BA;border-radius:2px}
+/* 横屏双栏：符号侧栏常驻 */
+.land{width:1020px;height:760px}
+.land .body{display:flex;height:100%;overflow:hidden}
+.sym{width:280px;flex:none;border-right:1px solid #E5E2D8;background:#FBFAF6;overflow:hidden}
+.sym .sh{font-size:12px;font-weight:700;color:#8A887E;letter-spacing:.08em;padding:18px 20px 8px;font-family:Consolas,monospace}
+.si{padding:9px 20px;font-size:13px;color:#3A382F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Consolas,monospace}
+.si.on{background:#E9F2ED;color:#1F6F54;font-weight:600;border-right:3px solid #1F6F54}
+.si .lv{color:#B8B5AA;margin-right:8px}
+.land .read{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.land .cwrap{flex:1;overflow:hidden}
+/* 竖屏 */
+.port{width:640px;height:940px}
+.port .col{flex:1;overflow:hidden}
+</style></head><body>
+
+<!-- 平板横屏：符号大纲侧栏常驻 + 代码双栏 -->
+<div class="frame land"><div class="tag">平板横屏 · 双栏<small>符号大纲常驻侧栏 · 当前符号高亮</small></div>
+<div class="body">
+  <div class="sym">
+    <div class="sh">hash_table.c · 大纲</div>
+    <div class="si"><span class="lv">T</span>ht_item</div>
+    <div class="si"><span class="lv">T</span>ht_hash_table</div>
+    <div class="si on"><span class="lv">F</span>ht_new</div>
+    <div class="si"><span class="lv">F</span>ht_del_hash_table</div>
+    <div class="si"><span class="lv">F</span>ht_hash</div>
+    <div class="si"><span class="lv">F</span>ht_hash_double</div>
+    <div class="si"><span class="lv">F</span>ht_get_load_factor</div>
+    <div class="si"><span class="lv">F</span>ht_sizing_up</div>
+    <div class="si"><span class="lv">F</span>ht_sizing_down</div>
+    <div class="si"><span class="lv">F</span>ht_insert</div>
+    <div class="si"><span class="lv">F</span>ht_search</div>
+    <div class="si"><span class="lv">F</span>ht_delete</div>
+  </div>
+  <div class="read">
+    <div class="bar">
+      <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+      <div class="ttl">hash_table.c</div>
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M7 10l-3 3 3 3M17 10l3 3-3 3M4 13h16"/></svg>
+    </div>
+    <div class="chips">
+      <span class="chip"><span class="dot"></span>C</span>
+      <span class="chip">253 行</span>
+      <span class="chip">8.2 KB</span>
+      <span style="margin-left:auto;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid #E5E2D8;border-radius:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A382F" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+      </span>
+    </div>
+    <div class="cwrap">
+      <div class="code">
+        <div class="cw"><span class="ln">38</span><span class="cl"><span class="k">typedef struct</span> ht_item {</span></div>
+        <div class="cw"><span class="ln">39</span><span class="cl">  <span class="k">const char*</span> key;</span></div>
+        <div class="cw"><span class="ln">40</span><span class="cl">  <span class="k">const char*</span> value;</span></div>
+        <div class="cw"><span class="ln">41</span><span class="cl">} ht_item;</span></div>
+        <div class="cw"><span class="ln">45</span><span class="cl"><span class="k">static</span> ht_hash_table* ht_new() {</span></div>
+        <div class="cw"><span class="ln">46</span><span class="cl">  ht_hash_table* table = malloc(<span class="k">sizeof</span>(ht_hash_table));</span></div>
+        <div class="cw"><span class="ln">47</span><span class="cl">  table-&gt;size = ht_sizing_up(<span class="n">0</span>);</span></div>
+        <div class="cw"><span class="ln">48</span><span class="cl">  table-&gt;count = <span class="n">0</span>;</span></div>
+        <div class="cw"><span class="ln">49</span><span class="cl">  table-&gt;items = calloc(table-&gt;size, <span class="k">sizeof</span>(ht_item*));</span></div>
+        <div class="cw"><span class="ln">50</span><span class="cl">  <span class="k">return</span> table;</span></div>
+        <div class="cw"><span class="ln">51</span><span class="cl">}</span></div>
+        <div class="fade"></div>
+      </div>
+      <div class="scroll"><i></i></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- 平板竖屏：居中宽栏 + 大纲钮常驻 -->
+<div class="frame port"><div class="tag">平板竖屏 · 居中宽栏<small>同手机结构 · 行号右对齐灰阶</small></div>
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">hash_table.c</div>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M7 10l-3 3 3 3M17 10l3 3-3 3M4 13h16"/></svg>
+  </div>
+  <div class="chips">
+    <span class="chip"><span class="dot"></span>C</span>
+    <span class="chip">253 行</span>
+    <span class="chip">8.2 KB</span>
+    <span style="margin-left:auto;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid #E5E2D8;border-radius:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A382F" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+    </span>
+  </div>
+  <div class="col">
+    <div class="code">
+      <div class="cw"><span class="ln">9</span><span class="cl"><span class="k">#include</span> "hash_table.h"</span></div>
+      <div class="cw"><span class="ln">14</span><span class="cl"><span class="k">static const int</span> HT_INITIAL_BASE_SIZE = <span class="n">50</span>;</span></div>
+      <div class="cw"><span class="ln">17</span><span class="cl"><span class="k">static const int</span> HT_PRIME_SIZES[] = {</span></div>
+      <div class="cw"><span class="ln">18</span><span class="cl">  <span class="n">53, 97, 193, 389, 769, 1543, 3079, 6151,</span></span></div>
+      <div class="cw"><span class="ln">19</span><span class="cl">  <span class="n">12289, 24593, 49157, 98317, 196613, 393241</span></span></div>
+      <div class="cw"><span class="ln">21</span><span class="cl">};</span></div>
+      <div class="cw"><span class="ln">26</span><span class="cl"><span class="k">static const int</span> HT_PRIME_1 = <span class="n">151</span>;</span></div>
+      <div class="cw"><span class="ln">27</span><span class="cl"><span class="k">static const int</span> HT_PRIME_2 = <span class="n">163</span>;</span></div>
+      <div class="cw"><span class="ln">31</span><span class="cl"><span class="k">static</span> Item HT_DELETED_ITEM = {NULL, NULL};</span></div>
+      <div class="cw"><span class="ln">38</span><span class="cl"><span class="k">typedef struct</span> ht_item {</span></div>
+      <div class="fade"></div>
+    </div>
+    <div class="scroll"><i></i></div>
+  </div>
+</div>
+</body></html>

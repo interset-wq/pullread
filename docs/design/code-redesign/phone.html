@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:36px;padding:60px 48px;align-items:flex-start}
+.phone{width:390px;height:845px;flex:none;background:#FFFFFF;border-radius:28px;overflow:hidden;position:relative;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-34px;left:6px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+/* GH Mobile 式头部：返回 + 文件名（等宽）+ ⋮ */
+.bar{display:flex;align-items:center;gap:12px;padding:14px 14px 12px;background:#FBFAF6;border-bottom:1px solid #E5E2D8}
+.bar .bt{width:22px;height:22px;flex:none}
+.bar .ttl{font-size:16px;font-weight:600;color:#26241E;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Consolas,monospace}
+/* 面包屑行：ai / rag / basics / hash_table.c */
+.crumb{display:flex;align-items:center;gap:6px;padding:10px 16px 0;font-size:12.5px;color:#8A887E;white-space:nowrap;overflow:hidden}
+.crumb b{color:#1F6F54;font-weight:600;flex:none}
+.crumb .sep{color:#C9C6BA;flex:none}
+.crumb .cur{color:#26241E;font-weight:600;font-family:Consolas,monospace;flex:none}
+/* GH 式文件信息 chip 行 */
+.chips{display:flex;align-items:center;gap:8px;padding:10px 16px 12px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#3A382F;background:#F1EFE7;
+  border-radius:999px;padding:5px 11px;white-space:nowrap}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:#1F6F54}
+.hair{height:1px;background:#EFEDE5}
+/* 代码区：GH blob 风格 */
+.code{padding:10px 0;font-family:Consolas,monospace;font-size:12.5px;line-height:2.0;position:relative}
+.cw{white-space:pre;display:flex}
+.ln{width:44px;flex:none;text-align:right;padding-right:14px;color:#B8B5AA;user-select:none;flex:none}
+.cl{color:#24292E;white-space:pre;overflow:hidden}
+.k{color:#CF222E;font-weight:500}.t{color:#953800}.s{color:#0A3069}.c{color:#6E7781;font-style:italic}.n{color:#0550AE}
+.fade{position:absolute;top:0;right:0;bottom:0;width:28px;background:linear-gradient(to left,#FFFFFF,rgba(255,255,255,0))}
+.scroll{height:3px;background:#EEEBE2;border-radius:2px;margin:6px 16px 0;position:relative}
+.scroll i{position:absolute;left:0;top:0;height:100%;width:55%;background:#C9C6BA;border-radius:2px}
+/* GH 式长按选择：整块高亮（连续块 + 左缘指示条）+ 横排工具条 */
+.selblock{position:absolute;left:0;right:0;background:#E9F2ED;border-left:3px solid #1F6F54}
+.selrow .ln{color:#5A9B7E}
+.selbar{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;background:#FFFFFF;
+  border:1px solid #E5E2D8;border-radius:14px;padding:8px 10px;display:flex;align-items:stretch;gap:2px;z-index:5;
+  box-shadow:0 8px 22px rgba(30,40,30,.16);white-space:nowrap}
+.sa{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 14px;font-size:11px;color:#5A5850;border-radius:9px;white-space:nowrap}
+.sa.on{background:#E9F2ED;color:#1F6F54;font-weight:600}
+.sa svg{display:block}
+.vsep{width:1px;background:#E5E2D8;margin:6px 2px}
+/* 抽屉：GH 式大纲（TOC 常驻同规则） */
+.scrim{position:absolute;inset:0;background:rgba(30,40,30,.16);z-index:4}
+.drawer{position:absolute;top:0;right:0;bottom:0;width:280px;background:#FFFFFF;z-index:6;
+  border-left:1px solid #E5E2D8;box-shadow:-12px 0 32px rgba(30,40,30,.14);overflow:hidden}
+.dh{font-size:12px;font-weight:700;color:#8A887E;letter-spacing:.08em;padding:18px 18px 8px}
+.di{padding:9px 18px;font-size:12.5px;color:#3A382F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Consolas,monospace}
+.di.on{background:#E9F2ED;color:#1F6F54;font-weight:600;border-right:3px solid #1F6F54}
+.di .lv{color:#B8B5AA;margin-right:6px}
+</style></head><body>
+
+<!-- 帧 1：GH Mobile 式常态 -->
+<div class="phone"><div class="tag">代码查看页 · GH Mobile 式<small>面包屑 + 信息 chip 行 + blob 阅读</small></div>
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">hash_table.c</div>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M7 10l-3 3 3 3M17 10l3 3-3 3M4 13h16"/></svg>
+  </div>
+  <div class="crumb">
+    <b>ai</b><span class="sep">/</span><b>rag</b><span class="sep">/</span><b>basics</b><span class="sep">/</span><span class="cur">hash_table.c</span>
+  </div>
+  <div class="chips">
+    <span class="chip"><span class="dot"></span>C</span>
+    <span class="chip">253 行</span>
+    <span class="chip">8.2 KB</span>
+    <span style="margin-left:auto;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid #E5E2D8;border-radius:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A382F" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+    </span>
+  </div>
+  <div class="hair"></div>
+  <div class="code">
+    <div class="cw"><span class="ln">1</span><span class="cl c">/*</span></div>
+    <div class="cw"><span class="ln">2</span><span class="cl c"> * hash_table.c — 开放寻址（双重哈希）哈希表的 C</span></div>
+    <div class="cw"><span class="ln">3</span><span class="cl c"> * 相比原教程的三处修正：</span></div>
+    <div class="cw"><span class="ln">9</span><span class="cl"><span class="k">#include</span> "hash_table.h"</span></div>
+    <div class="cw"><span class="ln">11</span><span class="cl"><span class="k">#include</span> &lt;stdlib.h&gt;</span></div>
+    <div class="cw"><span class="ln">14</span><span class="cl"><span class="k">static const int</span> HT_INITIAL_BASE_SIZE = <span class="n">50</span>;</span></div>
+    <div class="cw"><span class="ln">16</span><span class="cl c">/* 质数容量表：每项约为前一项的 2 倍 */</span></div>
+    <div class="cw"><span class="ln">17</span><span class="cl"><span class="k">static const int</span> HT_PRIME_SIZES[] = {</span></div>
+    <div class="cw"><span class="ln">18</span><span class="cl">  <span class="n">53, 97, 193, 389, 769, 1543, 3079, 6151,</span></span></div>
+    <div class="cw"><span class="ln">19</span><span class="cl">  <span class="n">12289, 24593, 49157, 98317, 196613, 393241</span></span></div>
+    <div class="cw"><span class="ln">21</span><span class="cl">};</span></div>
+    <div class="cw"><span class="ln">26</span><span class="cl"><span class="k">static const int</span> HT_PRIME_1 = <span class="n">151</span>;</span></div>
+    <div class="cw"><span class="ln">27</span><span class="cl"><span class="k">static const int</span> HT_PRIME_2 = <span class="n">163</span>;</span></div>
+    <div class="cw"><span class="ln">31</span><span class="cl"><span class="k">static</span> Item HT_DELETED_ITEM = {NULL, NULL};</span></div>
+    <div class="cw"><span class="ln">38</span><span class="cl"><span class="k">typedef struct</span> ht_item {</span></div>
+    <div class="fade"></div>
+  </div>
+  <div class="scroll"><i></i></div>
+</div>
+
+<!-- 帧 2：GH 式长按选择 -->
+<div class="phone"><div class="tag">代码查看页 · 长按选择<small>GH 式行选中 + 底部工具条</small></div>
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">hash_table.c</div>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="1.8"><path d="M7 10l-3 3 3 3M17 10l3 3-3 3M4 13h16"/></svg>
+  </div>
+  <div class="crumb">
+    <b>ai</b><span class="sep">/</span><b>rag</b><span class="sep">/</span><b>basics</b><span class="sep">/</span><span class="cur">hash_table.c</span>
+  </div>
+  <div class="chips">
+    <span class="chip"><span class="dot"></span>C</span>
+    <span class="chip">253 行</span>
+    <span class="chip">8.2 KB</span>
+    <span style="margin-left:auto;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid #E5E2D8;border-radius:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A382F" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+    </span>
+  </div>
+  <div class="hair"></div>
+  <div class="code" style="position:relative">
+    <div class="cw"><span class="ln">9</span><span class="cl"><span class="k">#include</span> "hash_table.h"</span></div>
+    <div class="cw"><span class="ln">14</span><span class="cl"><span class="k">static const int</span> HT_INITIAL_BASE_SIZE = <span class="n">50</span>;</span></div>
+    <div style="position:relative;background:#E9F2ED;border-left:3px solid #1F6F54">
+    <div class="cw" style="position:relative;z-index:1"><span class="ln">17</span><span class="cl"><span class="k">static const int</span> HT_PRIME_SIZES[] = {</span></div>
+    <div class="cw" style="position:relative;z-index:1"><span class="ln">18</span><span class="cl">  <span class="n">53, 97, 193, 389, 769, 1543, 3079, 6151,</span></span></div>
+    <div class="cw" style="position:relative;z-index:1"><span class="ln">19</span><span class="cl">  <span class="n">12289, 24593, 49157, 98317, 196613</span></span></div>
+    <div class="cw" style="position:relative;z-index:1"><span class="ln">21</span><span class="cl">};</span></div>
+    </div>
+    <div class="cw"><span class="ln">26</span><span class="cl"><span class="k">static const int</span> HT_PRIME_1 = <span class="n">151</span>;</span></div>
+    <div class="cw"><span class="ln">31</span><span class="cl"><span class="k">static</span> Item HT_DELETED_ITEM = {NULL, NULL};</span></div>
+    <div class="cw"><span class="ln">38</span><span class="cl"><span class="k">typedef struct</span> ht_item {</span></div>
+    <div class="fade"></div>
+  </div>
+  <div class="scroll"><i></i></div>
+  <div class="selbar">
+    <div class="sa on"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>复制</div>
+    <div class="vsep"></div>
+    <div class="sa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8 11l8-4M8 13l8 4"/></svg>分享</div>
+    <div class="vsep"></div>
+    <div class="sa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><path d="M4 12h13M13 6l6 6-6 6"/></svg>导出长图</div>
+    <div class="vsep"></div>
+    <div class="sa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>取消</div>
+  </div>
+</div>
+</body></html>
