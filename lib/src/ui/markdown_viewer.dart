@@ -229,7 +229,6 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     _progressNotifier.dispose();
     _forceExpand.dispose();
     _findController.dispose();
-    _footerNavShowTimer?.cancel();
     super.dispose();
   }
 
@@ -240,13 +239,6 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   void _onCodeControllerChanged() {
     if (mounted) setState(() {});
   }
-
-  /// 底部上一/下一篇 pill 的显隐：用户向下滚动时收起，停止滚动后浮现
-  /// （规范 4.6；平板横屏常驻由宽屏分支跳过）。
-  bool _footerNavVisible = true;
-  bool _wideLayout = false;
-  Timer? _footerNavShowTimer;
-  double _lastScrollOffset = 0;
 
   /// 按窗口宽度包正文列（规范 2.3）：>=1000dp 左侧 TOC 常驻侧栏双栏；
   /// 600–1000dp 竖屏居中限宽阅读带；手机原样。
@@ -341,25 +333,6 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    // 底部 pill 显隐：用户向下滚收起，停止滚动 400ms 后浮现（规范 4.6）；
-    // 平板横屏侧栏常驻，footer 不收起
-    if (_userScrollActive && !_wideLayout) {
-      final offset = _scrollController.offset;
-      final goingDown = offset > _lastScrollOffset + 0.5;
-      _lastScrollOffset = offset;
-      _footerNavShowTimer?.cancel();
-      if (goingDown &&
-          _footerNavVisible &&
-          _scrollController.position.maxScrollExtent > 400) {
-        setState(() => _footerNavVisible = false);
-      } else {
-        _footerNavShowTimer = Timer(const Duration(milliseconds: 400), () {
-          if (mounted && !_footerNavVisible) {
-            setState(() => _footerNavVisible = true);
-          }
-        });
-      }
-    }
     // 顶部细进度条：按滚动比例实时更新
     final maxExtent = _scrollController.position.maxScrollExtent;
     _progressNotifier.value = maxExtent > 0
@@ -609,7 +582,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     final windowWidth = MediaQuery.sizeOf(context).width;
     final wideLayout = windowWidth >= 1000;
     final tabletPortrait = windowWidth >= 600 && windowWidth < 1000;
-    _wideLayout = wideLayout;
+    final dark = theme.brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -865,21 +838,29 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           ],
           // raw 模式下没有渲染锚点，不提供目录；宽屏侧栏即目录（规范 2.3）
           if (!_showRaw && !wideLayout) ...[
-            // TOC 主钮：48×48 圆角 16 松绿底纸白图标，常驻不隐藏（规范 3）
+            // TOC 主钮：48×48 圆形，纸白底描边 + 松绿图标——与副钮同一家族，
+            // 不再使用实心松绿底（用户反馈：在阅读页过于显眼）
             Tooltip(
               message: '目录',
               child: Material(
-                color: const Color(0xFF1F6F54),
-                borderRadius: BorderRadius.circular(16),
+                color: dark ? const Color(0xFF2A2924) : Colors.white,
+                shape: CircleBorder(
+                  side: BorderSide(
+                    color: dark ? const Color(0xFF3A382F) : const Color(0xFFE5E2D8),
+                    width: 1.2,
+                  ),
+                ),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
+                  customBorder: const CircleBorder(),
                   onTap: _showTocSheet,
-                  child: const SizedBox(
+                  child: SizedBox(
                     width: 48,
                     height: 48,
                     child: Icon(
                       Icons.article_outlined,
-                      color: Color(0xFFFBFAF6),
+                      color: dark
+                          ? const Color(0xFF7BC7A5)
+                          : const Color(0xFF1F6F54),
                     ),
                   ),
                 ),
@@ -1521,26 +1502,21 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     if (_siblings.isEmpty || _siblingIndex < 0 || _siblings.length < 2) {
       return const SizedBox.shrink();
     }
-    // 平板横屏常驻（规范 4.6）：宽屏分支由 LayoutBuilder 传 true
-    return AnimatedSlide(
-      offset: _footerNavVisible ? Offset.zero : const Offset(0, 1),
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            border: Border(
-              top: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
+    // 上一篇/下一篇 pill 始终显示（用户确认：不再滚动收起）
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          border: Border(
+            top: BorderSide(color: theme.colorScheme.outlineVariant),
           ),
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: _PrevNextNav(
-            siblings: _siblings,
-            index: _siblingIndex,
-            onOpen: _openSibling,
-          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        child: _PrevNextNav(
+          siblings: _siblings,
+          index: _siblingIndex,
+          onOpen: _openSibling,
         ),
       ),
     );
@@ -1551,24 +1527,13 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// 仅在跟随设置默认时生效——wideTable 开关开启或该表已被手动指定档位
   /// （点过其右上角按钮）都不再自动切换。
   void _onTableOverflow(double overflow, int index) {
-    if (!mounted) return;
-    // 渐隐提示状态：横滑模式下有溢出才显示右缘渐隐（规范 2.1）
-    final overflowing = overflow > 0 && !_tableWraps(index);
-    if (overflowing != _tableOverflow.contains(index)) {
-      _tableOverflow.remove(index);
-      if (overflowing) _tableOverflow.add(index);
-      setState(() {});
-    }
-    if (_tableWrapOverrides.containsKey(index)) return;
+    if (!mounted || _tableWrapOverrides.containsKey(index)) return;
     if (AppPrefs.instance?.wideTable ?? false) return;
     final viewport = MediaQuery.of(context).size.width;
     if (overflow > viewport) {
       setState(() => _tableWrapOverrides[index] = true);
     }
   }
-
-  /// 各表格在横滑模式下是否实际溢出（驱动右缘渐隐）。
-  final Set<int> _tableOverflow = {};
 
   /// 切换单个表格的档位（其右上角悬浮按钮）。
   void _toggleTableMode(int index) {
@@ -1742,7 +1707,6 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
               config,
               index: index,
               wraps: () => _tableWraps(index),
-              overflowing: () => _tableOverflow.contains(index),
               onOverflow: (overflow) => _onTableOverflow(overflow, index),
               onToggle: () => _toggleTableMode(index),
             );
@@ -3300,7 +3264,6 @@ class _PerTableNode extends ElementNode {
     this._mdConfig, {
     required this.index,
     required this.wraps,
-    required this.overflowing,
     required this.onOverflow,
     required this.onToggle,
   });
@@ -3308,9 +3271,6 @@ class _PerTableNode extends ElementNode {
   final MarkdownConfig _mdConfig;
   final int index;
   final bool Function() wraps;
-
-  /// 横滑模式下该表是否实际溢出（右缘渐隐开关）。
-  final bool Function() overflowing;
   final ValueChanged<double> onOverflow;
   final VoidCallback onToggle;
 
@@ -3351,7 +3311,6 @@ class _PerTableNode extends ElementNode {
         wraps: wraps(),
         onOverflow: onOverflow,
         onToggle: onToggle,
-        showFade: overflowing(),
         child: table,
       ),
     );
@@ -3363,13 +3322,11 @@ class _PerTableNode extends ElementNode {
 
 /// 单个表格的宽度外壳与右上角档位切换按钮（无状态，状态在宿主页的
 /// _tableWrapOverrides；点击回调触发宿主 setState 重建）。
-/// 规范 3：卡片化描边 #E5E2D8 圆角 12；横滑时右缘渐隐提示可滑动。
 class _MarkdownTableHost extends StatelessWidget {
   const _MarkdownTableHost({
     required this.wraps,
     required this.onOverflow,
     required this.onToggle,
-    this.showFade = false,
     required this.child,
   });
 
@@ -3377,16 +3334,13 @@ class _MarkdownTableHost extends StatelessWidget {
   final ValueChanged<double> onOverflow;
   final VoidCallback onToggle;
 
-  /// 横向滚动模式下右缘是否显示渐隐提示（由宿主按实测溢出传入）。
-  final bool showFade;
-
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final cardBorder = dark ? const Color(0xFF3A382F) : const Color(0xFFE5E2D8);
-    Widget core = wraps
+    final core = wraps
         ? LayoutBuilder(
             builder: (context, constraints) => HScrollbar(
               bottomPadding: 6,
@@ -3394,19 +3348,6 @@ class _MarkdownTableHost extends StatelessWidget {
             ),
           )
         : HScrollbar(bottomPadding: 6, onOverflow: onOverflow, child: child);
-    if (!wraps && showFade) {
-      // 右缘渐隐：提示表格可以横向滑动（规范 2.1）
-      core = ShaderMask(
-        shaderCallback: (bounds) => const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          stops: [0.88, 1],
-          colors: [Color(0xFFFFFFFF), Color(0x00FFFFFF)],
-        ).createShader(bounds),
-        blendMode: BlendMode.dstIn,
-        child: core,
-      );
-    }
     return Stack(
       children: [
         Container(

@@ -218,10 +218,9 @@ cannot install this APK; use a debug build for emulator work.
 ### 7.4 CI
 
 `.github/workflows/ci.yml` runs `flutter analyze --fatal-infos` + `flutter test` on
-PRs and pushes to `main`, plus a separate `build-apk` job that builds a debug arm64
-APK. Manifest merging, icon resources and plugin compatibility only surface in a real
-assemble, so keep that job. Release builds are still triggered only by `v*` tags via
-`release.yml`. `.github/workflows/ios.yml` is a manual macOS job that produces an
+PRs and pushes to `main`. The separate debug-APK `build-apk` job was removed (too
+costly for Actions); a real assemble now happens only in release builds triggered by
+`v*` tags via `release.yml`. `.github/workflows/ios.yml` is a manual macOS job that produces an
 **unsigned** iOS IPA artifact for self-signing; it never publishes a Release.
 
 ### 7.5 Release
