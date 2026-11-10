@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -54,7 +52,7 @@ class _AboutPageState extends State<AboutPage> {
         ? null
         : '${_info!['versionName']}+${_info!['versionCode']}';
     return Scaffold(
-      appBar: AppBar(title: const Text('关于 PullRead')),
+      appBar: AppBar(centerTitle: true, title: const Text('关于 PullRead')),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -107,20 +105,45 @@ class _AboutPageState extends State<AboutPage> {
                 title: const Text('开源许可证'),
                 subtitle: const Text('第三方依赖、libgit2 与字体'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => showLicensePage(
-                  context: context,
-                  applicationName: 'PullRead 拉读',
-                  applicationVersion: version == null ? null : 'v$version',
-                  applicationLegalese: '© 2026 interset-wq · MIT License',
-                  applicationIcon: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Image.asset(
-                      'assets/icon/app_logo.png',
-                      width: 48,
-                      height: 48,
+                onTap: () {
+                  // 内置 LicensePage 不走 showLicensePage（其路由吃不到局部
+                  // 主题），改自建路由 + Theme 包装，让 AppBar/背景对齐品牌配色
+                  final licenseTheme = theme.copyWith(
+                    appBarTheme: theme.appBarTheme.copyWith(
+                      backgroundColor: theme.scaffoldBackgroundColor,
+                      foregroundColor: theme.colorScheme.onSurface,
+                      elevation: 0,
+                      scrolledUnderElevation: 0,
+                      centerTitle: true,
+                      titleTextStyle: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => Theme(
+                        data: licenseTheme,
+                        child: LicensePage(
+                          applicationName: 'PullRead 拉读',
+                          applicationVersion: version == null
+                              ? null
+                              : 'v$version',
+                          applicationLegalese:
+                              '© 2026 interset-wq · MIT License',
+                          applicationIcon: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Image.asset(
+                              'assets/icon/app_logo.png',
+                              width: 48,
+                              height: 48,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -138,16 +161,14 @@ class _AboutPageState extends State<AboutPage> {
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () => _open(Uri.parse(_repoUrl)),
               ),
-              // 「下载最新 APK」只对 Android 有意义：iOS 拿到的是装不了的文件
-              if (Platform.isAndroid)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.system_update_outlined),
-                  title: const Text('获取最新版本'),
-                  subtitle: const Text('前往 GitHub Releases 下载最新 APK'),
-                  trailing: const Icon(Icons.open_in_new, size: 18),
-                  onTap: () => _open(Uri.parse(kReleaseUrl)),
-                ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.system_update_outlined),
+                title: const Text('获取最新版本'),
+                subtitle: const Text('前往 GitHub Releases 获取最新安装包'),
+                trailing: const Icon(Icons.open_in_new, size: 18),
+                onTap: () => _open(Uri.parse(kReleaseUrl)),
+              ),
               const SizedBox(height: 24),
               Center(
                 child: Text(

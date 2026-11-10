@@ -9,111 +9,106 @@ body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft
 .tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
 .bar{display:flex;align-items:center;gap:12px;padding:14px 14px 12px}
 .bar .bt{width:22px;height:22px;flex:none}
-.bar .ttl{font-size:18px;font-weight:700;color:#26241E;flex:1;min-width:0}
+.bar .ttl{font-size:17px;font-weight:600;color:#26241E;flex:1;min-width:0}
 .bar .act{font-size:13.5px;color:#1F6F54;font-weight:600;white-space:nowrap}
-/* 根页入口行：tint 图标章 + 标题副题 + 当前值 + 箭头 */
-.ent{display:flex;align-items:center;gap:14px;padding:13px 16px}
-.ent:active{background:#F4F2EB}
-.ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
-.ic.a{background:#EDF5F0;color:#1F6F54}
-.ic.b{background:#F1EFE7;color:#5A5850}
-.ic.c{background:#FDF6E7;color:#B0762A}
-.nm{flex:1;min-width:0}
-.n1{font-size:15.5px;font-weight:600;color:#26241E}
-.n2{font-size:12.5px;color:#A5A296;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.val{font-size:13px;color:#8A887E;flex:none;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chev{flex:none;color:#B8B5AA}
-.hair{height:1px;background:#F2F0E8;margin:0 16px}
-.slogan{position:absolute;bottom:26px;left:0;right:0;text-align:center;font-size:12px;color:#B0ADA2}
-/* 子页：分组 + 滑杆行 + 开关行 */
 .gh{font-size:12.5px;font-weight:700;color:#8A887E;letter-spacing:.06em;padding:18px 16px 6px}
-.srow{display:flex;align-items:center;gap:14px;padding:12px 16px 0}
-.sld{padding:0 20px 14px 70px}
-.track{height:26px;display:flex;align-items:center}
-.rail{position:relative;width:100%;height:4px;border-radius:2px;background:linear-gradient(to right,#1F6F54 42%,#D9D6CB 42%)}
-.thumb{position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;
-  background:#1F6F54;box-shadow:0 1px 4px rgba(30,40,30,.25)}
-.trow{display:flex;align-items:center;gap:14px;padding:12px 16px}
-.trow .nm{flex:1;min-width:0}
-.trow .n1{font-size:15px;font-weight:500;color:#26241E}
-.trow .n2{font-size:12.5px;color:#A5A296;margin-top:2px}
-.sw{width:50px;height:30px;border-radius:15px;flex:none;position:relative}
-.sw.off{background:#D9D6CB}
-.sw.on{background:#1F6F54}
-.sw i{position:absolute;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(30,40,30,.25)}
-.sw.off i{left:3px}
-.sw.on i{right:3px}
+/* 输入行：章 + 标题/? + 输入框 */
+.irow{display:flex;align-items:center;gap:14px;padding:6px 16px 0}
+.ic{width:38px;height:38px;border-radius:11px;background:#EDF5F0;color:#1F6F54;
+  display:flex;align-items:center;justify-content:center;flex:none}
+.irow .n1{font-size:15px;font-weight:500;color:#26241E}
+.irow .hb{margin-left:4px;color:#B0ADA2;display:flex}
+/* 输入框：白卡 token */
+.field{margin:10px 16px 0;background:#fff;border:1.5px solid #E5E2D8;border-radius:12px;padding:11px 14px}
+.field .val{font-size:15px;color:#26241E}
+.field .cursor{display:inline-block;width:2px;height:18px;background:#1F6F54;vertical-align:-3px;margin-left:1px}
+.field.focus{border-color:#1F6F54;box-shadow:0 0 0 3px rgba(31,111,84,.12)}
+.field .ph{color:#B0ADA2}
+.helper{font-size:12px;color:#A5A296;padding:7px 18px 0;line-height:1.6}
+.saved{display:inline-flex;align-items:center;gap:5px;margin:8px 18px 0;font-size:12px;color:#1F6F54;
+  background:#EDF5F0;border-radius:999px;padding:4px 11px}
+.hair{height:1px;background:#F2F0E8;margin:16px 16px 0}
+/* 规则 chips + 就地展开 textarea */
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#5A5850;background:#F1EFE7;
+  border-radius:999px;padding:5px 8px 5px 12px}
+.chip .x{color:#B0ADA2;display:flex}
+.ta{margin:12px 16px 0;background:#fff;border:1.5px solid #1F6F54;border-radius:12px;padding:12px 14px;
+  box-shadow:0 0 0 3px rgba(31,111,84,.12)}
+.ta .line{font-size:14px;line-height:1.9;color:#26241E}
+.ta .empty{color:#B0ADA2}
+.tacts{display:flex;gap:10px;margin:12px 16px 0}
+.btn{font-size:13.5px;font-weight:600;border-radius:11px;padding:9px 18px}
+.btn.pri{background:#1F6F54;color:#fff}
+.btn.sec{background:#fff;color:#3A382F;border:1px solid #E5E2D8}
 </style></head><body>
 
-<!-- 帧 1：设置根页 · 手机 -->
-<div class="phone"><div class="tag">设置 · 根页<small>tint 图标章统一 · 当前值右列</small></div>
+<!-- 帧 1：用户名输入 · 输入态 + 保存反馈 -->
+<div class="phone"><div class="tag">用户名输入<small>章 + token 描边 + 聚焦松绿 + 保存反馈</small></div>
   <div class="bar">
     <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
-    <div class="ttl">设置</div>
-  </div>
-  <div class="ent"><div class="ic a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M12 5c-2-1.4-4.5-2-7-2v16c2.5 0 5 .6 7 2 2-1.4 4.5-2 7-2V3c-2.5 0-5 .6-7 2z"/><path d="M12 5v16"/></svg></div>
-    <div class="nm"><div class="n1">阅读与显示</div><div class="n2">行距、边距与代码块</div></div>
-    <span class="val">1.75 / 16 dp</span>
-    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
-  <div class="hair"></div>
-  <div class="ent"><div class="ic a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18c1.5 0 2-1 1.4-2.2-.7-1.4.2-2.8 1.8-2.8H17a4 4 0 004-4c0-5-4-9-9-9z"/></svg></div>
-    <div class="nm"><div class="n1">外观与图标</div><div class="n2">主题与桌面图标</div></div>
-    <span class="val">跟随系统</span>
-    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
-  <div class="hair"></div>
-  <div class="ent"><div class="ic c"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0762A" stroke-width="1.8"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M6 8.5v7M18 5.5A13 13 0 008.5 8M18 18.5A13 13 0 018.5 16"/></svg></div>
-    <div class="nm"><div class="n1">仓库与同步</div><div class="n2">平台、用户名与同步</div></div>
-    <span class="val">AtomGit</span>
-    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
-  <div class="hair"></div>
-  <div class="ent"><div class="ic b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><path d="M3 3l18 18M10.6 5.1A9.8 9.8 0 0121 12a16.4 16.4 0 01-3.2 3.6M6.6 6.6A16 16 0 003 12a9.8 9.8 0 0013.4 6.9"/></svg></div>
-    <div class="nm"><div class="n1">文件显示</div><div class="n2">隐藏默认项与自定义规则</div></div>
-    <span class="val">0 条规则</span>
-    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
-  <div class="hair"></div>
-  <div class="ent"><div class="ic a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
-    <div class="nm"><div class="n1">存储与数据</div><div class="n2">占用、待写回、历史与收藏</div></div>
-    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
-  <div class="hair"></div>
-  <div class="ent"><div class="ic b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.1"/></svg></div>
-    <div class="nm"><div class="n1">关于 PullRead</div><div class="n2">版本、许可证与项目主页</div></div>
-    <span class="val">v1.12.0</span>
-    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
-  <div class="slogan">PullRead · 克隆一次，常读常新</div>
-</div>
-
-<!-- 帧 2：阅读与显示 · 手机 -->
-<div class="phone"><div class="tag">设置 · 阅读与显示<small>滑杆 + 开关 · 松绿统一 · tint 章</small></div>
-  <div class="bar">
-    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
-    <div class="ttl">阅读与显示</div>
+    <div class="ttl">仓库与同步</div>
     <span class="act">恢复默认</span>
   </div>
-  <div class="gh">排版</div>
-  <div class="srow"><div class="ic a" style="width:38px;height:38px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M4 6h16M6 10h12M4 14h16M6 18h12"/></svg></div>
-    <div class="nm"><div class="n1" style="font-size:15px;font-weight:500">正文行距</div><div class="n2">行高倍数</div></div>
-    <span class="val" style="font-size:14px;color:#1F6F54;font-weight:700">1.75</span></div>
-  <div class="sld"><div class="track"><div class="rail"><div class="thumb"></div></div></div></div>
+  <div class="gh">默认平台</div>
+  <div style="padding:4px 16px 0">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg>
+      <span style="font-size:15px;color:#26241E">GitCode（AtomGit）</span>
+      <svg style="margin-left:auto" width="18" height="18" viewBox="0 0 24 24" fill="#1F6F54"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>
+    </div>
+  </div>
   <div class="hair"></div>
-  <div class="srow"><div class="ic b" style="width:38px;height:38px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M4 9V4h5M20 15v5h-5M4 15v5h5M20 9V4h-5"/></svg></div>
-    <div class="nm"><div class="n1" style="font-size:15px;font-weight:500">页边距</div><div class="n2">正文两侧留白</div></div>
-    <span class="val" style="font-size:14px;color:#1F6F54;font-weight:700">16 dp</span></div>
-  <div class="sld"><div class="track"><div class="rail" style="background:linear-gradient(to right,#1F6F54 30%,#D9D6CB 30%)"><div class="thumb" style="left:30%"></div></div></div></div>
-  <div class="gh">阅读行为</div>
-  <div class="trow"><div class="ic a" style="width:38px;height:38px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><rect x="7" y="4" width="10" height="17" rx="2"/><path d="M11 18h2"/></svg></div>
-    <div class="nm"><div class="n1">屏幕常亮</div><div class="n2">阅读文章时屏幕不会自动熄灭</div></div>
-    <div class="sw off"><i></i></div></div>
+  <div class="gh">默认用户名</div>
+  <div class="irow">
+    <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.4-3.6 4.4-6 8-6s6.6 2.4 8 6"/></svg></div>
+    <div class="n1">用户名</div>
+    <span class="hb"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.1"/></svg></span>
+  </div>
+  <div class="field focus" style="display:flex;align-items:center;gap:9px;padding:8px 8px 8px 14px">
+    <span class="val" style="flex:1">interset-wq</span><span class="cursor"></span>
+    <span class="btn pri" style="padding:7px 15px;font-size:13px">保存</span>
+  </div>
+  <div class="helper">点「保存」或键盘回车生效；内容未变时按钮置灰</div>
+  <div class="saved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="2.5"><path d="M4 12l5 5L20 6"/></svg>已保存</div>
+</div>
+
+<!-- 帧 2：隐藏规则 · chips 预览 + 就地展开编辑 -->
+<div class="phone"><div class="tag">隐藏规则编辑<small>chips 预览 + 就地展开 textarea</small></div>
+  <div class="bar">
+    <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    <div class="ttl">文件显示</div>
+    <span class="act">恢复默认</span>
+  </div>
+  <div class="gh">隐藏项</div>
+  <div style="display:flex;align-items:center;gap:14px;padding:8px 16px">
+    <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M3 3l18 18M10.6 5.1A9.8 9.8 0 0121 12a16.4 16.4 0 01-3.2 3.6M6.6 6.6A16 16 0 003 12a9.8 9.8 0 0013.4 6.9"/></svg></div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:500;color:#26241E">隐藏默认忽略项</div>
+      <div style="font-size:12.5px;color:#A5A296;margin-top:2px">点开头的文件与目录</div>
+    </div>
+    <div style="width:50px;height:30px;border-radius:15px;background:#1F6F54;position:relative;flex:none">
+      <i style="position:absolute;right:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff"></i>
+    </div>
+  </div>
   <div class="hair"></div>
-  <div class="trow"><div class="ic a" style="width:38px;height:38px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M8 12H4M4 12l3-3M4 12l3 3M16 12h4M20 12l-3-3M20 12l-3 3"/></svg></div>
-    <div class="nm"><div class="n1">手势翻页</div><div class="n2">正文区左右快滑切换上一篇 / 下一篇</div></div>
-    <div class="sw off"><i></i></div></div>
-  <div class="hair"></div>
-  <div class="trow"><div class="ic a" style="width:38px;height:38px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16M9 10v9"/></svg></div>
-    <div class="nm"><div class="n1">表格不换行</div><div class="n2">超宽表格横向滚动</div></div>
-    <div class="sw on"><i></i></div></div>
-  <div class="hair"></div>
-  <div class="trow"><div class="ic a" style="width:38px;height:38px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M5 9l7-5 7 5-7 5z"/><path d="M5 15l7 5 7-5"/></svg></div>
-    <div class="nm"><div class="n1">折叠块默认展开</div><div class="n2">Markdown 折叠块未指定时默认展开</div></div>
-    <div class="sw off"><i></i></div></div>
+  <div class="irow" style="padding-top:12px">
+    <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M8 4h9l4 4v12H8z"/><path d="M17 4v4h4M11 12h7M11 16h5"/></svg></div>
+    <div class="n1" style="flex:1">自定义隐藏规则</div>
+    <span style="font-size:12.5px;color:#8A887E">4 条</span>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2" style="transform:rotate(90deg)"><path d="M9 5l7 7-7 7"/></svg>
+  </div>
+  <div class="chips">
+    <span class="chip">dist<span class="x"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></span></span>
+    <span class="chip">build<span class="x"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></span></span>
+    <span class="chip">assets<span class="x"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></span></span>
+    <span class="chip">*.log<span class="x"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B0ADA2" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></span></span>
+    <span class="chip" style="background:#fff;border:1px dashed #D4D1C5;color:#8A887E">＋ 添加</span>
+  </div>
+  <div class="field" style="margin-top:14px;display:flex;align-items:center;gap:9px;padding:8px 8px 8px 14px">
+    <span class="ph" style="flex:1;font-size:14.5px">输入文件或目录名，如 dist</span>
+    <span class="btn pri" style="padding:7px 15px;font-size:13px">添加</span>
+  </div>
+  <div class="helper">每条精确匹配一个文件或目录名；键盘回车也可添加，点 chip 上的 × 删除</div>
 </div>
 </body></html>

@@ -96,12 +96,14 @@ class _ReaderAppState extends State<ReaderApp> {
         }
         final prefs = snapshot.data!;
         // 主题切换（App 内菜单）即时生效：随 AppPrefs 重建 MaterialApp
+        // 品牌松绿（docs/design/settings-redesign.md token），全局种子统一
+        const brandPine = Color(0xFF1F6F54);
         return ListenableBuilder(
           listenable: prefs,
           builder: (context, _) => MaterialApp(
             title: 'PullRead 拉读',
             theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+              colorScheme: ColorScheme.fromSeed(seedColor: brandPine),
               useMaterial3: true,
               pageTransitionsTheme: transitions,
               snackBarTheme: snackbar,
@@ -109,7 +111,7 @@ class _ReaderAppState extends State<ReaderApp> {
             ),
             darkTheme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.teal,
+                seedColor: brandPine,
                 brightness: Brightness.dark,
               ),
               useMaterial3: true,

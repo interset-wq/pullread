@@ -6,24 +6,136 @@ const double kSettingsContentMaxWidth = 720;
 Widget _anchored(String? id, Widget child) =>
     id == null ? child : SettingsAnchor(id: id, child: child);
 
-class SettingsBody extends StatelessWidget {
+/// 图标章色调（docs/design/settings-redesign.md：深浅色成对）
+enum SettingsTone { pine, neutral, amber }
+
+class SettingsTilePalette {
+  const SettingsTilePalette({required this.bg, required this.fg});
+  final Color bg;
+  final Color fg;
+}
+
+SettingsTilePalette settingsTonePalette(
+  SettingsTone tone,
+  Brightness brightness,
+) {
+  const light = <SettingsTone, (Color, Color)>{
+    SettingsTone.pine: (Color(0xFFEDF5F0), Color(0xFF1F6F54)),
+    SettingsTone.neutral: (Color(0xFFF1EFE7), Color(0xFF5A5850)),
+    SettingsTone.amber: (Color(0xFFFDF6E7), Color(0xFFB0762A)),
+  };
+  const dark = <SettingsTone, (Color, Color)>{
+    SettingsTone.pine: (Color(0xFF1A3A2E), Color(0xFF7BC7A5)),
+    SettingsTone.neutral: (Color(0xFF2A2924), Color(0xFFB5B2A6)),
+    SettingsTone.amber: (Color(0xFF3A2E1C), Color(0xFFD9A05B)),
+  };
+  final palette = brightness == Brightness.dark ? dark : light;
+  final pair = palette[tone]!;
+  return SettingsTilePalette(bg: pair.$1, fg: pair.$2);
+}
+
+/// 40px 圆角 tint 图标章，与目录树/收件箱等页共用语言
+class SettingsIconTile extends StatelessWidget {
+  const SettingsIconTile({
+    required this.icon,
+    this.tone = SettingsTone.pine,
+    this.size = 40,
+    super.key,
+  });
+
+  final IconData icon;
+  final SettingsTone tone;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = settingsTonePalette(tone, Theme.of(context).brightness);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: palette.bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, size: size * 0.5, color: palette.fg),
+    );
+  }
+}
+
+/// 输入框 token（docs/design/settings-redesign.md：白卡描边、聚焦松绿）
+InputDecoration settingsInputDecoration(
+  BuildContext context, {
+  String? hint,
+  Widget? suffix,
+}) {
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  final outline = dark ? const Color(0xFF3A382F) : const Color(0xFFE5E2D8);
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(
+      fontSize: 14.5,
+      color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(128),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: outline, width: 1.5),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Color(0xFF1F6F54), width: 1.5),
+    ),
+    suffixIcon: suffix,
+    suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+    isDense: true,
+  );
+}
+
+class SettingsBody extends StatefulWidget {
   const SettingsBody({required this.children, super.key});
 
   final List<Widget> children;
 
   @override
+  State<SettingsBody> createState() => _SettingsBodyState();
+}
+
+class _SettingsBodyState extends State<SettingsBody> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: kSettingsContentMaxWidth),
-        // 用 Column 而不是懒加载 ListView：设置项数量很少，全部建出来才能让
-        // 搜索结果的 SettingsAnchor 对屏幕外的行执行 ensureVisible。
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: children,
+    // Scrollbar 在最外层横跨整个面板宽度，滚动条紧贴屏幕/面板右缘；
+    // 内容仍居中限宽。ScrollConfiguration 关闭桌面端自动注入的滚动条，
+    // 否则会出现「内置 + 贴边」两条。SingleChildScrollView + 非懒
+    // Column：设置项数量很少，全部建出来才能让搜索结果的
+    // SettingsAnchor 对屏幕外的行执行 ensureVisible。
+    return ScrollbarTheme(
+      data: const ScrollbarThemeData(mainAxisMargin: 0),
+      child: Scrollbar(
+        controller: _scrollController,
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints:
+                  const BoxConstraints(maxWidth: kSettingsContentMaxWidth),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: widget.children,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -51,6 +163,8 @@ class SettingsSubpage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // 标题居中（用户要求）：双栏右栏与手机 push 均生效
+        centerTitle: true,
         title: Text(title),
         actions: [
           if (onReset != null)
@@ -177,6 +291,7 @@ class SettingsNavTile extends StatelessWidget {
     required this.onTap,
     this.subtitle,
     this.value,
+    this.tone = SettingsTone.pine,
     this.badgeCount = 0,
     this.destructive = false,
     this.enabled = true,
@@ -185,6 +300,7 @@ class SettingsNavTile extends StatelessWidget {
   });
 
   final IconData icon;
+  final SettingsTone tone;
   final String title;
   final String? subtitle;
   final String? value;
@@ -199,13 +315,12 @@ class SettingsNavTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final foreground = destructive ? scheme.error : null;
-    final iconColor = destructive ? scheme.error : scheme.primary;
     return _anchored(
       anchor,
       ListTile(
         contentPadding: EdgeInsets.zero,
         enabled: enabled,
-        leading: Icon(icon, size: 20, color: enabled ? iconColor : null),
+        leading: SettingsIconTile(icon: icon, tone: tone),
         title: Text(
           title,
           style: foreground == null ? null : TextStyle(color: foreground),
@@ -262,12 +377,14 @@ class SettingsSwitchTile extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
+    this.tone = SettingsTone.pine,
     this.help,
     this.anchor,
     super.key,
   });
 
   final IconData icon;
+  final SettingsTone tone;
   final String title;
   final String subtitle;
   final String? help;
@@ -277,12 +394,11 @@ class SettingsSwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return _anchored(
       anchor,
       SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        secondary: Icon(icon, size: 20, color: theme.colorScheme.primary),
+        secondary: SettingsIconTile(icon: icon, tone: tone),
         title: help == null
             ? Text(title)
             : Row(
@@ -311,6 +427,7 @@ class SettingsSliderTile extends StatelessWidget {
     required this.onChanged,
     required this.onChangeEnd,
     this.subtitle,
+    this.tone = SettingsTone.pine,
     this.help,
     this.enabled = true,
     this.anchor,
@@ -320,6 +437,7 @@ class SettingsSliderTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
+  final SettingsTone tone;
   final String valueLabel;
   final String? help;
   final double value;
@@ -345,7 +463,7 @@ class SettingsSliderTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(icon, size: 20, color: theme.colorScheme.primary),
+                  SettingsIconTile(icon: icon, tone: tone),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
