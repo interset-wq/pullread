@@ -283,14 +283,20 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
               ),
             )
-          : ListView.builder(
+          : ValueListenableBuilder<int>(
+              valueListenable: _currentSection,
+              builder: (context, currentSection, _) => ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: _toc.length,
               itemBuilder: (context, i) {
-                final selected = i == _lastHeadingIndex;
+                final selected = i == currentSection;
+                // 按标题层级缩进（板面按 一/二/三级 呈现文档结构）
+                final level = (_toc[i].level - 1).clamp(0, 3);
+                final dark = theme.brightness == Brightness.dark;
                 return Material(
+                  // 当前节：浅绿底 + 深绿字（板面样式，不遮全文显眼度）
                   color: selected
-                      ? const Color(0xFF1F6F54)
+                      ? (dark ? const Color(0xFF23291F) : const Color(0xFFEDF5F0))
                       : Colors.transparent,
                   child: InkWell(
                     onTap: () => _jumpToHeadingTop(i),
@@ -305,9 +311,11 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                           ),
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 11,
+                      padding: EdgeInsets.only(
+                        left: 16.0 + level * 14,
+                        right: 10,
+                        top: 11,
+                        bottom: 11,
                       ),
                       child: Text(
                         _toc[i].text,
@@ -316,7 +324,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                         style: TextStyle(
                           fontSize: 13.5,
                           color: selected
-                              ? const Color(0xFFFBFAF6)
+                              ? (dark
+                                    ? const Color(0xFF7BC7A5)
+                                    : const Color(0xFF1F6F54))
                               : scheme.onSurface,
                           fontWeight: selected
                               ? FontWeight.w600
@@ -327,6 +337,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                   ),
                 );
               },
+            ),
             ),
     );
   }
@@ -1644,8 +1655,11 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           ),
         ),
         TableConfig(
+          // 表头浅绿底（设计板 token #EDF5F0）；深色成对取绿调深底保证可读
           headerRowDecoration: BoxDecoration(
-            color: theme.colorScheme.primary.withAlpha(25),
+            color: theme.brightness == Brightness.dark
+                ? const Color(0xFF26332B)
+                : const Color(0xFFEDF5F0),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
           ),
           // 注意：不要设置 headerStyle——包内 TBodyNode 也读取 headerStyle
