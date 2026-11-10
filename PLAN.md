@@ -18,8 +18,9 @@
   `dart format`，只格式化改动片段，避免几百行无关 diff。
 - 改 Git 层（`lib/src/git/`）必须先在本文件登记，并说明数据安全分析；只读原则不变。
 - 新增依赖、修改 `AGENTS.md` 中的硬约束，同样先登记。
-- 本机没有 Android 真机、没有 macOS：涉及手势 / SAF 写回 / 图标切换 / 音量键的改动
-  只能靠 analyze + 测试，真机验收项集中在第 5 节。
+- 本机 Ubuntu 无法构建/验收 iOS 与 Windows：涉及手势 / SAF 写回 / 图标切换 /
+  音量键的改动只能靠 analyze + 测试，真机验收项集中在第 5 节；iPad 由其他 agent
+  按 `docs/ios-test-plan.md` 执行。
 
 ## 2. 当前状态（2026-11-09）
 
@@ -37,23 +38,23 @@
   已通过；其余手势与写回项待测。
 - CI：`analyze-and-test` 正常；`build-apk` 偶尔因 Gradle 发行包 504 失败，属基础设施
   抖动，重跑即可，不要为此改构建配置。
-- 待真机验收：行选区高亮、设置页两级导航与恢复默认、SAF 写回、图标切换、音量键翻页、
-  分支切换、mermaid 保存。
+- 待真机验收：行选区高亮、设置页滑杆落盘与 320 dp 字号、SAF 写回、图标切换、
+  音量键翻页。
 
 ## 3. 进行中（主责 agent 占用文件）
 
+当前无进行中任务。其他 agent 可接手第 4 节队列；开始前先在本节登记任务与文件。
+
 | 任务 | 状态 | 涉及文件 |
 | --- | --- | --- |
-| 跨平台定位与仓库元信息 | README/许可证已改，待提交；GitHub description/topics 待更新 | `README.md`、`THIRD_PARTY_NOTICES.md`、`LICENSES/`、`AGENTS.md`、`PLAN.md` |
+| — | — | — |
 
 ## 4. 队列（按优先级）
 
 1. **文内查找同章节精确滚动**：给懒加载正文块记录源码行范围，命中后滚到具体块；
    需要真机手感验证，暂缓到设备可用。
-2. **UTF-16 文本支持**：`decodeTextBytes` 增加 BOM 检测；本地编辑器保存时保留原编码。
-3. **`.mdx` 渲染增强**：当前按 Markdown 渲染，JSX 组件以文本降级展示；后续评估是否
-   隐藏 import/export 行。
-4. **设置搜索与别名目录**（`docs/settings-redesign.md` 阶段三，可选）。
+2. **设置搜索后续增强**：实时预览卡、阅读字号迁入 `AppPrefs`、平板双栏
+   （见 `docs/settings-redesign.md` 阶段三剩余项）。
 
 ## 5. 真机验收清单（设备可用后）
 
@@ -90,3 +91,8 @@ CI 产物为未签名 IPA，需用 Apple ID 重签后安装。
   clone→read→pull 循环 + Android/iPadOS/Windows 平台矩阵。
 - 第三方许可证：新增 `THIRD_PARTY_NOTICES.md` 与 `LICENSES/`，关于页可查看全部
   依赖许可证原文。
+- 文本编码：新增 UTF-16 LE/BE（含 BOM）识别；本地编辑器保存时保留 UTF-8 BOM /
+  UTF-16 编码，不再只区分 UTF-8 与 GBK。
+- `.mdx` 阅读增强：隐藏顶层 import/export 与 MDX 注释，代码块与源码视图保留；
+  全文检索同步使用同一段正文。
+- 设置搜索：根页搜索图标、别名目录与面包屑结果，进入子页后自动滚到目标设置行。

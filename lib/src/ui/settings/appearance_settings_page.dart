@@ -16,9 +16,12 @@ const Map<String, String> kAppIconLabels = {
 };
 
 class AppearanceSettingsPage extends StatelessWidget {
-  const AppearanceSettingsPage({required this.prefs, super.key});
+  const AppearanceSettingsPage({required this.prefs, this.focus, super.key});
 
   final AppPrefs prefs;
+
+  /// 从设置搜索进入时要滚动到的锚点 id。
+  final String? focus;
 
   Future<void> _reset() async {
     await prefs.setMode(ThemeMode.system);
@@ -33,16 +36,27 @@ class AppearanceSettingsPage extends StatelessWidget {
       builder: (context, _) => SettingsSubpage(
         title: '外观与图标',
         onReset: _reset,
+        focus: focus,
         children: [
           SettingsSection(
             title: '主题',
-            children: [ThemeModeSelector(prefs: prefs)],
+            children: [
+              SettingsAnchor(
+                id: 'theme',
+                child: ThemeModeSelector(prefs: prefs),
+              ),
+            ],
           ),
           if (isAndroid)
             SettingsSection(
               title: '桌面图标',
               help: '切换后桌面图标在 launcher 刷新后生效，部分机型需要重新启动桌面。',
-              children: [_IconGrid(prefs: prefs)],
+              children: [
+                SettingsAnchor(
+                  id: 'appIcon',
+                  child: _IconGrid(prefs: prefs),
+                ),
+              ],
             ),
         ],
       ),

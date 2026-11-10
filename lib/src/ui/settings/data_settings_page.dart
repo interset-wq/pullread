@@ -13,9 +13,12 @@ import '../storage_page.dart';
 import 'settings_components.dart';
 
 class DataSettingsPage extends StatefulWidget {
-  const DataSettingsPage({required this.prefs, super.key});
+  const DataSettingsPage({required this.prefs, this.focus, super.key});
 
   final AppPrefs prefs;
+
+  /// 从设置搜索进入时要滚动到的锚点 id。
+  final String? focus;
 
   @override
   State<DataSettingsPage> createState() => _DataSettingsPageState();
@@ -176,11 +179,13 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
         final searchCount = _prefs.searchHistory.length;
         return SettingsSubpage(
           title: '存储与数据',
+          focus: widget.focus,
           children: [
             SettingsSection(
               title: '存储',
               children: [
                 SettingsNavTile(
+                  anchor: 'storage',
                   icon: Icons.storage_outlined,
                   title: '存储占用',
                   subtitle: '仓库、镜像、图片缓存与元数据',
@@ -191,6 +196,7 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
                   ),
                 ),
                 SettingsNavTile(
+                  anchor: 'pending',
                   icon: _conflictCount > 0
                       ? Icons.error_outline
                       : Icons.cloud_done_outlined,
@@ -206,6 +212,7 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
                   onTap: _openPending,
                 ),
                 SettingsNavTile(
+                  anchor: 'clearSearchHistory',
                   icon: Icons.search_off_outlined,
                   title: '清空搜索历史',
                   subtitle: searchCount == 0 ? '暂无搜索历史' : '$searchCount 条搜索历史',
@@ -219,6 +226,7 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
               title: '危险操作',
               children: [
                 SettingsNavTile(
+                  anchor: 'clearRecents',
                   icon: Icons.history_toggle_off,
                   title: '清空阅读历史',
                   subtitle: recents == null
@@ -231,6 +239,7 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
                   onTap: _clearRecents,
                 ),
                 SettingsNavTile(
+                  anchor: 'clearStars',
                   icon: Icons.star_outline,
                   title: '清空收藏',
                   subtitle: stars == null

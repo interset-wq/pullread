@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 const double kSettingsContentMaxWidth = 720;
 
+/// 给可选锚点的设置行套上 [SettingsAnchor]。
+Widget _anchored(String? id, Widget child) =>
+    id == null ? child : SettingsAnchor(id: id, child: child);
+
 class SettingsBody extends StatelessWidget {
   const SettingsBody({required this.children, super.key});
 
@@ -13,9 +17,14 @@ class SettingsBody extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: kSettingsContentMaxWidth),
-        child: ListView(
+        // 用 Column 而不是懒加载 ListView：设置项数量很少，全部建出来才能让
+        // 搜索结果的 SettingsAnchor 对屏幕外的行执行 ensureVisible。
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          children: children,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
         ),
       ),
     );
@@ -27,12 +36,16 @@ class SettingsSubpage extends StatelessWidget {
     required this.title,
     required this.children,
     this.onReset,
+    this.focus,
     super.key,
   });
 
   final String title;
   final List<Widget> children;
   final Future<void> Function()? onReset;
+
+  /// 从设置搜索进入时要滚动到的锚点 id。
+  final String? focus;
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +65,64 @@ class SettingsSubpage extends StatelessWidget {
             ),
         ],
       ),
-      body: SettingsBody(children: children),
+      body: SettingsFocusScope(
+        focus: focus,
+        child: SettingsBody(children: children),
+      ),
     );
   }
+}
+
+/// 把设置搜索选中的锚点传给子页，供 [SettingsAnchor] 首帧后滚动定位。
+class SettingsFocusScope extends InheritedWidget {
+  const SettingsFocusScope({
+    required this.focus,
+    required super.child,
+    super.key,
+  });
+
+  final String? focus;
+
+  static String? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<SettingsFocusScope>()?.focus;
+
+  @override
+  bool updateShouldNotify(SettingsFocusScope oldWidget) =>
+      focus != oldWidget.focus;
+}
+
+/// 设置项锚点：命中 [SettingsFocusScope.focus] 时在首帧布局后滚到该项。
+class SettingsAnchor extends StatefulWidget {
+  const SettingsAnchor({required this.id, required this.child, super.key});
+
+  final String id;
+  final Widget child;
+
+  @override
+  State<SettingsAnchor> createState() => _SettingsAnchorState();
+}
+
+class _SettingsAnchorState extends State<SettingsAnchor> {
+  bool _scheduled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_scheduled || SettingsFocusScope.maybeOf(context) != widget.id) return;
+    _scheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.15,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class SettingsSection extends StatelessWidget {
@@ -112,6 +180,7 @@ class SettingsNavTile extends StatelessWidget {
     this.badgeCount = 0,
     this.destructive = false,
     this.enabled = true,
+    this.anchor,
     super.key,
   });
 
@@ -123,6 +192,7 @@ class SettingsNavTile extends StatelessWidget {
   final bool destructive;
   final bool enabled;
   final VoidCallback onTap;
+  final String? anchor;
 
   @override
   Widget build(BuildContext context) {
@@ -130,54 +200,57 @@ class SettingsNavTile extends StatelessWidget {
     final scheme = theme.colorScheme;
     final foreground = destructive ? scheme.error : null;
     final iconColor = destructive ? scheme.error : scheme.primary;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      enabled: enabled,
-      leading: Icon(icon, size: 20, color: enabled ? iconColor : null),
-      title: Text(
-        title,
-        style: foreground == null ? null : TextStyle(color: foreground),
-      ),
-      subtitle: subtitle == null
-          ? null
-          : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (value != null)
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 128),
-              child: Text(
-                value!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
+    return _anchored(
+      anchor,
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        enabled: enabled,
+        leading: Icon(icon, size: 20, color: enabled ? iconColor : null),
+        title: Text(
+          title,
+          style: foreground == null ? null : TextStyle(color: foreground),
+        ),
+        subtitle: subtitle == null
+            ? null
+            : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (value != null)
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 128),
+                child: Text(
+                  value!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-            ),
-          if (badgeCount > 0) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: scheme.error,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                badgeCount > 99 ? '99+' : '$badgeCount',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: scheme.onError,
-                  fontWeight: FontWeight.w600,
+            if (badgeCount > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: scheme.error,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  badgeCount > 99 ? '99+' : '$badgeCount',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onError,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
+            ],
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right, size: 20, color: scheme.onSurfaceVariant),
           ],
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right, size: 20, color: scheme.onSurfaceVariant),
-        ],
+        ),
+        onTap: enabled ? onTap : null,
       ),
-      onTap: enabled ? onTap : null,
     );
   }
 }
@@ -190,6 +263,7 @@ class SettingsSwitchTile extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.help,
+    this.anchor,
     super.key,
   });
 
@@ -199,24 +273,28 @@ class SettingsSwitchTile extends StatelessWidget {
   final String? help;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final String? anchor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      secondary: Icon(icon, size: 20, color: theme.colorScheme.primary),
-      title: help == null
-          ? Text(title)
-          : Row(
-              children: [
-                Expanded(child: Text(title)),
-                SettingsHelpButton(title: title, message: help!),
-              ],
-            ),
-      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-      value: value,
-      onChanged: onChanged,
+    return _anchored(
+      anchor,
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        secondary: Icon(icon, size: 20, color: theme.colorScheme.primary),
+        title: help == null
+            ? Text(title)
+            : Row(
+                children: [
+                  Expanded(child: Text(title)),
+                  SettingsHelpButton(title: title, message: help!),
+                ],
+              ),
+        subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+        value: value,
+        onChanged: onChanged,
+      ),
     );
   }
 }
@@ -235,6 +313,7 @@ class SettingsSliderTile extends StatelessWidget {
     this.subtitle,
     this.help,
     this.enabled = true,
+    this.anchor,
     super.key,
   });
 
@@ -250,65 +329,69 @@ class SettingsSliderTile extends StatelessWidget {
   final ValueChanged<double> onChanged;
   final ValueChanged<double> onChangeEnd;
   final bool enabled;
+  final String? anchor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 20, color: theme.colorScheme.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(child: Text(title)),
-                          if (help != null)
-                            SettingsHelpButton(title: title, message: help!),
-                          const SizedBox(width: 4),
+    return _anchored(
+      anchor,
+      Opacity(
+        opacity: enabled ? 1 : 0.5,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 20, color: theme.colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: Text(title)),
+                            if (help != null)
+                              SettingsHelpButton(title: title, message: help!),
+                            const SizedBox(width: 4),
+                            Text(
+                              valueLabel,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (subtitle != null)
                           Text(
-                            valueLabel,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
+                            subtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
-                        ],
-                      ),
-                      if (subtitle != null)
-                        Text(
-                          subtitle!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            Slider(
-              value: value,
-              min: min,
-              max: max,
-              divisions: divisions,
-              label: valueLabel,
-              semanticFormatterCallback: (_) => valueLabel,
-              onChanged: enabled ? onChanged : null,
-              onChangeEnd: enabled ? onChangeEnd : null,
-            ),
-          ],
+                ],
+              ),
+              Slider(
+                value: value,
+                min: min,
+                max: max,
+                divisions: divisions,
+                label: valueLabel,
+                semanticFormatterCallback: (_) => valueLabel,
+                onChanged: enabled ? onChanged : null,
+                onChangeEnd: enabled ? onChangeEnd : null,
+              ),
+            ],
+          ),
         ),
       ),
     );

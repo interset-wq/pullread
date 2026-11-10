@@ -41,6 +41,28 @@ void main() {
     expect(results.first.snippets.first.line, 0);
   });
 
+  test('.mdx 的 import/export 不参与正文检索', () {
+    write(
+      'post.mdx',
+      "import Chart from './Chart';\n\nexport const meta = { title: '图表' };\n\n"
+          '# 正文\n\n这里才提到 Chart。',
+    );
+
+    expect(
+      RepoSearchService.searchSync(repoRoot: root.path, query: 'Chart'),
+      hasLength(1),
+      reason: '导入语句不应命中，正文里的 Chart 才是结果',
+    );
+    expect(
+      RepoSearchService.searchSync(repoRoot: root.path, query: 'import'),
+      isEmpty,
+    );
+    expect(
+      RepoSearchService.searchSync(repoRoot: root.path, query: 'title'),
+      isEmpty,
+    );
+  });
+
   test('点开头文件默认不进检索（与目录树一致）', () {
     write('.hidden.md', 'Flutter');
     write('visible.md', 'Flutter');

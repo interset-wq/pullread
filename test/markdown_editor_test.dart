@@ -59,8 +59,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
   }
 
-  testWidgets('save writes the mirror and records a pending write-back',
-      (tester) async {
+  testWidgets('save writes the mirror and records a pending write-back', (
+    tester,
+  ) async {
     await pumpEditor(tester);
 
     await tester.enterText(find.byType(TextField), '# 新标题\n\n改过的正文');
@@ -114,8 +115,29 @@ void main() {
     expect(gbk.decode(saved), contains('改过的正文'));
   });
 
-  testWidgets('preview toggle swaps the source editor for rendered output',
-      (tester) async {
+  testWidgets('opens UTF-16 notes and keeps UTF-16 when saving', (
+    tester,
+  ) async {
+    file.writeAsBytesSync(_utf16Le('# 原标题\n\n正文'));
+    await pumpEditor(tester);
+    expect(find.textContaining('原标题'), findsWidgets);
+
+    await tester.enterText(find.byType(TextField), '# 新标题\n\n改过的正文');
+    await tester.runAsync(() async {
+      await tester.tap(find.byTooltip('保存'));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final saved = file.readAsBytesSync();
+    expect(saved.take(2), [0xFF, 0xFE], reason: 'UTF-16LE BOM 应保留');
+    expect(decodeTextBytes(saved), contains('改过的正文'));
+  });
+
+  testWidgets('preview toggle swaps the source editor for rendered output', (
+    tester,
+  ) async {
     await pumpEditor(tester);
     expect(find.byType(TextField), findsOneWidget);
 
@@ -129,3 +151,10 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
   });
 }
+
+/// 带 BOM 的 UTF-16LE 字节。
+List<int> _utf16Le(String text) => [
+  0xFF,
+  0xFE,
+  for (final unit in text.codeUnits) ...[unit & 0xFF, unit >> 8],
+];

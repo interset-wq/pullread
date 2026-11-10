@@ -59,9 +59,12 @@ class RepoSearchService {
   }) {
     final q = query.trim();
     if (q.isEmpty) return const [];
-    final candidates = files ??
-        NoteScanner(useDefaults: useDefaults, customRules: customRules)
-            .scan(repoRoot);
+    final candidates =
+        files ??
+        NoteScanner(
+          useDefaults: useDefaults,
+          customRules: customRules,
+        ).scan(repoRoot);
     final results = <FileSearchResult>[];
     final terms = splitSearchTerms(q);
     if (titleOnly) {
@@ -89,15 +92,14 @@ class RepoSearchService {
       try {
         final stat = File(note.absolutePath).statSync();
         if (stat.size > maxFileBytes) continue;
-        final raw = decodeTextBytes(
-          File(note.absolutePath).readAsBytesSync(),
-        );
+        final raw = decodeTextBytes(File(note.absolutePath).readAsBytesSync());
         content = note.extension == '.ipynb'
             // 检索只要文字：跳过内嵌图片的解码与内存占用
             ? IpynbConverter.toMarkdown(raw, includeImages: false)
             // 与阅读页保持同一段正文：剥掉 front matter（否则搜 tags/date
-            // 能命中，但打开文章后文内查找为 0 处），再做 HTML 图片归一化
-            : normalizeHtmlImages(FrontMatter.parse(raw).body);
+            // 能命中，但打开文章后文内查找为 0 处），`.mdx` 还要剥掉
+            // import/export，最后做 HTML 图片归一化。
+            : _markdownBody(raw, isMdx: note.extension == '.mdx');
       } on Object {
         // 读不了的文件跳过（权限/编码/正在写入）
         continue;
@@ -116,14 +118,18 @@ class RepoSearchService {
       final rankB = _titleRank(b.relativePath, terms);
       if (rankA != rankB) return rankA.compareTo(rankB);
       final byCount = b.matches.compareTo(a.matches);
-      return byCount != 0
-          ? byCount
-          : a.relativePath.compareTo(b.relativePath);
+      return byCount != 0 ? byCount : a.relativePath.compareTo(b.relativePath);
     });
     if (results.length > maxHitFiles) {
       results.removeRange(maxHitFiles, results.length);
     }
     return results;
+  }
+
+  /// 与阅读页一致的正文预处理：front matter → `.mdx` 模块语法 → HTML 图片。
+  static String _markdownBody(String raw, {required bool isMdx}) {
+    final body = FrontMatter.parse(raw).body;
+    return normalizeHtmlImages(isMdx ? stripMdxModuleSyntax(body) : body);
   }
 
   static bool _isSearchable(NoteFile note) =>

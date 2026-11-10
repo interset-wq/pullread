@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reader/src/theme/app_prefs.dart';
 import 'package:reader/src/ui/settings/data_settings_page.dart';
 import 'package:reader/src/ui/settings/settings_page.dart';
+import 'package:reader/src/ui/settings/settings_search.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -99,6 +100,36 @@ void main() {
     await tester.tap(find.text('仓库与同步'));
     await tester.pumpAndSettle();
     expect(prefs.defaultOwner, 'new-owner');
+  });
+
+  test('settings search matches titles and aliases with AND terms', () {
+    expect(searchSettings('行距').map((e) => e.title), contains('正文行距'));
+    expect(searchSettings('深色').map((e) => e.title), contains('主题'));
+    expect(searchSettings('待写回').map((e) => e.title), contains('未写回的修改'));
+    expect(searchSettings('行距 深色'), isEmpty);
+    expect(searchSettings('   '), isEmpty);
+    expect(searchSettings('不存在的设置项'), isEmpty);
+  });
+
+  testWidgets('search result jumps to the matching setting', (tester) async {
+    await pumpSettings(tester);
+    await tester.tap(find.byTooltip('搜索设置'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('可直接搜索设置名或别名，例如：'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '阈值');
+    await tester.pumpAndSettle();
+    expect(find.text('代码折叠阈值'), findsOneWidget);
+    expect(find.text('阅读与显示 · 代码块'), findsOneWidget);
+
+    await tester.tap(find.text('代码折叠阈值'));
+    await tester.pumpAndSettle();
+    expect(find.text('阅读与显示'), findsOneWidget);
+    expect(find.text('代码折叠阈值'), findsOneWidget);
+    // 目标行在首屏之外，锚点应在进入后把它滚进可视区。
+    final dy = tester.getTopLeft(find.text('代码折叠阈值')).dy;
+    expect(dy, greaterThanOrEqualTo(0));
+    expect(dy, lessThan(600));
   });
 
   testWidgets('settings fit 320 dp at 2.0 text scale in dark mode', (

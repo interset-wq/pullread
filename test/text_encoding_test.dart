@@ -16,7 +16,8 @@ void main() {
   });
 
   test('GBK 中文自动回退解码', () {
-    final bytes = ascii.encode('name=') + const [0xC4, 0xE3, 0xBA, 0xC3]; // "你好" 的 GBK 编码
+    final bytes =
+        ascii.encode('name=') + const [0xC4, 0xE3, 0xBA, 0xC3]; // "你好" 的 GBK 编码
     expect(decodeTextBytes(bytes), 'name=你好');
   });
 
@@ -30,18 +31,73 @@ void main() {
     const text = '第一章 起始';
     final utf8Bytes = utf8.encode(text);
     final gbkBytes = gbk.encode(text);
+    final utf8BomBytes = [0xEF, 0xBB, 0xBF, ...utf8Bytes];
+
+    expect(detectTextEncoding(utf8Bytes), TextFileEncoding.utf8);
+    expect(detectTextEncoding(utf8BomBytes), TextFileEncoding.utf8Bom);
+    expect(detectTextEncoding(gbkBytes), TextFileEncoding.gbk);
 
     expect(isUtf8Bytes(utf8Bytes), isTrue);
-    expect(isUtf8Bytes([0xEF, 0xBB, 0xBF, ...utf8Bytes]), isTrue);
+    expect(isUtf8Bytes(utf8BomBytes), isTrue);
     expect(isUtf8Bytes(gbkBytes), isFalse);
 
     expect(
-      utf8.decode(encodeTextBytes(text, asUtf8: true)),
+      utf8.decode(encodeTextBytes(text, encoding: TextFileEncoding.utf8)),
       text,
     );
     expect(
-      gbk.decode(encodeTextBytes(text, asUtf8: false)),
+      encodeTextBytes(text, encoding: TextFileEncoding.utf8Bom),
+      utf8BomBytes,
+    );
+    expect(
+      gbk.decode(encodeTextBytes(text, encoding: TextFileEncoding.gbk)),
       text,
     );
   });
+
+  test('UTF-16 LE/BE（含 BOM 与 emoji）解码和写回', () {
+    const text = '标题 😀\n正文';
+    final le = utf16Bytes(text, littleEndian: true);
+    final be = utf16Bytes(text, littleEndian: false);
+
+    expect(detectTextEncoding(le), TextFileEncoding.utf16le);
+    expect(detectTextEncoding(be), TextFileEncoding.utf16be);
+    expect(isUtf8Bytes(le), isFalse);
+    expect(decodeTextBytes(le), text);
+    expect(decodeTextBytes(be), text);
+
+    expect(encodeTextBytes(text, encoding: TextFileEncoding.utf16le), le);
+    expect(encodeTextBytes(text, encoding: TextFileEncoding.utf16be), be);
+    expect(
+      decodeTextBytes(
+        encodeTextBytes(text, encoding: TextFileEncoding.utf16le),
+      ),
+      text,
+    );
+  });
+
+  test('UTF-16 末尾残缺字节被忽略', () {
+    final bytes = [
+      ...utf16Bytes('标题', littleEndian: true),
+      0x41, // 多余的单字节
+    ];
+    expect(decodeTextBytes(bytes), '标题');
+  });
+}
+
+/// 带 BOM 的 UTF-16 编码，供测试构造真实文件字节。
+List<int> utf16Bytes(String text, {required bool littleEndian}) {
+  final body = <int>[];
+  for (final unit in text.codeUnits) {
+    if (littleEndian) {
+      body
+        ..add(unit & 0xFF)
+        ..add(unit >> 8);
+    } else {
+      body
+        ..add(unit >> 8)
+        ..add(unit & 0xFF);
+    }
+  }
+  return littleEndian ? [0xFF, 0xFE, ...body] : [0xFE, 0xFF, ...body];
 }

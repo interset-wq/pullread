@@ -157,8 +157,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// 卡顿（与仓库页的后台扫描重复）。缓存缺失才后台扫描并回写缓存。
   Future<void> _loadSiblings() async {
     final rel = widget.note.relativePath.replaceAll('\\', '/');
-    final dirPart =
-        rel.contains('/') ? rel.substring(0, rel.lastIndexOf('/') + 1) : '';
+    final dirPart = rel.contains('/')
+        ? rel.substring(0, rel.lastIndexOf('/') + 1)
+        : '';
     var files = NoteIndexCache.read(widget.repoRoot);
     if (files == null) {
       try {
@@ -169,15 +170,20 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       }
     }
     if (!mounted) return;
-    final siblings = files
-        .where((n) => n.isMarkdown)
-        .where((n) => n.relativePath.replaceAll('\\', '/').startsWith(dirPart))
-        .where((n) => !n.relativePath
-            .replaceAll('\\', '/')
-            .substring(dirPart.length)
-            .contains('/'))
-        .toList()
-      ..sort((a, b) => compareNatural(a.fileName, b.fileName));
+    final siblings =
+        files
+            .where((n) => n.isMarkdown)
+            .where(
+              (n) => n.relativePath.replaceAll('\\', '/').startsWith(dirPart),
+            )
+            .where(
+              (n) => !n.relativePath
+                  .replaceAll('\\', '/')
+                  .substring(dirPart.length)
+                  .contains('/'),
+            )
+            .toList()
+          ..sort((a, b) => compareNatural(a.fileName, b.fileName));
     setState(() {
       _siblings = siblings;
       _siblingIndex = siblings.indexWhere((n) => n.relativePath == rel);
@@ -238,11 +244,13 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     if (!_scrollController.hasClients) return;
     // 顶部细进度条：按滚动比例实时更新
     final maxExtent = _scrollController.position.maxScrollExtent;
-    _progressNotifier.value =
-        maxExtent > 0 ? (_scrollController.offset / maxExtent).clamp(0.0, 1.0) : 0;
+    _progressNotifier.value = maxExtent > 0
+        ? (_scrollController.offset / maxExtent).clamp(0.0, 1.0)
+        : 0;
     // 章节定位节流：避免每次滚动帧都遍历标题
     final now = DateTime.now();
-    if (now.difference(_lastSectionUpdate) >= const Duration(milliseconds: 120)) {
+    if (now.difference(_lastSectionUpdate) >=
+        const Duration(milliseconds: 120)) {
       _lastSectionUpdate = now;
       _updateCurrentSection();
     }
@@ -258,7 +266,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     // 进度覆盖成动画中途的位置（实测 87% 被写成 55%）。
     if (_userScrollActive &&
         max > 0 &&
-        now.difference(_lastProgressSave) >= const Duration(milliseconds: 800)) {
+        now.difference(_lastProgressSave) >=
+            const Duration(milliseconds: 800)) {
       _lastProgressSave = now;
       RepoMeta.saveProgressInfo(
         widget.repoRoot,
@@ -287,7 +296,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// 并给一个「从头读」的撤销入口。
   void _restoreProgress(double saved, int? headingIdx) {
     if (!mounted || !_scrollController.hasClients) return;
-    final hasHeading = headingIdx != null &&
+    final hasHeading =
+        headingIdx != null &&
         headingIdx >= 0 &&
         headingIdx < _headingKeys.length;
     if (hasHeading) {
@@ -347,8 +357,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       _fontIndex = savedFont;
     }
     // 文本可能是 GBK/GB2312 等编码，统一走字节解码（UTF-8 优先，GBK 兜底）
-    var raw =
-        decodeTextBytes(await File(widget.note.absolutePath).readAsBytes());
+    var raw = decodeTextBytes(
+      await File(widget.note.absolutePath).readAsBytes(),
+    );
     _rawSource = raw;
     _rawOutline = _buildRawOutline(raw);
     RepoMeta.touchLastOpened(widget.repoRoot, widget.note.relativePath);
@@ -362,6 +373,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           ? File(widget.repoRoot).parent.path
           : null,
     );
+    final isMdx = widget.note.absolutePath.toLowerCase().endsWith('.mdx');
     var body = raw;
     if (widget.note.absolutePath.toLowerCase().endsWith('.ipynb')) {
       body = IpynbConverter.toMarkdown(raw);
@@ -370,6 +382,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       _title = fm.title;
       _tags = fm.tags;
       body = fm.body;
+      // .mdx 的顶层 import/export 与 MDX 注释不参与阅读排版，
+      // 但原始源码视图（_rawSource）仍保留完整内容。
+      if (isMdx) body = stripMdxModuleSyntax(body);
     }
     body = normalizeHtmlImages(body);
     _bodySource = body;
@@ -409,8 +424,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     _readingMinutes = estimateReadingMinutes(body);
     // 首帧布局完成后恢复位置：不依赖用户先滚一下才触发
     if (_restorePending) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _maybeRestoreProgress());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeRestoreProgress(),
+      );
     }
     // Raw 分支不在 FutureBuilder 里，加载完成时若正停在 raw 需要主动刷新，
     // 否则会一直显示空内容。
@@ -556,32 +572,20 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
               if (!_showRaw)
                 const PopupMenuItem(value: 'font', child: Text('字号')),
               if (!_showRaw) ...[
-                const PopupMenuItem(
-                  value: 'bookmark',
-                  child: Text('在此处加书签'),
-                ),
+                const PopupMenuItem(value: 'bookmark', child: Text('在此处加书签')),
                 PopupMenuItem(
                   value: 'bookmarks',
                   child: Text('书签（${_noteBookmarks.length}）'),
                 ),
               ],
-              const PopupMenuItem(
-                value: 'copy',
-                child: Text('复制全文（Markdown）'),
-              ),
-              const PopupMenuItem(
-                value: 'copyText',
-                child: Text('复制全文（纯文本）'),
-              ),
+              const PopupMenuItem(value: 'copy', child: Text('复制全文（Markdown）')),
+              const PopupMenuItem(value: 'copyText', child: Text('复制全文（纯文本）')),
               // 编辑仅面向本地镜像 md（边界：仓库文件只读）
               if (_isLocalMirrorMd)
                 const PopupMenuItem(value: 'edit', child: Text('编辑')),
               // raw 模式下没有渲染内容，长图/卡片无从生成
               if (!_showRaw) ...[
-                const PopupMenuItem(
-                  value: 'exportImage',
-                  child: Text('导出长图'),
-                ),
+                const PopupMenuItem(value: 'exportImage', child: Text('导出长图')),
                 const PopupMenuItem(value: 'shareCard', child: Text('分享卡片')),
               ],
             ],
@@ -618,16 +622,16 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           FloatingActionButton.small(
             heroTag: 'jump-top',
             tooltip: '回到顶部',
-            onPressed:
-                _showRaw ? _codeController.scrollToTop : _scrollToTop,
+            onPressed: _showRaw ? _codeController.scrollToTop : _scrollToTop,
             child: const Icon(Icons.keyboard_arrow_up),
           ),
           const SizedBox(height: 8),
           FloatingActionButton.small(
             heroTag: 'jump-bottom',
             tooltip: '跳到文末',
-            onPressed:
-                _showRaw ? _codeController.scrollToBottom : _scrollToBottom,
+            onPressed: _showRaw
+                ? _codeController.scrollToBottom
+                : _scrollToBottom,
             child: const Icon(Icons.keyboard_arrow_down),
           ),
         ],
@@ -658,9 +662,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                         );
                       }
                       if (!snapshot.hasData) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
                       final fontSize = _fontSizes[_fontIndex];
                       final isDark = theme.brightness == Brightness.dark;
@@ -722,9 +724,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           .showSnackBar(const SnackBar(content: Text('内容尚未加载完成')));
       return;
     }
-    await Clipboard.setData(
-      ClipboardData(text: markdownToPlainText(raw)),
-    );
+    await Clipboard.setData(ClipboardData(text: markdownToPlainText(raw)));
     if (mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('已复制全文（纯文本）')));
@@ -823,9 +823,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   }) async {
     final outcome = await saveImageBytesToGallery(png, name: name);
     if (outcome == GallerySaveOutcome.saved) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('已保存到相册「PullRead」')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('已保存到相册「PullRead」')));
     } else if (outcome == GallerySaveOutcome.denied) {
       messenger.showSnackBar(
         SnackBar(
@@ -837,12 +835,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
         ),
       );
     }
-    await shareImageBytes(
-      png,
-      name: name,
-      text: _title,
-      extension: '.png',
-    );
+    await shareImageBytes(png, name: name, text: _title, extension: '.png');
   }
 
   /// 分享卡片（分享卡片）：标题 + 首段摘要 + 来源仓库
@@ -864,7 +857,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       final png = await _renderShareCard(
         title: _title ?? widget.note.fileName,
         summary: firstParagraphOfMarkdown(raw),
-        source: RepoMeta.read(widget.repoRoot)?.source ??
+        source:
+            RepoMeta.read(widget.repoRoot)?.source ??
             widget.repoRoot.split(Platform.pathSeparator).last,
         date: _cardDate(DateTime.now()),
         scheme: theme.colorScheme,
@@ -1069,16 +1063,13 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       );
     }
     // 逐级推入从仓库根到目标目录之间的路径（subPath 的每一段）
-    final target =
-        subPath.isEmpty ? const <String>[] : subPath.split('/');
+    final target = subPath.isEmpty ? const <String>[] : subPath.split('/');
     for (var depth = 1; depth <= target.length; depth++) {
       final path = target.sublist(0, depth).join('/');
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => RepoPage(
-            repoDir: Directory(widget.repoRoot),
-            subPath: path,
-          ),
+          builder: (_) =>
+              RepoPage(repoDir: Directory(widget.repoRoot), subPath: path),
         ),
       );
     }
@@ -1088,13 +1079,11 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// 仓库与每一级目录都是独立点击目标，跳到各自的目录页；
   /// 根目录文章（无目录层级）不显示。
   Widget _buildBreadcrumb(ThemeData theme) {
-    final repoName =
-        widget.repoRoot.split(Platform.pathSeparator).last;
-    final dirSegments = widget.note.relativePath
-        .replaceAll('\\', '/')
-        .split('/')
-      ..removeLast()
-      ..removeWhere((s) => s.isEmpty);
+    final repoName = widget.repoRoot.split(Platform.pathSeparator).last;
+    final dirSegments =
+        widget.note.relativePath.replaceAll('\\', '/').split('/')
+          ..removeLast()
+          ..removeWhere((s) => s.isEmpty);
     if (dirSegments.isEmpty) return const SizedBox.shrink();
     final style = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
@@ -1121,8 +1110,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
               borderRadius: BorderRadius.circular(4),
               onTap: () => _openRepoDir(''),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
                 child: Text(
                   repoName,
                   style: style,
@@ -1160,15 +1148,12 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// 文末导航：回到上级目录 / 回到仓库首页，替代纯留白。
   /// 上级目录跳到父目录页，仓库首页跳到仓库根；共用 _openRepoDir。
   Widget _buildEndNav(ThemeData theme) {
-    final repoName =
-        widget.repoRoot.split(Platform.pathSeparator).last;
-    final dirSegments = widget.note.relativePath
-        .replaceAll('\\', '/')
-        .split('/')
-      ..removeLast()
-      ..removeWhere((s) => s.isEmpty);
-    final parentPath =
-        dirSegments.isEmpty ? '' : dirSegments.join('/');
+    final repoName = widget.repoRoot.split(Platform.pathSeparator).last;
+    final dirSegments =
+        widget.note.relativePath.replaceAll('\\', '/').split('/')
+          ..removeLast()
+          ..removeWhere((s) => s.isEmpty);
+    final parentPath = dirSegments.isEmpty ? '' : dirSegments.join('/');
 
     Widget button(IconData icon, String label, VoidCallback onTap) =>
         OutlinedButton(
@@ -1209,11 +1194,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
               () => _openRepoDir(parentPath),
             ),
             const SizedBox(height: 8),
-            button(
-              Icons.home_outlined,
-              repoName,
-              () => _openRepoDir(''),
-            ),
+            button(Icons.home_outlined, repoName, () => _openRepoDir('')),
           ],
         ),
       ),
@@ -1326,8 +1307,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
               height: (6 - depth).toDouble(),
               margin: const EdgeInsets.only(top: 10),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary
-                    .withAlpha(255 - depth * 60),
+                color: theme.colorScheme.primary.withAlpha(255 - depth * 60),
                 shape: BoxShape.circle,
               ),
             );
@@ -1459,17 +1439,15 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
         ),
         SpanNodeGeneratorWithTag(
           tag: 'mathblock',
-          generator: (element, config, visitor) => MathNode(
-            element.textContent,
-            display: true,
-          ),
+          generator: (element, config, visitor) =>
+              MathNode(element.textContent, display: true),
         ),
         SpanNodeGeneratorWithTag(
           tag: 'blockquote',
           generator: (element, config, visitor) => _CardBlockquoteNode(
             visitor,
-            backgroundColor:
-                theme.colorScheme.surfaceContainerHighest.withAlpha(70),
+            backgroundColor: theme.colorScheme.surfaceContainerHighest
+                .withAlpha(70),
             barColor: theme.colorScheme.primary.withAlpha(160),
           ),
         ),
@@ -1540,11 +1518,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// 其中解析只占 0.3s；1 万行常驻内存多出约 260MB）。
   ///
   /// 导出长图时切回整篇一次性布局——RepaintBoundary 只能截到已构建的内容。
-  Widget _renderBody(
-    String content,
-    ThemeData theme,
-    MarkdownConfig config,
-  ) {
+  Widget _renderBody(String content, ThemeData theme, MarkdownConfig config) {
     final body = _buildBodyBlocks(content, theme, config);
     // 文末导航：回到上级目录 / 仓库首页，替代纯留白
     // 文末导航不进长图：放在重绘边界之外，导出图只含正文内容
@@ -1568,80 +1542,86 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
         return false;
       },
       child: GestureDetector(
-      // 手势翻页默认关闭（设置页可开）：横滑易与代码块/表格的横向滚动混淆
-      onHorizontalDragEnd:
-          (AppPrefs.instance?.swipePaging ?? false) ? _openSiblingByDrag : null,
-      child: Scrollbar(
-        key: _viewportKey,
-        controller: _scrollController,
-        thumbVisibility: true,
-        thickness: 4,
-        radius: const Radius.circular(4),
-        child: _eagerForCapture
-            ? SingleChildScrollView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 长图导出边界：垫底页面背景色（避免透明 PNG 在聊天工具里
-                    // 显示异常），整篇内容一次布局在边界内
-                    RepaintBoundary(
-                      key: _bodyCaptureKey,
-                      child: ColoredBox(
-                        color: theme.scaffoldBackgroundColor,
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: margin),
-                          // 大屏行宽限制：平板/横屏/桌面窗口下正文限宽居中
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 860),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: body,
+        // 手势翻页默认关闭（设置页可开）：横滑易与代码块/表格的横向滚动混淆
+        onHorizontalDragEnd: (AppPrefs.instance?.swipePaging ?? false)
+            ? _openSiblingByDrag
+            : null,
+        child: Scrollbar(
+          key: _viewportKey,
+          controller: _scrollController,
+          thumbVisibility: true,
+          thickness: 4,
+          radius: const Radius.circular(4),
+          child: _eagerForCapture
+              ? SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 长图导出边界：垫底页面背景色（避免透明 PNG 在聊天工具里
+                      // 显示异常），整篇内容一次布局在边界内
+                      RepaintBoundary(
+                        key: _bodyCaptureKey,
+                        child: ColoredBox(
+                          color: theme.scaffoldBackgroundColor,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: margin),
+                            // 大屏行宽限制：平板/横屏/桌面窗口下正文限宽居中
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 860,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: body,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    _paddedColumn(tail, margin),
-                  ],
-                ),
-              )
-            : CustomScrollView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverPadding(
-                    padding: EdgeInsets.symmetric(horizontal: margin),
-                    sliver: SliverList.builder(
-                      itemCount: body.length + tail.length,
-                      itemBuilder: (context, i) {
-                        final child =
-                            i < body.length ? body[i] : tail[i - body.length];
-                        // 每个条目都登记槽位：scroll_to_index 靠连续索引
-                        // 估算未构建条目的位置，只给标题挂锚点会算错
-                        return AutoScrollTag(
-                          key: ValueKey('slot-$i'),
-                          index: i,
-                          controller: _scrollController,
-                          child: Align(
-                            alignment: Alignment.topCenter,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 860),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: child,
+                      _paddedColumn(tail, margin),
+                    ],
+                  ),
+                )
+              : CustomScrollView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverPadding(
+                      padding: EdgeInsets.symmetric(horizontal: margin),
+                      sliver: SliverList.builder(
+                        itemCount: body.length + tail.length,
+                        itemBuilder: (context, i) {
+                          final child = i < body.length
+                              ? body[i]
+                              : tail[i - body.length];
+                          // 每个条目都登记槽位：scroll_to_index 靠连续索引
+                          // 估算未构建条目的位置，只给标题挂锚点会算错
+                          return AutoScrollTag(
+                            key: ValueKey('slot-$i'),
+                            index: i,
+                            controller: _scrollController,
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 860,
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: child,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
         ),
       ),
     );
@@ -1649,17 +1629,17 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
 
   /// 文末导航的限宽包装（与正文同宽同边距）。
   Widget _paddedColumn(List<Widget> children, double margin) => Padding(
-        padding: EdgeInsets.symmetric(horizontal: margin),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 860),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
-          ),
+    padding: EdgeInsets.symmetric(horizontal: margin),
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 860),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
         ),
-      );
+      ),
+    ),
+  );
 
   /// 同目录内切换文章：替换当前路由，保持返回栈不变。
   void _openSibling(NoteFile note) {
@@ -1739,12 +1719,12 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   }
 
   IconData _alertIcon(GfmAlertType type) => switch (type) {
-        GfmAlertType.note => Icons.info_outline,
-        GfmAlertType.tip => Icons.lightbulb_outline,
-        GfmAlertType.important => Icons.priority_high_outlined,
-        GfmAlertType.warning => Icons.warning_amber_outlined,
-        GfmAlertType.caution => Icons.dangerous_outlined,
-      };
+    GfmAlertType.note => Icons.info_outline,
+    GfmAlertType.tip => Icons.lightbulb_outline,
+    GfmAlertType.important => Icons.priority_high_outlined,
+    GfmAlertType.warning => Icons.warning_amber_outlined,
+    GfmAlertType.caution => Icons.dangerous_outlined,
+  };
 
   /// 代码块配置：flutter_highlight 语法高亮（跟随主题），右上角一键复制。
   PreConfig _preConfig(ThemeData theme, bool isDark) {
@@ -1829,15 +1809,14 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           return;
         }
       }
-      final sub =
-          target.substring(widget.repoRoot.length + 1).replaceAll('\\', '/');
+      final sub = target
+          .substring(widget.repoRoot.length + 1)
+          .replaceAll('\\', '/');
       Navigator.push(
         context,
         MaterialPageRoute<void>(
-          builder: (_) => RepoPage(
-            repoDir: Directory(widget.repoRoot),
-            subPath: sub,
-          ),
+          builder: (_) =>
+              RepoPage(repoDir: Directory(widget.repoRoot), subPath: sub),
         ),
       );
       return;
@@ -1851,8 +1830,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// `note/`、`./note` 相对当前笔记目录；`/note` 相对仓库根；
   /// 支持 `../` 回退与尾部 `/`（目录）。
   String? _resolveLocalPath(String link) {
-    final base =
-        link.startsWith('/') ? widget.repoRoot : _noteDir;
+    final base = link.startsWith('/') ? widget.repoRoot : _noteDir;
     final parts = base.split(Platform.pathSeparator).toList();
     for (final seg in link.split('/')) {
       if (seg.isEmpty || seg == '.') continue;
@@ -1909,20 +1887,17 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     if (slot == null) return;
     unawaited(
       _scrollController
-          .scrollToIndex(
-        slot,
-        preferPosition: AutoScrollPosition.begin,
-      )
+          .scrollToIndex(slot, preferPosition: AutoScrollPosition.begin)
           .then((_) {
-        if (!mounted) return;
-        final built = _headingKeys[index].currentContext;
-        if (built == null || !built.mounted) return;
-        Scrollable.ensureVisible(
-          built,
-          duration: Duration.zero,
-          alignment: 0,
-        );
-      }),
+            if (!mounted) return;
+            final built = _headingKeys[index].currentContext;
+            if (built == null || !built.mounted) return;
+            Scrollable.ensureVisible(
+              built,
+              duration: Duration.zero,
+              alignment: 0,
+            );
+          }),
     );
   }
 
@@ -1930,9 +1905,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
 
   /// 本文的书签（按创建时间倒序，来自 [_bookmarks]）。
   List<Bookmark> get _noteBookmarks => [
-        for (final b in _bookmarks)
-          if (b.relativePath == widget.note.relativePath) b,
-      ];
+    for (final b in _bookmarks)
+      if (b.relativePath == widget.note.relativePath) b,
+  ];
 
   /// 在当前阅读位置加一条书签：标题取所在章节（无标题用文件名），
   /// 位置存全篇滚动比例。
@@ -1962,10 +1937,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           content: Text('已加书签：${bookmark.title}'),
           duration: const Duration(seconds: 2),
           persist: false,
-          action: SnackBarAction(
-            label: '查看',
-            onPressed: _showBookmarksSheet,
-          ),
+          action: SnackBarAction(label: '查看', onPressed: _showBookmarksSheet),
         ),
       );
   }
@@ -2088,7 +2060,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   void _onFindChanged(String value) {
     final q = value.trim();
     final source = _bodySource ?? '';
-    final matches = q.isEmpty ? const <TextMatch>[] : findTextMatches(source, q);
+    final matches = q.isEmpty
+        ? const <TextMatch>[]
+        : findTextMatches(source, q);
     setState(() {
       _findQuery = q;
       _findMatches = matches;
@@ -2141,8 +2115,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     final label = _findQuery.isEmpty
         ? ''
         : hasMatches
-            ? '${_findIndex + 1}/${_findMatches.length}'
-            : '无匹配';
+        ? '${_findIndex + 1}/${_findMatches.length}'
+        : '无匹配';
     final current = _findIndex >= 0 && _findIndex < _findMatches.length
         ? _findMatches[_findIndex].lineText
         : '';
@@ -2210,10 +2184,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   void _showTocSheet() {
     if (_toc.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('本文没有标题'),
-          duration: Duration(seconds: 1),
-        ),
+        const SnackBar(content: Text('本文没有标题'), duration: Duration(seconds: 1)),
       );
       return;
     }
@@ -2232,17 +2203,17 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                 return ListTile(
                   dense: true,
                   selected: isCurrent,
-                  selectedTileColor:
-                      theme.colorScheme.primary.withAlpha(isCurrent ? 24 : 0),
+                  selectedTileColor: theme.colorScheme.primary.withAlpha(
+                    isCurrent ? 24 : 0,
+                  ),
                   contentPadding: EdgeInsets.only(left: 16.0 * entry.level),
                   title: Text(
                     entry.text,
                     style: TextStyle(
                       fontSize: 15 - (entry.level - 2) * 0.5,
-                      fontWeight:
-                          entry.level <= 2 || isCurrent
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                      fontWeight: entry.level <= 2 || isCurrent
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                       color: isCurrent ? theme.colorScheme.primary : null,
                     ),
                     maxLines: 1,
@@ -2268,10 +2239,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('字号'),
-            ),
+            const Padding(padding: EdgeInsets.all(16), child: Text('字号')),
             RadioGroup<int>(
               groupValue: _fontIndex,
               onChanged: (v) {
@@ -2320,13 +2288,15 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     // 按屏宽限制解码尺寸：截图/照片按原图解码动辄几十 MB，长文多图时
     // 会明显抖动甚至 OOM；图库仍按原图（可放大看细节）
     final rawWidth =
-        (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context))
+        (MediaQuery.sizeOf(context).width *
+                MediaQuery.devicePixelRatioOf(context))
             .round();
-    final decodeWidth = rawWidth < 320 ? 320 : (rawWidth > 2048 ? 2048 : rawWidth);
+    final decodeWidth = rawWidth < 320
+        ? 320
+        : (rawWidth > 2048 ? 2048 : rawWidth);
     return GestureDetector(
       onTap: () => _openGallery(index < 0 ? 0 : index),
-      onLongPress: () =>
-          showImageActions(context, src: src, baseDir: _noteDir),
+      onLongPress: () => showImageActions(context, src: src, baseDir: _noteDir),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: ClipRRect(
@@ -2435,9 +2405,7 @@ class _CardBlockquoteNode extends ElementNode {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border(
-            left: BorderSide(color: barColor, width: 3),
-          ),
+          border: Border(left: BorderSide(color: barColor, width: 3)),
         ),
         child: ProxyRichText(
           childrenSpan,
@@ -2574,17 +2542,12 @@ class _CodeBlockView extends StatefulWidget {
 class _CodeBlockViewState extends State<_CodeBlockView> {
   bool _expanded = false;
 
-  TextStyle get _codeStyle => currentCodeFontStyle().copyWith(
-        fontSize: 13,
-        height: 1.5,
-      );
+  TextStyle get _codeStyle =>
+      currentCodeFontStyle().copyWith(fontSize: 13, height: 1.5);
 
   // highlight 包无 TSX/JSX 语法（未知语言静默回退纯文本），
   // 解析时映射到最近似语法；标签仍显示原语言名
-  static const _langAlias = {
-    'tsx': 'typescript',
-    'jsx': 'javascript',
-  };
+  static const _langAlias = {'tsx': 'typescript', 'jsx': 'javascript'};
 
   @override
   Widget build(BuildContext context) {
@@ -2598,7 +2561,12 @@ class _CodeBlockViewState extends State<_CodeBlockView> {
             widget.code,
             language: parseLang,
             theme: widget.theme,
-            padding: const EdgeInsets.only(top: 28, left: 12, right: 12, bottom: 4),
+            padding: const EdgeInsets.only(
+              top: 28,
+              left: 12,
+              right: 12,
+              bottom: 4,
+            ),
             textStyle: _codeStyle,
           );
         }
@@ -2609,112 +2577,112 @@ class _CodeBlockViewState extends State<_CodeBlockView> {
         // 代码区背景 = 高亮主题 root 背景（github #f8f8f8 / atomOneDark #282c34）。
         // 行号列必须用同一颜色：页面 surface 色与之不同，会在左侧形成竖条，
         // 和右上语言标签行拼成"7"形色差
-        final codeBg = widget.theme['root']?.backgroundColor ??
-            theme.colorScheme.surface;
+        final codeBg =
+            widget.theme['root']?.backgroundColor ?? theme.colorScheme.surface;
         // 强制展开信号（导出长图）与用户点按共用一次重建；折叠判定放
         // 监听内部，信号翻转即重建出展开后的完整内容
         return ValueListenableBuilder<bool>(
           valueListenable: widget.forceExpand,
           builder: (context, forceExpand, _) {
-          final expanded = _expanded || forceExpand;
-          final folded = foldable && !expanded;
-          final visibleCode = folded
-              ? lines.take(widget.foldThreshold).join('\n')
-              : widget.code;
-          final gutterLines = folded ? widget.foldThreshold : total;
-          return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Stack(
+            final expanded = _expanded || forceExpand;
+            final folded = foldable && !expanded;
+            final visibleCode = folded
+                ? lines.take(widget.foldThreshold).join('\n')
+                : widget.code;
+            final gutterLines = folded ? widget.foldThreshold : total;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 横滚区只放 HighlightView：无界宽度下收缩安全
-                HScrollbar(
-                  bottomPadding: 6,
-                  child: HighlightView(
-                    visibleCode,
-                    language: parseLang,
-                    theme: widget.theme,
-                    padding: EdgeInsets.only(
-                      top: 28,
-                      left: widget.lineNumbers ? 52 : 12,
-                      right: 12,
-                      bottom: 4,
+                Stack(
+                  children: [
+                    // 横滚区只放 HighlightView：无界宽度下收缩安全
+                    HScrollbar(
+                      bottomPadding: 6,
+                      child: HighlightView(
+                        visibleCode,
+                        language: parseLang,
+                        theme: widget.theme,
+                        padding: EdgeInsets.only(
+                          top: 28,
+                          left: widget.lineNumbers ? 52 : 12,
+                          right: 12,
+                          bottom: 4,
+                        ),
+                        textStyle: _codeStyle,
+                      ),
                     ),
-                    textStyle: _codeStyle,
-                  ),
-                ),
-                // 语言标签：固定不随代码横滚
-                Positioned(
-                  top: 4,
-                  left: 12,
-                  child: Text(
-                    label,
-                    style: currentCodeFontStyle().copyWith(
-                      fontSize: 11,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                // 行号列：固定不随代码横滚，与代码行同字号同行高对齐
-                if (widget.lineNumbers)
-                  Positioned(
-                    top: 28,
-                    left: 0,
-                    width: 44,
-                    bottom: 4,
-                    child: Container(
-                      alignment: Alignment.topRight,
-                      padding: const EdgeInsets.only(right: 8),
-                      // 不透明底色且与代码区同色：横滚时代码会滚到行号列
-                      // 下方，透明或异色 gutter 会让代码透出、并形成"7"形色差
-                      color: codeBg,
-                      // 滚动容器裁剪：吸收缩放语境下与代码行的取整差，
-                      // 否则 Column 比外层高 1px 就报 overflow
-                      child: SingleChildScrollView(
-                        physics: const NeverScrollableScrollPhysics(),
-                        child: _LineNumberColumn(
-                          lineCount: gutterLines,
-                          color:
-                              theme.colorScheme.onSurfaceVariant.withAlpha(110),
+                    // 语言标签：固定不随代码横滚
+                    Positioned(
+                      top: 4,
+                      left: 12,
+                      child: Text(
+                        label,
+                        style: currentCodeFontStyle().copyWith(
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
-                  ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: CopyButton(code: widget.code),
+                    // 行号列：固定不随代码横滚，与代码行同字号同行高对齐
+                    if (widget.lineNumbers)
+                      Positioned(
+                        top: 28,
+                        left: 0,
+                        width: 44,
+                        bottom: 4,
+                        child: Container(
+                          alignment: Alignment.topRight,
+                          padding: const EdgeInsets.only(right: 8),
+                          // 不透明底色且与代码区同色：横滚时代码会滚到行号列
+                          // 下方，透明或异色 gutter 会让代码透出、并形成"7"形色差
+                          color: codeBg,
+                          // 滚动容器裁剪：吸收缩放语境下与代码行的取整差，
+                          // 否则 Column 比外层高 1px 就报 overflow
+                          child: SingleChildScrollView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: _LineNumberColumn(
+                              lineCount: gutterLines,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withAlpha(110),
+                            ),
+                          ),
+                        ),
+                      ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: CopyButton(code: widget.code),
+                    ),
+                  ],
                 ),
+                if (foldable)
+                  InkWell(
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            expanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            expanded ? '收起' : '展开全部 $total 行',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
-            ),
-            if (foldable)
-              InkWell(
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        expanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        expanded ? '收起' : '展开全部 $total 行',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-          );
+            );
           },
         );
       },
@@ -2751,10 +2719,7 @@ class _LineNumberColumn extends StatelessWidget {
 /// 缩放到屏宽；点按进全屏 MermaidView（pan/zoom/复位），长按导出图片。
 /// 解析失败由 errorBuilder 回退为高亮源码（最坏情况 = 原代码块展示）。
 class _MermaidBlockView extends StatefulWidget {
-  const _MermaidBlockView({
-    required this.code,
-    required this.highlightTheme,
-  });
+  const _MermaidBlockView({required this.code, required this.highlightTheme});
 
   final String code;
   final Map<String, TextStyle> highlightTheme;
@@ -2770,11 +2735,19 @@ class _MermaidBlockViewState extends State<_MermaidBlockView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mermaidTheme = MaterialMermaidTheme.fromTheme(theme);
-    final codeStyle = currentCodeFontStyle().copyWith(fontSize: 13, height: 1.5);
+    final codeStyle = currentCodeFontStyle().copyWith(
+      fontSize: 13,
+      height: 1.5,
+    );
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 24, left: 12, right: 12, bottom: 8),
+          padding: const EdgeInsets.only(
+            top: 24,
+            left: 12,
+            right: 12,
+            bottom: 8,
+          ),
           // 正文是 SingleChildScrollView（非懒加载），滚动帧会重记录整页
           // 绘制命令；图表是几百条 Path/Text 的手绘场景，不加边界缓存时
           // 每个滚动帧都重跑 paint，明显卡顿。RepaintBoundary 让引擎把
@@ -2834,11 +2807,7 @@ class _MermaidBlockViewState extends State<_MermaidBlockView> {
             ),
           ),
         ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: CopyButton(code: widget.code),
-        ),
+        Positioned(top: 0, right: 0, child: CopyButton(code: widget.code)),
       ],
     );
   }
@@ -2876,9 +2845,7 @@ Future<void> _showMermaidExport(
 
   final bytes = await captureRepaintBoundaryPng(captureKey);
   if (bytes == null) {
-    messenger?.showSnackBar(
-      const SnackBar(content: Text('图表导出失败，请稍后重试')),
-    );
+    messenger?.showSnackBar(const SnackBar(content: Text('图表导出失败，请稍后重试')));
     return;
   }
   final name = 'mermaid-${DateTime.now().millisecondsSinceEpoch}';
@@ -2995,15 +2962,20 @@ class _PerTableNode extends ElementNode {
     }
     final table = Table(
       columnWidths: _mdConfig.table.columnWidths,
-      defaultColumnWidth:
-          wraps() ? const FlexColumnWidth(1) : const IntrinsicColumnWidth(),
+      defaultColumnWidth: wraps()
+          ? const FlexColumnWidth(1)
+          : const IntrinsicColumnWidth(),
       textBaseline: _mdConfig.table.textBaseline,
-      border: _mdConfig.table.border ??
+      border:
+          _mdConfig.table.border ??
           TableBorder.all(
-              color: parentStyle?.color ??
-                  _mdConfig.p.textStyle.color ??
-                  Colors.grey),
-      defaultVerticalAlignment: _mdConfig.table.defaultVerticalAlignment ??
+            color:
+                parentStyle?.color ??
+                _mdConfig.p.textStyle.color ??
+                Colors.grey,
+          ),
+      defaultVerticalAlignment:
+          _mdConfig.table.defaultVerticalAlignment ??
           TableCellVerticalAlignment.middle,
       children: rows,
     );
@@ -3042,17 +3014,10 @@ class _MarkdownTableHost extends StatelessWidget {
         ? LayoutBuilder(
             builder: (context, constraints) => HScrollbar(
               bottomPadding: 6,
-              child: SizedBox(
-                width: constraints.maxWidth * 2,
-                child: child,
-              ),
+              child: SizedBox(width: constraints.maxWidth * 2, child: child),
             ),
           )
-        : HScrollbar(
-            bottomPadding: 6,
-            onOverflow: onOverflow,
-            child: child,
-          );
+        : HScrollbar(bottomPadding: 6, onOverflow: onOverflow, child: child);
     return Stack(
       children: [
         core,
@@ -3094,8 +3059,8 @@ class _DetailsNode extends ElementNode {
   final ValueListenable<bool> forceExpand;
 
   /// summary 按 HTML 规范必须是第一个子元素。
-  bool get _hasSummary => _element.children
-          ?.any((c) => c is m.Element && c.tag == 'summary') ??
+  bool get _hasSummary =>
+      _element.children?.any((c) => c is m.Element && c.tag == 'summary') ??
       false;
 
   String get _summaryText {
@@ -3110,8 +3075,7 @@ class _DetailsNode extends ElementNode {
   @override
   InlineSpan build() {
     // 子节点顺序与元素子元素一致：有 summary 时跳过首节点（已渲染进标题）
-    final content =
-        _hasSummary ? children.skip(1).toList() : List.of(children);
+    final content = _hasSummary ? children.skip(1).toList() : List.of(children);
     return WidgetSpan(
       child: _DetailsBlockHost(
         key: ValueKey('details-$index'),
@@ -3188,8 +3152,7 @@ class _DetailsBlockHostState extends State<_DetailsBlockHost> {
             onTap: () => setState(() => _expanded = !_expanded),
             borderRadius: BorderRadius.circular(6),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
                   Icon(
