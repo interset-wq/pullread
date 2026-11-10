@@ -129,9 +129,7 @@ class _RepoSettingsPageState extends State<RepoSettingsPage> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
                   children: [
-                    const SettingsIconTile(
-                      icon: Icons.person_outline,
-                    ),
+                    const SettingsIconTile(icon: Icons.person_outline),
                     const SizedBox(width: 14),
                     Flexible(
                       child: Text(
@@ -145,7 +143,8 @@ class _RepoSettingsPageState extends State<RepoSettingsPage> {
                     ),
                     SettingsHelpButton(
                       title: '默认用户名',
-                      message: '留空则只能粘贴完整仓库 URL；'
+                      message:
+                          '留空则只能粘贴完整仓库 URL；'
                           '短输入（owner/repo）会自动拼上用户名。',
                     ),
                   ],
@@ -156,44 +155,44 @@ class _RepoSettingsPageState extends State<RepoSettingsPage> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                   child: TextField(
-                  controller: _ownerController,
-                  focusNode: _ownerFocus,
-                  textInputAction: TextInputAction.done,
-                  decoration: settingsInputDecoration(
-                    context,
-                    hint: '例如 interset-wq',
-                    suffix: Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: TextButton(
-                        onPressed: _ownerDirty ? _saveOwner : null,
-                        style: TextButton.styleFrom(
-                          backgroundColor: _ownerDirty
-                              ? const Color(0xFF1F6F54)
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withAlpha(20),
-                          foregroundColor: _ownerDirty
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          minimumSize: const Size(0, 32),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9),
+                    controller: _ownerController,
+                    focusNode: _ownerFocus,
+                    textInputAction: TextInputAction.done,
+                    decoration: settingsInputDecoration(
+                      context,
+                      hint: '例如 interset-wq',
+                      suffix: Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: TextButton(
+                          onPressed: _ownerDirty ? _saveOwner : null,
+                          style: TextButton.styleFrom(
+                            backgroundColor: _ownerDirty
+                                ? const Color(0xFF1F6F54)
+                                : Theme.of(context).colorScheme.onSurface
+                                      .withAlpha(20),
+                            foregroundColor: _ownerDirty
+                                ? Colors.white
+                                : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            minimumSize: const Size(0, 32),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9),
+                            ),
                           ),
+                          child: const Text('保存'),
                         ),
-                        child: const Text('保存'),
                       ),
                     ),
+                    onSubmitted: (_) {
+                      _saveOwner();
+                      _ownerFocus.unfocus();
+                    },
+                    onTapOutside: (_) => _ownerFocus.unfocus(),
                   ),
-                  onSubmitted: (_) {
-                    _saveOwner();
-                    _ownerFocus.unfocus();
-                  },
-                  onTapOutside: (_) => _ownerFocus.unfocus(),
                 ),
               ),
-            ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 7, 18, 0),
                 child: Text(
@@ -236,6 +235,7 @@ class _RepoSettingsPageState extends State<RepoSettingsPage> {
             title: '同步与浏览',
             children: [
               SettingsSwitchTile(
+                anchor: 'silentPull',
                 icon: Icons.sync_outlined,
                 title: '自动拉取同步',
                 subtitle: '启动时后台更新所有仓库',
@@ -244,6 +244,7 @@ class _RepoSettingsPageState extends State<RepoSettingsPage> {
                 help: '开启后应用启动时会在后台静默 pull 所有仓库；默认关闭，可随时下拉刷新或点仓库页刷新按钮手动同步。',
               ),
               SettingsSwitchTile(
+                anchor: 'treeMode',
                 icon: Icons.account_tree_outlined,
                 title: '目录树模式',
                 subtitle: '目录就地展开，不进入下一级',
