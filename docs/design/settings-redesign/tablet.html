@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECEAE2;font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;gap:40px;padding:60px 48px;align-items:flex-start}
+.frame{background:#FBFAF6;border-radius:24px;overflow:hidden;position:relative;flex:none;
+  box-shadow:0 12px 40px rgba(30,40,30,.14)}
+.tag{position:absolute;top:-36px;left:8px;font-size:18px;font-weight:700;color:#3E5C4F}
+.tag small{font-weight:400;color:#8A887E;margin-left:10px;font-size:14px}
+.bar{display:flex;align-items:center;gap:12px;padding:16px 20px 12px}
+.bar .bt{width:22px;height:22px;flex:none}
+.bar .ttl{font-size:19px;font-weight:700;color:#26241E;flex:1;min-width:0}
+.bar .act{font-size:14px;color:#1F6F54;font-weight:600;white-space:nowrap}
+.col{max-width:640px;margin:0 auto}
+/* 横屏：iPad 式左类别 + 右内容 */
+.land{width:1020px;height:760px}
+.land .body{display:flex;height:100%;overflow:hidden}
+.cats{width:340px;flex:none;border-right:1px solid #EFEDE5;background:#F4F2EB;overflow:hidden}
+.cats .ch{font-size:18px;font-weight:700;color:#26241E;padding:18px 20px 10px}
+.cat{display:flex;align-items:center;gap:13px;margin:4px 10px;padding:11px 12px;border-radius:12px}
+.cat.on{background:#1F6F54}
+.cat.on .n1,.cat.on .n2{color:#fff}
+.cat.on .n2{opacity:.75}
+.ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.ic.a{background:#EDF5F0;color:#1F6F54}
+.ic.b{background:#F1EFE7;color:#5A5850}
+.ic.c{background:#FDF6E7;color:#B0762A}
+.cat.on .ic{background:rgba(255,255,255,.16);color:#fff}
+.cat.on .ic svg{stroke:#fff}
+.nm{flex:1;min-width:0}
+.n1{font-size:15px;font-weight:600;color:#26241E}
+.n2{font-size:12.5px;color:#A5A296;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pane{flex:1;min-width:0;overflow:hidden;background:#FBFAF6}
+.ph{display:flex;align-items:center;gap:12px;padding:18px 24px 8px}
+.ph .t{font-size:18px;font-weight:700;color:#26241E;flex:1}
+.ph .act{font-size:13.5px;color:#1F6F54;font-weight:600}
+.gh{font-size:12.5px;font-weight:700;color:#8A887E;letter-spacing:.06em;padding:16px 24px 6px}
+.srow{display:flex;align-items:center;gap:15px;padding:12px 24px 0}
+.srow .n1{font-size:15.5px;font-weight:500;color:#26241E}
+.srow .n2{font-size:13px;color:#A5A296;margin-top:2px}
+.val2{font-size:14.5px;color:#1F6F54;font-weight:700;flex:none}
+.sld{padding:0 28px 14px 82px}
+.track{height:26px;display:flex;align-items:center}
+.rail{position:relative;width:100%;height:4px;border-radius:2px;background:linear-gradient(to right,#1F6F54 42%,#D9D6CB 42%)}
+.thumb{position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;
+  background:#1F6F54;box-shadow:0 1px 4px rgba(30,40,30,.25)}
+.trow{display:flex;align-items:center;gap:15px;padding:12px 24px}
+.sw{width:52px;height:31px;border-radius:16px;flex:none;position:relative}
+.sw.off{background:#D9D6CB}
+.sw.on{background:#1F6F54}
+.sw i{position:absolute;top:3px;width:25px;height:25px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(30,40,30,.25)}
+.sw.off i{left:3px}
+.sw.on i{right:3px}
+.hair{height:1px;background:#F2F0E8;margin:0 24px}
+/* 竖屏 */
+.port{width:640px;height:940px}
+.ent{display:flex;align-items:center;gap:15px;padding:14px 20px}
+.ic.p{background:#EDF5F0;color:#1F6F54}
+.ic.p2{background:#F1EFE7;color:#5A5850}
+.ic.p3{background:#FDF6E7;color:#B0762A}
+.n1{font-size:16px;font-weight:600;color:#26241E}
+.n2{font-size:13px;color:#A5A296;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.val{font-size:13.5px;color:#8A887E;flex:none;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{flex:none;color:#B8B5AA}
+.ent .hair,.hair2{height:1px;background:#F2F0E8;margin:0 20px}
+.slogan{position:absolute;bottom:26px;left:0;right:0;text-align:center;font-size:12.5px;color:#B0ADA2}
+</style></head><body>
+
+<!-- 平板横屏：iPad 式双栏（左类别 + 右内容） -->
+<div class="frame land"><div class="tag">设置 · 平板横屏<small>iPad 式双栏 · 左类别右内容</small></div>
+<div class="body">
+  <div class="cats">
+    <div class="ch">设置</div>
+    <div class="cat"><div class="ic a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M12 5c-2-1.4-4.5-2-7-2v16c2.5 0 5 .6 7 2 2-1.4 4.5-2 7-2V3c-2.5 0-5 .6-7 2z"/><path d="M12 5v16"/></svg></div>
+      <div class="nm"><div class="n1">阅读与显示</div><div class="n2">行距、边距与代码块</div></div></div>
+    <div class="cat on"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M12 5c-2-1.4-4.5-2-7-2v16c2.5 0 5 .6 7 2 2-1.4 4.5-2 7-2V3c-2.5 0-5 .6-7 2z"/><path d="M12 5v16"/></svg></div>
+      <div class="nm"><div class="n1">外观与图标</div><div class="n2">主题与桌面图标</div></div></div>
+    <div class="cat"><div class="ic c"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0762A" stroke-width="1.8"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M6 8.5v7M18 5.5A13 13 0 008.5 8M18 18.5A13 13 0 018.5 16"/></svg></div>
+      <div class="nm"><div class="n1">仓库与同步</div><div class="n2">平台、用户名与同步</div></div></div>
+    <div class="cat"><div class="ic b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><path d="M3 3l18 18M10.6 5.1A9.8 9.8 0 0121 12a16.4 16.4 0 01-3.2 3.6M6.6 6.6A16 16 0 003 12a9.8 9.8 0 0013.4 6.9"/></svg></div>
+      <div class="nm"><div class="n1">文件显示</div><div class="n2">隐藏默认项与自定义规则</div></div></div>
+    <div class="cat"><div class="ic a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+      <div class="nm"><div class="n1">存储与数据</div><div class="n2">占用、待写回、历史与收藏</div></div></div>
+    <div class="cat"><div class="ic b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.1"/></svg></div>
+      <div class="nm"><div class="n1">关于 PullRead</div><div class="n2">版本、许可证与项目主页</div></div></div>
+  </div>
+  <div class="pane">
+    <div class="ph"><span class="t">外观与图标</span><span class="act">恢复默认</span></div>
+    <div class="gh">主题</div>
+    <div class="trow"><div class="ic a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div>
+      <div class="nm"><div class="n1">外观</div><div class="n2">浅色 / 深色 / 跟随系统</div></div>
+      <span class="val2" style="color:#8A887E;font-weight:600;font-size:13.5px">跟随系统</span></div>
+    <div class="hair"></div>
+    <div class="trow"><div class="ic a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9.5 9.5h5v5h-5z"/></svg></div>
+      <div class="nm"><div class="n1">桌面图标</div><div class="n2">五款可选，重启生效</div></div>
+      <span class="val2" style="color:#8A887E;font-weight:600;font-size:13.5px">默认</span></div>
+    <div class="gh">阅读排版预览</div>
+    <div class="srow"><div class="nm"><div class="n1">正文行距</div><div class="n2">行高倍数</div></div><span class="val2">1.75</span></div>
+    <div class="sld"><div class="track"><div class="rail"><div class="thumb"></div></div></div></div>
+    <div class="hair"></div>
+    <div class="trow"><div class="ic a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16M9 10v9"/></svg></div>
+      <div class="nm"><div class="n1">表格不换行</div><div class="n2">超宽表格横向滚动</div></div>
+      <div class="sw on"><i></i></div></div>
+  </div>
+</div></div>
+
+<!-- 平板竖屏：同手机结构居中限宽 -->
+<div class="frame port"><div class="tag">设置 · 平板竖屏<small>同手机结构 · 居中限宽</small></div>
+  <div class="col">
+    <div class="bar">
+      <svg class="bt" viewBox="0 0 24 24" fill="none" stroke="#4A4840" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+      <div class="ttl">设置</div>
+    </div>
+    <div class="ent"><div class="ic p"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M12 5c-2-1.4-4.5-2-7-2v16c2.5 0 5 .6 7 2 2-1.4 4.5-2 7-2V3c-2.5 0-5 .6-7 2z"/><path d="M12 5v16"/></svg></div>
+      <div class="nm"><div class="n1">阅读与显示</div><div class="n2">行距、边距与代码块</div></div>
+      <span class="val">1.75 / 16 dp</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="ent"><div class="ic p"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18c1.5 0 2-1 1.4-2.2-.7-1.4.2-2.8 1.8-2.8H17a4 4 0 004-4c0-5-4-9-9-9z"/></svg></div>
+      <div class="nm"><div class="n1">外观与图标</div><div class="n2">主题与桌面图标</div></div>
+      <span class="val">跟随系统</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="ent"><div class="ic p3"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#B0762A" stroke-width="1.8"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M6 8.5v7M18 5.5A13 13 0 008.5 8M18 18.5A13 13 0 018.5 16"/></svg></div>
+      <div class="nm"><div class="n1">仓库与同步</div><div class="n2">平台、用户名与同步</div></div>
+      <span class="val">AtomGit</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="ent"><div class="ic p2"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><path d="M3 3l18 18M10.6 5.1A9.8 9.8 0 0121 12a16.4 16.4 0 01-3.2 3.6M6.6 6.6A16 16 0 003 12a9.8 9.8 0 0013.4 6.9"/></svg></div>
+      <div class="nm"><div class="n1">文件显示</div><div class="n2">隐藏默认项与自定义规则</div></div>
+      <span class="val">0 条规则</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="ent"><div class="ic p"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+      <div class="nm"><div class="n1">存储与数据</div><div class="n2">占用、待写回、历史与收藏</div></div>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="ent"><div class="ic p2"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5A5850" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.1"/></svg></div>
+      <div class="nm"><div class="n1">关于 PullRead</div><div class="n2">版本、许可证与项目主页</div></div>
+      <span class="val">v1.12.0</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B5AA" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></div>
+  </div>
+  <div class="slogan">PullRead · 克隆一次，常读常新</div>
+</div>
+</body></html>
