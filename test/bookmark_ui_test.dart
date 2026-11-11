@@ -62,10 +62,10 @@ void main() {
     expect(saved.single.relativePath, 'long.md');
     expect(find.textContaining('已加书签'), findsOneWidget);
 
-    // 再开菜单：条目数已更新，打开书签面板
+    // 再开菜单：条目数已更新（书签列表行右侧计数），打开书签面板
     await tester.tap(find.byTooltip('更多'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('书签（1）'));
+    await tester.tap(find.text('书签列表'));
     await tester.pumpAndSettle();
     expect(find.textContaining('% ·'), findsOneWidget);
 

@@ -245,6 +245,108 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     if (mounted) setState(() {});
   }
 
+  /// 按窗口宽度包正文列（规范 2.3）：>=1000dp 左侧 TOC 常驻侧栏双栏；
+  /// 600–1000dp 竖屏居中限宽阅读带；手机原样。
+  Widget _wrapBody(
+    ThemeData theme,
+    bool wideLayout,
+    bool tabletPortrait,
+    Widget content,
+  ) {
+    if (wideLayout) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTocSidebar(theme),
+          const VerticalDivider(width: 1),
+          Expanded(child: content),
+        ],
+      );
+    }
+    if (tabletPortrait) {
+      // 居中限宽阅读带（约 560dp 内容带，行长可控）
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: content,
+        ),
+      );
+    }
+    return content;
+  }
+
+  /// 平板横屏 TOC 常驻侧栏（约 260dp）：当前节松绿高亮 + 右缘 3px 指示条。
+  Widget _buildTocSidebar(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    return Container(
+      width: 260,
+      color: theme.scaffoldBackgroundColor,
+      child: _toc.isEmpty
+          ? Center(
+              child: Text(
+                '暂无目录',
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              ),
+            )
+          : ValueListenableBuilder<int>(
+              valueListenable: _currentSection,
+              builder: (context, currentSection, _) => ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: _toc.length,
+              itemBuilder: (context, i) {
+                final selected = i == currentSection;
+                // 按标题层级缩进（板面按 一/二/三级 呈现文档结构）
+                final level = (_toc[i].level - 1).clamp(0, 3);
+                final dark = theme.brightness == Brightness.dark;
+                return Material(
+                  // 当前节：浅绿底 + 深绿字（板面样式，不遮全文显眼度）
+                  color: selected
+                      ? (dark ? const Color(0xFF23291F) : const Color(0xFFEDF5F0))
+                      : Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _jumpToHeadingTop(i),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          right: BorderSide(
+                            color: selected
+                                ? const Color(0xFF1F6F54)
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                        ),
+                      ),
+                      padding: EdgeInsets.only(
+                        left: 16.0 + level * 14,
+                        right: 10,
+                        top: 11,
+                        bottom: 11,
+                      ),
+                      child: Text(
+                        _toc[i].text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          color: selected
+                              ? (dark
+                                    ? const Color(0xFF7BC7A5)
+                                    : const Color(0xFF1F6F54))
+                              : scheme.onSurface,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            ),
+    );
+  }
+
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     // 顶部细进度条：按滚动比例实时更新
@@ -318,14 +420,36 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     }
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
+    // 紧凑胶囊浮在右下 pill 上方（规范 3）：不遮正文；宽屏下也对齐
+    // 阅读栏右侧（给右侧浮动副钮让位）
+    final windowWidth = MediaQuery.sizeOf(context).width;
+    const toastWidth = 280.0;
+    final leftInset = (windowWidth - toastWidth - 100).clamp(16.0, windowWidth);
     messenger.showSnackBar(
       SnackBar(
-        content: Text('已回到上次位置（约 ${(saved * 100).round()}%）'),
+        content: Text(
+          '已回到上次位置（约 ${(saved * 100).round()}%）',
+          style: const TextStyle(
+            color: Color(0xFFFBFAF6),
+            fontSize: 12.5,
+          ),
+        ),
+        backgroundColor: const Color(0xDD26241E), // rgba(38,36,30,.88)
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          left: leftInset,
+          right: 84,
+          bottom: 120,
+        ),
         duration: const Duration(seconds: 3),
         // Flutter 3.47 起 action != null 默认 persist=true（永不超时），
         // 提示会一直压在页面上；必须显式关闭，保留超时消失
         persist: false,
-        action: SnackBarAction(label: '从头读', onPressed: _scrollToTop),
+        action: SnackBarAction(
+          label: '从头读',
+          textColor: const Color(0xFF7BC7A5),
+          onPressed: _scrollToTop,
+        ),
       ),
     );
   }
@@ -397,6 +521,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     _headingKeys
       ..clear()
       ..addAll(List.generate(_toc.length, (_) => GlobalKey()));
+    // FutureBuilder 只重建正文子树，不会重建 body 外的 TOC 侧栏；
+    // 目录解析完成后主动整页刷新，否则平板侧栏一直「暂无目录」
+    if (mounted) setState(() {});
 
     // 从搜索结果进入：自动打开查找条并定位到第一处命中。跳转依赖布局
     // 完成（标题锚点/滚动范围），放到首帧之后；同时跳过续读恢复，
@@ -466,6 +593,12 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // 平板形态（规范 2.3）：>=1000dp 横屏 TOC 常驻侧栏双栏；
+    // 600–1000dp 竖屏居中限宽阅读带。窗口尺寸变化会触发重建。
+    final windowWidth = MediaQuery.sizeOf(context).width;
+    final wideLayout = windowWidth >= 1000;
+    final tabletPortrait = windowWidth >= 600 && windowWidth < 1000;
+    final dark = theme.brightness == Brightness.dark;
     return DesktopShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyF, control: true):
@@ -572,9 +705,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                 case 'bookmarks':
                   _showBookmarksSheet();
                 case 'copy':
-                  _copyFullText();
-                case 'copyText':
-                  _copyPlainText();
+                  _copyFullTextWithChoice();
                 case 'exportImage':
                   _exportLongImage();
                 case 'shareCard':
@@ -584,29 +715,136 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
               }
             },
             itemBuilder: (_) => [
+              // 分组结构（规范 2.2）：阅读 / 书签 / 导出与分享；
+              // 8 项原文不增删，仅复制全文合并为一项
+              _menuHeader('阅读'),
               PopupMenuItem(
                 value: 'raw',
-                child: Text(_showRaw ? '渲染视图' : 'Raw 模式'),
+                height: 40,
+                child: Row(
+                  children: [
+                    const Icon(Icons.code, size: 17),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(_showRaw ? '渲染视图' : 'Raw 模式')),
+                    Text(
+                      _showRaw ? '开' : '关',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               // 字号只影响渲染视图；raw 固定代码字号 13
               if (!_showRaw)
-                const PopupMenuItem(value: 'font', child: Text('字号')),
+                PopupMenuItem(
+                  value: 'font',
+                  height: 40,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.format_size, size: 17),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('字号')),
+                      Text(
+                        '标准',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               if (!_showRaw) ...[
-                const PopupMenuItem(value: 'bookmark', child: Text('在此处加书签')),
+                _menuHeader('书签'),
+                PopupMenuItem(
+                  value: 'bookmark',
+                  height: 40,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.bookmark_add_outlined, size: 17),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('在此处加书签')),
+                    ],
+                  ),
+                ),
                 PopupMenuItem(
                   value: 'bookmarks',
-                  child: Text('书签（${_noteBookmarks.length}）'),
+                  height: 40,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.bookmark_outline, size: 17),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('书签列表')),
+                      Text(
+                        '${_noteBookmarks.length}',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-              const PopupMenuItem(value: 'copy', child: Text('复制全文（Markdown）')),
-              const PopupMenuItem(value: 'copyText', child: Text('复制全文（纯文本）')),
+              _menuHeader('导出与分享'),
+              // 复制全文合并为一项，右侧子值提示当前选择，点击出二级选择
+              PopupMenuItem(
+                value: 'copy',
+                height: 40,
+                child: Row(
+                  children: [
+                    const Icon(Icons.copy_outlined, size: 17),
+                    const SizedBox(width: 12),
+                    const Expanded(child: Text('复制全文')),
+                    Text(
+                      'MD / 纯文本',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               // 编辑仅面向本地镜像 md（边界：仓库文件只读）
               if (_isLocalMirrorMd)
-                const PopupMenuItem(value: 'edit', child: Text('编辑')),
+                PopupMenuItem(
+                  value: 'edit',
+                  height: 40,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.edit_outlined, size: 17),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('编辑')),
+                    ],
+                  ),
+                ),
               // raw 模式下没有渲染内容，长图/卡片无从生成
               if (!_showRaw) ...[
-                const PopupMenuItem(value: 'exportImage', child: Text('导出长图')),
-                const PopupMenuItem(value: 'shareCard', child: Text('分享卡片')),
+                PopupMenuItem(
+                  value: 'exportImage',
+                  height: 40,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.image_outlined, size: 17),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('导出长图')),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'shareCard',
+                  height: 40,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.ios_share_outlined, size: 17),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('分享卡片')),
+                    ],
+                  ),
+                ),
               ],
             ],
           ),
@@ -615,7 +853,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 长图导出进行中：FAB 位显示进度（生成整篇 PNG 可能需要一两秒）
+          // 长图导出进行中：副钮位显示进度（生成整篇 PNG 可能需要一两秒）
           if (_exportingImage) ...[
             const FloatingActionButton.small(
               heroTag: 'exporting',
@@ -629,34 +867,59 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
             ),
             const SizedBox(height: 8),
           ],
-          // raw 模式下没有渲染锚点，不提供目录
-          if (!_showRaw) ...[
-            FloatingActionButton.small(
-              heroTag: 'toc',
-              tooltip: '目录',
-              onPressed: _showTocSheet,
-              child: const Icon(Icons.article_outlined),
+          // raw 模式下没有渲染锚点，不提供目录；宽屏侧栏即目录（规范 2.3）
+          if (!_showRaw && !wideLayout) ...[
+            // TOC 主钮：48×48 圆形，纸白底描边 + 松绿图标——与副钮同一家族，
+            // 不再使用实心松绿底（用户反馈：在阅读页过于显眼）
+            Tooltip(
+              message: '目录',
+              child: Material(
+                color: dark ? const Color(0xFF2A2924) : Colors.white,
+                shape: CircleBorder(
+                  side: BorderSide(
+                    color: dark ? const Color(0xFF3A382F) : const Color(0xFFE5E2D8),
+                    width: 1.2,
+                  ),
+                ),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _showTocSheet,
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Icon(
+                      Icons.article_outlined,
+                      color: dark
+                          ? const Color(0xFF7BC7A5)
+                          : const Color(0xFF1F6F54),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
           ],
-          FloatingActionButton.small(
-            heroTag: 'jump-top',
+          // 副钮：36×36 白底描边（raw 下保留回顶/到文末语义）
+          _ReaderFabSmall(
             tooltip: '回到顶部',
             onPressed: _showRaw ? _codeController.scrollToTop : _scrollToTop,
-            child: const Icon(Icons.keyboard_arrow_up),
+            icon: Icons.keyboard_arrow_up,
           ),
           const SizedBox(height: 8),
-          FloatingActionButton.small(
-            heroTag: 'jump-bottom',
+          _ReaderFabSmall(
             tooltip: '跳到文末',
             onPressed: _showRaw
                 ? _codeController.scrollToBottom
                 : _scrollToBottom,
-            child: const Icon(Icons.keyboard_arrow_down),
+            icon: Icons.keyboard_arrow_down,
           ),
         ],
       ),
-      body: Column(
+      body: _wrapBody(
+        theme,
+        wideLayout,
+        tabletPortrait,
+        Column(
         children: [
           if (!_showRaw && _findOpen) _buildFindBar(theme),
           Expanded(
@@ -693,7 +956,50 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           ),
         ],
       ),
+        ),
         bottomNavigationBar: _buildFooterNav(theme),
+      ),
+    );
+  }
+
+  /// 复制全文二级选择（规范 2.2：菜单合并为一项，点击后选 MD 或纯文本）。
+  Future<void> _copyFullTextWithChoice() async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('复制全文'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(dialogContext, 'md'),
+            child: const Text('Markdown 源码'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(dialogContext, 'text'),
+            child: const Text('纯文本'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'text') {
+      await _copyPlainText();
+    } else if (choice == 'md') {
+      await _copyFullText();
+    }
+  }
+
+  /// ⋮ 菜单分组标题（规范 2.2：11px #A5A296 加宽字距，不可点）。
+  PopupMenuItem<String> _menuHeader(String text) {
+    return PopupMenuItem<String>(
+      enabled: false,
+      height: 32,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          letterSpacing: 1.5,
+          color: Color(0xFFA5A296),
+        ),
       ),
     );
   }
@@ -1228,6 +1534,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     if (_siblings.isEmpty || _siblingIndex < 0 || _siblings.length < 2) {
       return const SizedBox.shrink();
     }
+    // 上一篇/下一篇 pill 始终显示（用户确认：不再滚动收起）
     return SafeArea(
       top: false,
       child: Container(
@@ -1369,8 +1676,11 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           ),
         ),
         TableConfig(
+          // 表头浅绿底（设计板 token #EDF5F0）；深色成对取绿调深底保证可读
           headerRowDecoration: BoxDecoration(
-            color: theme.colorScheme.primary.withAlpha(25),
+            color: theme.brightness == Brightness.dark
+                ? const Color(0xFF26332B)
+                : const Color(0xFFEDF5F0),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
           ),
           // 注意：不要设置 headerStyle——包内 TBodyNode 也读取 headerStyle
@@ -1905,8 +2215,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     }
     if (!_scrollController.hasClients) return;
     final slot = _headingSlots[index];
-    if (slot == null) return;
-    unawaited(
+    if (slot == null) return;    unawaited(
       _scrollController
           .scrollToIndex(slot, preferPosition: AutoScrollPosition.begin)
           .then((_) {
@@ -2546,6 +2855,38 @@ class _HeadingMarkerState extends State<_HeadingMarker> {
 }
 
 /// 文末导航：同目录内切换上一篇/下一篇。
+/// 阅读页副浮动钮：36×36 白底描边小圆钮（规范 3：TOC 主钮下方的
+/// 回到顶部/跳到文末）。深浅色成对：底白/深卡，描边 #E5E2D8/#3A382F。
+class _ReaderFabSmall extends StatelessWidget {
+  const _ReaderFabSmall({
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final VoidCallback onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final border = dark ? const Color(0xFF3A382F) : const Color(0xFFE5E2D8);
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: dark ? const Color(0xFF2A2924) : Colors.white,
+        shape: CircleBorder(side: BorderSide(color: border, width: 1.2)),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: SizedBox(width: 36, height: 36, child: Icon(icon, size: 20)),
+        ),
+      ),
+    );
+  }
+}
+
 class _PrevNextNav extends StatelessWidget {
   const _PrevNextNav({
     required this.siblings,
@@ -3091,10 +3432,13 @@ class _MarkdownTableHost extends StatelessWidget {
   final bool wraps;
   final ValueChanged<double> onOverflow;
   final VoidCallback onToggle;
+
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final cardBorder = dark ? const Color(0xFF3A382F) : const Color(0xFFE5E2D8);
     final core = wraps
         ? LayoutBuilder(
             builder: (context, constraints) => HScrollbar(
@@ -3105,7 +3449,16 @@ class _MarkdownTableHost extends StatelessWidget {
         : HScrollbar(bottomPadding: 6, onOverflow: onOverflow, child: child);
     return Stack(
       children: [
-        core,
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            color: dark ? const Color(0xFF232220) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cardBorder),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: core,
+        ),
         Positioned(
           top: 0,
           right: 0,

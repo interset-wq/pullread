@@ -344,3 +344,16 @@
   时保留旧镜像并跳过清理，避免误删可读内容。
 - 测试：新增 LocalFolder 新旧格式编解码用例；全套 259 个测试通过。
 - 未在本机编译 iOS（无 macOS/Xcode），由 iOS CI 与真机验收确认。
+
+## 2026-11-10 Settings redesign and app icon
+
+- 执行人：opencode / deepseek-v4.1-flash-free（Ubuntu，项目主责 agent）。
+- 合并 PR #14（设置页定稿视觉升级）：松绿 `#1F6F54` 品牌种子、tint 图标章、
+  白卡输入框、chips 隐藏规则、≥1000 dp 双栏；设置搜索与锚点保留。
+- 合并后补齐 `silentPull` / `treeMode` 两个搜索锚点；「获取最新版本」恢复为
+  仅 Android 显示（Releases 只有 APK）。
+- issue #8：五个 `appicon-*.svg` 的 mark 从 0.7 放大到 0.78，底色改为
+  `#E3D6BC`；iOS/Android/Windows 图标全部由 SVG 重新渲染，Android 自适应图标
+  新增 `brand_icon_paper`，闪屏仍用 `brand_paper`。
+- issue #7：修正 iOS 书签选项——`withSecurityScope` 是 macOS 专有 API，iOS 用
+  空选项创建/解析，首次 CI 编译报错后已修复。

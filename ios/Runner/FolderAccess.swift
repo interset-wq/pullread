@@ -95,8 +95,10 @@ final class FolderAccess: NSObject, UIDocumentPickerDelegate {
     }
 
     do {
+      // iOS 不支持 macOS 专有的 .withSecurityScope 选项；文档选择器返回的
+      // URL 创建出的书签本身就是安全作用域书签。
       let bookmark = try url.bookmarkData(
-        options: .withSecurityScope,
+        options: [],
         includingResourceValuesForKeys: nil,
         relativeTo: nil
       )
@@ -159,7 +161,7 @@ final class FolderAccess: NSObject, UIDocumentPickerDelegate {
     do {
       let url = try URL(
         resolvingBookmarkData: bookmark,
-        options: [.withSecurityScope],
+        options: [],
         relativeTo: nil,
         bookmarkDataIsStale: &stale
       )
@@ -173,7 +175,7 @@ final class FolderAccess: NSObject, UIDocumentPickerDelegate {
       var payload: [String: Any] = ["path": url.path]
       if stale,
         let renewed = try? url.bookmarkData(
-          options: .withSecurityScope,
+          options: [],
           includingResourceValuesForKeys: nil,
           relativeTo: nil
         )

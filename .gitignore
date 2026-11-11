@@ -52,3 +52,4 @@ temp/
 
 # agent tooling state
 .atomcode/
+.worktrees/

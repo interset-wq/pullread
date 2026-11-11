@@ -52,8 +52,9 @@ Hard constraints:
   `app_icon` MethodChannel. Adaptive icon foregrounds are
   `drawable-xxxhdpi/ic_launcher_fg_*.png` (the mark is normalized to 50% of 432px;
   **XML inset must be 0%** — ~66% fills the canvas with no padding, ~33% with a 16%
-  inset occupies only about 1/9), with `@color/brand_paper` background and the same
-  paper color for the splash.
+  inset occupies only about 1/9), with `@color/brand_icon_paper` background
+  (`#E3D6BC`, one step darker than the splash paper so the icon stays visible on a
+  light iPad dock / launcher). The splash keeps `@color/brand_paper` (`#FBFAF6`).
 - iOS/Windows icon switching is not implemented (the iOS alternate-icon API needs
   real-device verification; Windows has no such concept). On platforms without the
   channel, `setAppIcon` persists the preference and silently does nothing.

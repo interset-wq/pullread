@@ -27,7 +27,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 800);
-  if (!window.Create(L"PullRead", origin, size)) {
+  // Title uses \u escapes: this source file is UTF-8 without BOM, and MSVC
+  // on a GBK codepage misreads raw CJK bytes (la=U+62C9, du=U+8BFB).
+  if (!window.Create(L"PullRead \u62C9\u8BFB", origin, size)) {
     return EXIT_FAILURE;
   }
   // Fit the default window to the monitor work area and center it; 1280x800
