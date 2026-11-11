@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/repo_meta.dart';
-import 'package:reader/src/git/sync_service.dart';
-import 'package:reader/src/platforms/git_platform.dart';
-import 'package:reader/src/platforms/repo_info.dart';
+import 'package:pullread/src/git/repo_meta.dart';
+import 'package:pullread/src/git/sync_service.dart';
+import 'package:pullread/src/platforms/git_platform.dart';
+import 'package:pullread/src/platforms/repo_info.dart';
 
 /// 分支切换：只用临时目录里的本地 bare 仓库，不访问网络。
 void main() {

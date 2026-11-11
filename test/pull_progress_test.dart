@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/sync_service.dart';
-import 'package:reader/src/ui/pull_progress.dart';
+import 'package:pullread/src/git/sync_service.dart';
+import 'package:pullread/src/ui/pull_progress.dart';
 
 /// 拉取进度对话框：显示标题与对象/体积，动作结束后自动关闭。
 void main() {

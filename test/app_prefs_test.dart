@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/platforms/git_platform.dart';
-import 'package:reader/src/theme/app_prefs.dart';
+import 'package:pullread/src/platforms/git_platform.dart';
+import 'package:pullread/src/theme/app_prefs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 偏好设置：默认值、越界收敛、持久化与搜索历史。

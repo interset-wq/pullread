@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/code_outline.dart';
+import 'package:pullread/src/notes/code_outline.dart';
 
 /// 代码大纲的符号提取：各语言的常见声明都要能认出来，注释行要跳过。
 void main() {

@@ -2,7 +2,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/reader.dart';
+import 'package:pullread/reader.dart';
 
 // 针对真实仓库的功能验证：克隆 + pull（只读，不 push）。
 void main() {

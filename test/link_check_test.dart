@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/link_check.dart';
+import 'package:pullread/src/notes/link_check.dart';
 
 void main() {
   group('extractLocalLinks', () {

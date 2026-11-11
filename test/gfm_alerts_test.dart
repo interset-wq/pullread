@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/gfm_alerts.dart';
+import 'package:pullread/src/notes/gfm_alerts.dart';
 
 /// 告警块分割只看正文：围栏代码块里的 `> [!NOTE]` 是代码，不是告警。
 void main() {

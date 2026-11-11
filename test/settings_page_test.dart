@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/theme/app_prefs.dart';
-import 'package:reader/src/ui/settings/data_settings_page.dart';
-import 'package:reader/src/ui/settings/settings_page.dart';
-import 'package:reader/src/ui/settings/settings_search.dart';
+import 'package:pullread/src/theme/app_prefs.dart';
+import 'package:pullread/src/ui/settings/data_settings_page.dart';
+import 'package:pullread/src/ui/settings/settings_page.dart';
+import 'package:pullread/src/ui/settings/settings_search.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

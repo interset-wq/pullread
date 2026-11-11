@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/tag_index.dart';
+import 'package:pullread/src/notes/tag_index.dart';
 
 void main() {
   late Directory root;

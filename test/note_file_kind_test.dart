@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/note_scanner.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
 
 /// `.mdx` 必须与检索、标签、断链检查保持同一分类（Markdown），
 /// 否则搜索结果点开后会进代码查看器，文内查找对不上。

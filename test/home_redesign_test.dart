@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:reader/main.dart';
-import 'package:reader/src/notes/note_index.dart';
-import 'package:reader/src/notes/note_scanner.dart';
-import 'package:reader/src/ui/home_feed.dart';
+import 'package:pullread/main.dart';
+import 'package:pullread/src/notes/note_index.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
+import 'package:pullread/src/ui/home_feed.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 首页改版验收：区块顺序、互斥切换、去重/截断、平板横屏少内容态。

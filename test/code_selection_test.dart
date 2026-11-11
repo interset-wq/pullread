@@ -3,7 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/code_view.dart';
+import 'package:pullread/src/ui/code_view.dart';
 
 /// 行选区高亮必须和正文真实行高一致。
 ///

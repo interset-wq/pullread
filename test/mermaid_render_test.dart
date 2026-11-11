@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mermaid_flutter/mermaid_flutter.dart';
-import 'package:reader/src/ui/image_actions.dart';
+import 'package:pullread/src/ui/image_actions.dart';
 
 /// mermaid 接入冒烟测试：与阅读页相同包裹方式（FittedBox +
 /// MaterialMermaidTheme.fromTheme）验证常见图类型可渲染、坏图走

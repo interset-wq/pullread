@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/note_index.dart';
-import 'package:reader/src/notes/note_scanner.dart';
+import 'package:pullread/src/notes/note_index.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
 
 void main() {
   group('NoteIndexCache 编解码', () {

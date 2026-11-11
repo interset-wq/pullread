@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/search/text_search.dart';
+import 'package:pullread/src/search/text_search.dart';
 
 void main() {
   group('searchInText 计数与摘要', () {

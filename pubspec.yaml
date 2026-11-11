@@ -1,4 +1,4 @@
-name: reader
+name: pullread
 description: "跨平台原生阅读器：克隆 Git 笔记仓库到设备，离线阅读 Markdown、Jupyter Notebook 与代码。"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.

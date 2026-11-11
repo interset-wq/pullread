@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/search/repo_search.dart';
+import 'package:pullread/src/search/repo_search.dart';
 
 void main() {
   late Directory root;

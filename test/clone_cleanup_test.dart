@@ -2,9 +2,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/sync_service.dart';
-import 'package:reader/src/platforms/git_platform.dart';
-import 'package:reader/src/platforms/repo_info.dart';
+import 'package:pullread/src/git/sync_service.dart';
+import 'package:pullread/src/platforms/git_platform.dart';
+import 'package:pullread/src/platforms/repo_info.dart';
 
 /// 回归：克隆失败/超时不能留下半成品目录，否则重试永远报
 /// 「本地目录已存在」。旧实现用 `Isolate.run(...).timeout()`，超时后

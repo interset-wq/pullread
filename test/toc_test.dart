@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/toc.dart';
+import 'package:pullread/src/notes/toc.dart';
 
 void main() {
   group('extractToc 围栏判定（CommonMark）', () {

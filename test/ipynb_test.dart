@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/ipynb.dart';
-import 'package:reader/src/notes/ipynb_images.dart';
+import 'package:pullread/src/notes/ipynb.dart';
+import 'package:pullread/src/notes/ipynb_images.dart';
 
 void main() {
   test('converts markdown / code / raw cells', () {
