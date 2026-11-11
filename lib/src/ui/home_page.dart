@@ -589,68 +589,69 @@ class _HomePageState extends State<HomePage> {
             : constraints.maxWidth;
         final horizontal = isTablet ? 24.0 : 20.0;
         final innerWidth = contentWidth - horizontal * 2;
-        return Center(
-          child: SizedBox(
-            width: contentWidth,
-            child: RefreshIndicator(
-              onRefresh: _loadRepos,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(horizontal, 6, horizontal, 96),
-                children: [
-                  if (resume != null)
-                    isTablet
-                        ? HomeContinueHero(
-                            title: resume.entry.fileName,
-                            repo: _sourceLabel(resume.entry),
-                            fraction: resume.fraction,
-                            headingIndex: resume.headingIndex,
-                            remainingMinutes: resume.remainingMinutes,
-                            onTap: () => _openRecentEntry(resume.entry),
-                          )
-                        : HomeContinueRow(
-                            title: resume.entry.fileName,
-                            repo: _sourceLabel(resume.entry),
-                            fraction: resume.fraction,
-                            onTap: () => _openRecentEntry(resume.entry),
-                          ),
-                  if (recents.isNotEmpty) ...[
-                    if (resume != null) const SizedBox(height: 6),
-                    HomeSectionHeader(
-                      title: '最近阅读',
-                      onAction: recentsAll.isEmpty
-                          ? null
-                          : () => _openAllRecents(recentsAll),
+        // 内容列限宽但滚动条贴边：ListView 铺满全宽，内容用 padding 缩进，
+        // 否则桌面滚动条贴着限宽列的内缘而不是窗口边缘
+        final sideInset = math.max(
+          horizontal,
+          (constraints.maxWidth - contentWidth) / 2 + horizontal,
+        );
+        return RefreshIndicator(
+          onRefresh: _loadRepos,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(sideInset, 6, sideInset, 96),
+            children: [
+              if (resume != null)
+                isTablet
+                    ? HomeContinueHero(
+                        title: resume.entry.fileName,
+                        repo: _sourceLabel(resume.entry),
+                        fraction: resume.fraction,
+                        headingIndex: resume.headingIndex,
+                        remainingMinutes: resume.remainingMinutes,
+                        onTap: () => _openRecentEntry(resume.entry),
+                      )
+                    : HomeContinueRow(
+                        title: resume.entry.fileName,
+                        repo: _sourceLabel(resume.entry),
+                        fraction: resume.fraction,
+                        onTap: () => _openRecentEntry(resume.entry),
+                      ),
+              if (recents.isNotEmpty) ...[
+                if (resume != null) const SizedBox(height: 6),
+                HomeSectionHeader(
+                  title: '最近阅读',
+                  onAction: recentsAll.isEmpty
+                      ? null
+                      : () => _openAllRecents(recentsAll),
+                ),
+                if (isTablet)
+                  ..._recentGrid(recents, innerWidth)
+                else
+                  for (final entry in recents)
+                    HomeRecentRow(
+                      title: entry.fileName,
+                      repo: _sourceLabel(entry),
+                      onTap: () => _openRecentEntry(entry),
                     ),
-                    if (isTablet)
-                      ..._recentGrid(recents, innerWidth)
-                    else
-                      for (final entry in recents)
-                        HomeRecentRow(
-                          title: entry.fileName,
-                          repo: _sourceLabel(entry),
-                          onTap: () => _openRecentEntry(entry),
-                        ),
-                  ],
-                  const SizedBox(height: 16),
-                  HomeSegmentedTabs(
-                    repoCount: repos.length,
-                    localCount: locals.length,
-                    localSelected: _tab == _HomeTab.locals,
-                    onChanged: (local) => setState(
-                      () => _tab = local ? _HomeTab.locals : _HomeTab.repos,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._tabContent(
-                    repos,
-                    locals,
-                    isTablet: isTablet,
-                    contentWidth: innerWidth,
-                  ),
-                ],
+              ],
+              const SizedBox(height: 16),
+              HomeSegmentedTabs(
+                repoCount: repos.length,
+                localCount: locals.length,
+                localSelected: _tab == _HomeTab.locals,
+                onChanged: (local) => setState(
+                  () => _tab = local ? _HomeTab.locals : _HomeTab.repos,
+                ),
               ),
-            ),
+              const SizedBox(height: 12),
+              ..._tabContent(
+                repos,
+                locals,
+                isTablet: isTablet,
+                contentWidth: innerWidth,
+              ),
+            ],
           ),
         );
       },
