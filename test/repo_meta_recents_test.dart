@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/repo_meta.dart';
+import 'package:pullread/src/git/repo_meta.dart';
 
 /// 「最近阅读」记录：时间戳、来源根目录与去重。
 void main() {

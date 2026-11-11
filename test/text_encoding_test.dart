@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:fast_gbk/fast_gbk.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/utils/text_encoding.dart';
+import 'package:pullread/src/utils/text_encoding.dart';
 
 void main() {
   test('UTF-8 正常解码', () {

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/image_actions.dart';
+import 'package:pullread/src/ui/image_actions.dart';
 
 void main() {
   group('imageBaseName', () {

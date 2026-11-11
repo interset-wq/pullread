@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/sync_service.dart';
-import 'package:reader/src/platforms/git_platform.dart';
-import 'package:reader/src/platforms/repo_info.dart';
+import 'package:pullread/src/git/sync_service.dart';
+import 'package:pullread/src/platforms/git_platform.dart';
+import 'package:pullread/src/platforms/repo_info.dart';
 
 /// 克隆不再猜默认分支：RepoInfo 里没有分支字段，克隆直接检出远端 HEAD
 /// （这里是 master），一次成功。

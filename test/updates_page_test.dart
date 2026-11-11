@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/repo_meta.dart';
-import 'package:reader/src/git/sync_service.dart';
-import 'package:reader/src/ui/updates_page.dart';
+import 'package:pullread/src/git/repo_meta.dart';
+import 'package:pullread/src/git/sync_service.dart';
+import 'package:pullread/src/ui/updates_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 更新收件箱：跨仓库聚合 recentChanges，打开即清除，可全部已读。

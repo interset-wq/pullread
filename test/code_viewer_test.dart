@@ -4,7 +4,7 @@ import 'package:fast_gbk/fast_gbk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/code_viewer.dart';
+import 'package:pullread/src/ui/code_viewer.dart';
 
 /// 代码查看器：大纲跳转 / 文内查找 / 自动换行。
 void main() {

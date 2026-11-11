@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/repo_meta.dart';
-import 'package:reader/src/notes/note_scanner.dart';
-import 'package:reader/src/ui/bookmarks_page.dart';
-import 'package:reader/src/ui/markdown_viewer.dart';
+import 'package:pullread/src/git/repo_meta.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
+import 'package:pullread/src/ui/bookmarks_page.dart';
+import 'package:pullread/src/ui/markdown_viewer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 书签交互：阅读页加书签 → 书签面板 → 删除；跨仓库书签页列表与删除。

@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/sync_service.dart';
-import 'package:reader/src/platforms/git_platform.dart';
-import 'package:reader/src/platforms/repo_info.dart';
-import 'package:reader/src/platforms/repo_url.dart';
+import 'package:pullread/src/git/sync_service.dart';
+import 'package:pullread/src/platforms/git_platform.dart';
+import 'package:pullread/src/platforms/repo_info.dart';
+import 'package:pullread/src/platforms/repo_url.dart';
 
 /// Regression cover for the clone-path data-loss bug:
 /// a trailing-slash URL used to produce an empty repo name, making the clone

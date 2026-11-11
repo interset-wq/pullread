@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:fast_gbk/fast_gbk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/local/local_folder_service.dart';
-import 'package:reader/src/ui/markdown_editor.dart';
-import 'package:reader/src/utils/text_encoding.dart';
+import 'package:pullread/src/local/local_folder_service.dart';
+import 'package:pullread/src/ui/markdown_editor.dart';
+import 'package:pullread/src/utils/text_encoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 本地 Markdown 编辑器：保存写镜像、写回失败进入 pending、未保存离开提醒。

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/repo_image.dart';
+import 'package:pullread/src/ui/repo_image.dart';
 
 /// 回归：本地仓库里的 SVG 必须走 flutter_svg，而不是只认位图的 Image.file。
 void main() {

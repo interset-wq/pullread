@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/global_search_page.dart';
+import 'package:pullread/src/ui/global_search_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 跨仓库搜索：结果按仓库分组；改仓库过滤后立即重跑。

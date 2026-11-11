@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/local/mirror_state.dart';
+import 'package:pullread/src/local/mirror_state.dart';
 
 void main() {
   group('MirrorManifest 增量判定', () {

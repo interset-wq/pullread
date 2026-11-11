@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/repo_meta.dart';
-import 'package:reader/src/notes/note_scanner.dart';
-import 'package:reader/src/ui/markdown_viewer.dart';
+import 'package:pullread/src/git/repo_meta.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
+import 'package:pullread/src/ui/markdown_viewer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 续读：再次打开文章自动回到上次位置（不弹模态框），并保留「从头读」入口。

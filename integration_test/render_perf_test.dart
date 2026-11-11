@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:reader/src/notes/note_scanner.dart';
-import 'package:reader/src/ui/markdown_viewer.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
+import 'package:pullread/src/ui/markdown_viewer.dart';
 
 /// 长文渲染基线（阶段 1.1，见 docs/perf.md）。
 ///

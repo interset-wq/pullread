@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/h_scrollbar.dart';
+import 'package:pullread/src/ui/h_scrollbar.dart';
 
 void main() {
   testWidgets('超宽内容首帧后回调溢出量（自然宽 − 视口宽）', (tester) async {

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markdown/markdown.dart' as m;
-import 'package:reader/src/notes/details_syntax.dart';
+import 'package:pullread/src/notes/details_syntax.dart';
 
 /// 折叠块解析测试：DetailsBlockSyntax 拦截 `<details>` 块，产出
 /// Element(tag: 'details') 供 markdown_viewer 的自定义节点渲染。

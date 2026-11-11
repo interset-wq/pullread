@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/note_scanner.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
 
 void main() {
   group('compareNatural 自然排序', () {

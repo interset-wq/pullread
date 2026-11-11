@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/home_feed.dart';
+import 'package:pullread/src/ui/home_feed.dart';
 
 /// 首页聚合：Git 仓库与本地文件夹镜像共用最近阅读，并负责首页展示规则
 /// （去重、截断、编号章）。

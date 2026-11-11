@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/git/sync_service.dart';
-import 'package:reader/src/platforms/git_platform.dart';
-import 'package:reader/src/platforms/repo_info.dart';
+import 'package:pullread/src/git/sync_service.dart';
+import 'package:pullread/src/platforms/git_platform.dart';
+import 'package:pullread/src/platforms/repo_info.dart';
 
 /// pull 的 fast-forward 路径（本地裸仓库，不依赖网络）：
 /// 进度消息之外，还验证变更清单与工作区内容确实更新。

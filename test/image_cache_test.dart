@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/image_cache.dart';
+import 'package:pullread/src/ui/image_cache.dart';
 
 void main() {
   group('ImageDiskCache.keyFor', () {

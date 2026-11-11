@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/markdown_source.dart';
+import 'package:pullread/src/notes/markdown_source.dart';
 
 /// 阅读时长估算与标题锚点（从阅读页拆出的纯函数）。
 void main() {

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:reader/main.dart';
+import 'package:pullread/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 把 path_provider 指向测试自己的临时目录。

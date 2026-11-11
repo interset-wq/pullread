@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/ui/repo_image.dart';
+import 'package:pullread/src/ui/repo_image.dart';
 
 /// 回归：markdown 包按 CommonMark 对链接目的地址做百分号编码，中文
 /// 文件名图片（如 ../figures/介绍下joyrl演示.png）渲染失败。

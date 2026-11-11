@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/math_render.dart';
+import 'package:pullread/src/notes/math_render.dart';
 import 'package:markdown/markdown.dart' as m;
 
 void main() {

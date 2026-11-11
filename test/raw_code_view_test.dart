@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/notes/note_scanner.dart';
-import 'package:reader/src/ui/markdown_viewer.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
+import 'package:pullread/src/ui/markdown_viewer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Markdown 的 Raw 模式与代码查看器共用 CodeView：高亮、行号、查找、

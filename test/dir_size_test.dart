@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/utils/dir_size.dart';
+import 'package:pullread/src/utils/dir_size.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

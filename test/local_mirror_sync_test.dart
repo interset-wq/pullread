@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/local/local_folder_service.dart';
+import 'package:pullread/src/local/local_folder_service.dart';
 
 /// 本地文件夹镜像的回归测试（桌面路径实现，可跑在 Windows/Linux CI）。
 ///

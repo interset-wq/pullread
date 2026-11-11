@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reader/src/platforms/git_platform.dart';
+import 'package:pullread/src/platforms/git_platform.dart';
 
 void main() {
   test('guessPlatform recognises known hosts case-insensitively', () {

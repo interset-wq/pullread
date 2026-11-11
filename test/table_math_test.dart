@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markdown/markdown.dart' as m;
-import 'package:reader/src/notes/math_render.dart';
-import 'package:reader/src/notes/note_scanner.dart';
-import 'package:reader/src/ui/markdown_viewer.dart';
+import 'package:pullread/src/notes/math_render.dart';
+import 'package:pullread/src/notes/note_scanner.dart';
+import 'package:pullread/src/ui/markdown_viewer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// issue #2：表格单元格里的公式含 `|` 时被 GFM 当成列分隔符，最后一列截断。
