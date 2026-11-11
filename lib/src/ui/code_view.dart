@@ -3,12 +3,14 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'package:flutter_highlight/themes/github.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../notes/code_outline.dart';
 import '../search/text_search.dart';
 import 'code_font.dart';
 import 'copy_button.dart';
 import 'h_scrollbar.dart';
+import 'image_actions.dart';
 
 /// 代码/源码正文的共用视图：语法高亮、行号、横向滚动/自动换行、文内查找、
 /// 大纲跳转与按行选区复制。
@@ -22,6 +24,7 @@ class CodeView extends StatefulWidget {
     this.outline,
     this.controller,
     this.showHeader = true,
+    this.sizeLabel,
     super.key,
   });
 
@@ -38,6 +41,9 @@ class CodeView extends StatefulWidget {
 
   /// 顶部信息栏（语言、行数、复制）。
   final bool showHeader;
+
+  /// 信息 chip 行的体积段（如 `8.2 KB`），由宿主按文件大小传入。
+  final String? sizeLabel;
 
   @override
   State<CodeView> createState() => _CodeViewState();
@@ -94,6 +100,9 @@ class _CodeViewState extends State<CodeView> {
   // ---- 行选区复制：长按锚点行，点选扩展区间 ----
   int? _selAnchor;
   int? _selFocus;
+
+  /// 长图导出边界：包住可视代码区，导出「所见即所得」的长图。
+  final _codeBoundaryKey = GlobalKey();
 
   @override
   void initState() {
@@ -194,6 +203,105 @@ class _CodeViewState extends State<CodeView> {
     final target = (position.pixels + direction * position.viewportDimension * 0.9)
         .clamp(position.minScrollExtent, position.maxScrollExtent);
     _verticalController.jumpTo(target);
+  }
+
+  /// 平板横屏常驻符号大纲侧栏（规范 2.3）：宽 280dp、底色与屏底一致靠
+  /// divider 区分；当前符号浅绿底 + 右缘 3px 松绿；T=类型 / F=函数前缀分级。
+  Widget _buildOutlineSidebar(ThemeData theme, BoxConstraints constraints) {
+    final dark = theme.brightness == Brightness.dark;
+    final pine = dark ? const Color(0xFF7BC7A5) : const Color(0xFF1F6F54);
+    return SizedBox(
+      width: 280,
+      child: ValueListenableBuilder<int>(
+        valueListenable: _currentLine,
+        builder: (context, currentLine, _) {
+          var currentIndex = -1;
+          for (var i = 0; i < _outline.length; i++) {
+            final nextLine = i + 1 < _outline.length
+                ? _outline[i + 1].line
+                : 1 << 30;
+            if (currentLine >= _outline[i].line && currentLine < nextLine) {
+              currentIndex = i;
+              break;
+            }
+          }
+          return Container(
+            color: theme.scaffoldBackgroundColor,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: _outline.length,
+              itemBuilder: (context, i) {
+                final symbol = _outline[i];
+                final selected = i == currentIndex;
+                return Material(
+                  color: selected
+                      ? (dark
+                            ? const Color(0xFF22302A)
+                            : const Color(0xFFE9F2ED))
+                      : Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _jumpToLine(symbol.line),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          right: BorderSide(
+                            color: selected ? pine : Colors.transparent,
+                            width: 3,
+                          ),
+                        ),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(14, 9, 10, 9),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            child: Text(
+                              symbol.kind == 'class' ? 'T' : 'F',
+                              textAlign: TextAlign.center,
+                              style: currentCodeFontStyle().copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: selected
+                                    ? pine
+                                    : theme.colorScheme.outline,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              symbol.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: currentCodeFontStyle().copyWith(
+                                fontSize: 12.5,
+                                color: selected
+                                    ? pine
+                                    : theme.colorScheme.onSurface,
+                                fontWeight: selected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${symbol.line}',
+                            style: currentCodeFontStyle().copyWith(
+                              fontSize: 11,
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showOutline(BuildContext context) {
@@ -348,38 +456,69 @@ class _CodeViewState extends State<CodeView> {
     }
   }
 
+  /// 选择态工具条（规范 2.2）：底部浮出白卡——白底 + 1px 描边 + 投影，
+  /// 图标深色，禁止黑色浮层（用户确认）；四个动作：复制/分享/导出长图/取消。
+  /// 导出长图取当前视口（RepaintBoundary 截屏），经系统分享面板给出保存/发送。
   Widget _buildSelectionBar(ThemeData theme, int selStart, int selEnd) {
-    return Material(
-      color: theme.colorScheme.secondaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '已选 ${selStart + 1}–${selEnd + 1} 行',
-                style: currentCodeFontStyle().copyWith(
-                  fontSize: 13,
-                  color: theme.colorScheme.onSecondaryContainer,
-                ),
+    final dark = theme.brightness == Brightness.dark;
+    final cardColor = dark ? const Color(0xFF1D1F1B) : Colors.white;
+    final borderColor = dark ? const Color(0xFF34362F) : const Color(0xFFE5E2D8);
+    final iconColor = dark ? const Color(0xFFD5D2C6) : const Color(0xFF3A382F);
+    return Center(
+      child: Material(
+        color: cardColor,
+        elevation: 6,
+        shadowColor: Colors.black26,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: borderColor),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: '复制选中行',
+                icon: const Icon(Icons.copy_all),
+                color: iconColor,
+                onPressed: () => _copySelection(selStart, selEnd),
               ),
-            ),
-            IconButton(
-              tooltip: '复制选中行',
-              icon: const Icon(Icons.copy_all),
-              color: theme.colorScheme.onSecondaryContainer,
-              onPressed: () => _copySelection(selStart, selEnd),
-            ),
-            IconButton(
-              tooltip: '取消选区',
-              icon: const Icon(Icons.close),
-              color: theme.colorScheme.onSecondaryContainer,
-              onPressed: () => setState(() {
-                _selAnchor = null;
-                _selFocus = null;
-              }),
-            ),
-          ],
+              IconButton(
+                tooltip: '分享选中行',
+                icon: const Icon(Icons.share_outlined),
+                color: iconColor,
+                onPressed: () async {
+                  final text = _lines.sublist(selStart, selEnd + 1).join('\n');
+                  await SharePlus.instance.share(ShareParams(text: text));
+                },
+              ),
+              IconButton(
+                tooltip: '导出长图',
+                icon: const Icon(Icons.image_outlined),
+                color: iconColor,
+                onPressed: () async {
+                  final bytes =
+                      await captureRepaintBoundaryPng(_codeBoundaryKey);
+                  if (!mounted || bytes == null) return;
+                  await shareImageBytes(
+                    bytes,
+                    name: 'code-L${selStart + 1}-L${selEnd + 1}',
+                    text: 'PullRead 代码长图 ${selStart + 1}–${selEnd + 1} 行',
+                  );
+                },
+              ),
+              IconButton(
+                tooltip: '取消选区',
+                icon: const Icon(Icons.close),
+                color: iconColor,
+                onPressed: () => setState(() {
+                  _selAnchor = null;
+                  _selFocus = null;
+                }),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -427,25 +566,73 @@ class _CodeViewState extends State<CodeView> {
     );
   }
 
+  /// 信息 chip 行（规范 2.1）：语言圆点 chip · 行数 · 体积（可选）+
+  /// 右侧复制钮——全页唯一复制入口；选中态的复制在工具条内（同动作不同范围）。
   Widget _buildInfoBar(ThemeData theme) {
+    final dark = theme.brightness == Brightness.dark;
+    final chipBg = dark ? const Color(0xFF2A2C26) : const Color(0xFFF1EFE7);
+    final chipFg = dark ? const Color(0xFFD5D2C6) : const Color(0xFF3A382F);
+    final pine = dark ? const Color(0xFF7BC7A5) : const Color(0xFF1F6F54);
+    Widget chip(Widget child) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            color: chipBg,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: child,
+        );
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: theme.colorScheme.surfaceContainerHighest.withAlpha(70),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.scaffoldBackgroundColor,
       child: Row(
         children: [
-          Icon(Icons.code, size: 16, color: theme.colorScheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            widget.language,
-            style: currentCodeFontStyle().copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.primary,
+          chip(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: pine,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  widget.language,
+                  style: currentCodeFontStyle().copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: chipFg,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
-          Text('${_lines.length} 行', style: theme.textTheme.bodySmall),
+          const SizedBox(width: 8),
+          chip(
+            Text(
+              '${_lines.length} 行',
+              style: currentCodeFontStyle().copyWith(
+                fontSize: 12,
+                color: chipFg,
+              ),
+            ),
+          ),
+          if (widget.sizeLabel != null) ...[
+            const SizedBox(width: 8),
+            chip(
+              Text(
+                widget.sizeLabel!,
+                style: currentCodeFontStyle().copyWith(
+                  fontSize: 12,
+                  color: chipFg,
+                ),
+              ),
+            ),
+          ],
           const Spacer(),
           CopyButton(code: widget.content),
         ],
@@ -454,6 +641,7 @@ class _CodeViewState extends State<CodeView> {
   }
 
   Widget _buildLineNumbers(ThemeData theme) {
+    final dark = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, _topPadding, 6, _topPadding),
       child: Column(
@@ -468,7 +656,10 @@ class _CodeViewState extends State<CodeView> {
               style: currentCodeFontStyle().copyWith(
                 fontSize: _fontSize,
                 height: _lineHeightFactor,
-                color: theme.colorScheme.outline,
+                // 规范 token：行号灰阶 #B8B5AA（深色成对 #5A584E）
+                color: dark
+                    ? const Color(0xFF5A584E)
+                    : const Color(0xFFB8B5AA),
               ),
             ),
         ],
@@ -496,12 +687,20 @@ class _CodeViewState extends State<CodeView> {
   }
 
   Widget _buildHighlight(ThemeData theme, {required EdgeInsets padding}) {
+    final themeMap = theme.brightness == Brightness.dark
+        ? atomOneDarkTheme
+        : githubTheme;
+    // 代码区背景透明：选区浅绿块画在代码下层（规范 2.2），文字不被遮挡
+    final transparentRoot = {
+      ...themeMap,
+      'root': (themeMap['root'] ?? const TextStyle()).copyWith(
+        backgroundColor: Colors.transparent,
+      ),
+    };
     return HighlightView(
       _text,
       language: widget.language,
-      theme: theme.brightness == Brightness.dark
-          ? atomOneDarkTheme
-          : githubTheme,
+      theme: transparentRoot,
       padding: padding,
       textStyle: _codeTextStyle,
     );
@@ -510,6 +709,7 @@ class _CodeViewState extends State<CodeView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     _lineHeight = _measureLineHeight();
     final anchor = _selAnchor;
     final focus = _selFocus;
@@ -523,71 +723,116 @@ class _CodeViewState extends State<CodeView> {
       children: [
         if (widget.showHeader) _buildInfoBar(theme),
         if (_findOpen) _buildFindBar(theme),
-        if (selStart != null) _buildSelectionBar(theme, selStart, selEnd!),
         Expanded(
-          child: Scrollbar(
-            controller: _verticalController,
-            thumbVisibility: true,
-            thickness: 4,
-            radius: const Radius.circular(4),
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onLongPressStart: _onSelectionLongPress,
-              onTapUp: _onSelectionTapUp,
-              child: SingleChildScrollView(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // 平板横屏（规范 2.3）：符号大纲常驻侧栏 + 代码双栏
+              final wide =
+                  constraints.maxWidth >= 1000 && _outline.isNotEmpty;
+              final codeArea = Scrollbar(
                 controller: _verticalController,
-                child: Stack(
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!_wrap) _buildLineNumbers(theme),
-                        Expanded(
-                          child: _wrap
-                              ? _buildHighlight(
-                                  theme,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    12,
-                                    _topPadding,
-                                    16,
-                                    _topPadding,
+                thumbVisibility: true,
+                thickness: 4,
+                radius: const Radius.circular(4),
+                child: RepaintBoundary(
+                  key: _codeBoundaryKey,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onLongPressStart: _onSelectionLongPress,
+                    onTapUp: _onSelectionTapUp,
+                    child: SingleChildScrollView(
+                      controller: _verticalController,
+                      child: Stack(
+                        children: [
+                          // 选区块画在代码下层（先画），浅绿底不遮挡文字
+                          if (selStart != null)
+                            Positioned(
+                              top: _topPadding + selStart * _lineHeight,
+                              left: 0,
+                              right: 0,
+                              height: (selEnd! - selStart + 1) * _lineHeight,
+                              child: IgnorePointer(
+                                child: DecoratedBox(
+                                  key: const ValueKey(
+                                    'code-selection-highlight',
                                   ),
-                                )
-                              : HScrollbar(
-                                  child: _buildHighlight(
-                                    theme,
-                                    padding: const EdgeInsets.fromLTRB(
-                                      4,
-                                      _topPadding,
-                                      16,
-                                      _topPadding,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(
+                                        color: dark
+                                            ? const Color(0xFF7BC7A5)
+                                            : const Color(0xFF1F6F54),
+                                        width: 3,
+                                      ),
                                     ),
+                                    color: dark
+                                        ? const Color(0xFF22302A)
+                                        : const Color(0xFFE9F2ED),
                                   ),
                                 ),
-                        ),
-                      ],
-                    ),
-                    // 选区高亮跟着内容一起滚动（放在滚动内容里），而不是
-                    // 固定在视口：滚到下方时选区仍压在正确行上。
-                    if (selStart != null)
-                      Positioned(
-                        top: _topPadding + selStart * _lineHeight,
-                        left: 0,
-                        right: 0,
-                        height: (selEnd! - selStart + 1) * _lineHeight,
-                        child: IgnorePointer(
-                          child: ColoredBox(
-                            key: const ValueKey('code-selection-highlight'),
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.18,
+                              ),
                             ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (!_wrap) _buildLineNumbers(theme),
+                              Expanded(
+                                child: _wrap
+                                    ? _buildHighlight(
+                                        theme,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          12,
+                                          _topPadding,
+                                          16,
+                                          _topPadding,
+                                        ),
+                                      )
+                                    : HScrollbar(
+                                        child: _buildHighlight(
+                                          theme,
+                                          padding: const EdgeInsets.fromLTRB(
+                                            4,
+                                            _topPadding,
+                                            16,
+                                            _topPadding,
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ],
                           ),
-                        ),
+                        ],
                       ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+              if (!wide && selStart == null) return codeArea;
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: wide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildOutlineSidebar(theme, constraints),
+                              const VerticalDivider(width: 1),
+                              Expanded(child: codeArea),
+                            ],
+                          )
+                        : codeArea,
+                  ),
+                  // 规范 2.2：选中态底部浮出浅色工具条（浅色禁止黑色浮层）
+                  if (selStart != null)
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                      child: _buildSelectionBar(theme, selStart, selEnd!),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ],
