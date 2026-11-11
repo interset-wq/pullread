@@ -54,7 +54,7 @@ PullRead 只是给它一个舒服的阅读界面。
 | --- | --- | --- |
 | **Android** | 主要发布平台，已提供 arm64 APK | [GitHub Releases](https://github.com/interset-wq/pullread/releases) |
 | **iPadOS / iOS** | 同一代码库，源码构建；iPad 大屏适配与真机验收进行中 | 在 macOS + Xcode 上 `flutter build ios`（暂无签名安装包） |
-| **Windows** | 次级桌面目标，源码构建；桌面目录选择与键鼠滚动可用，尚未做真机验收 | 在 Windows + Visual Studio 上 `flutter build windows` |
+| **Windows** | 次级桌面目标，源码构建；目录选择、键鼠滚动、快捷键与窗口布局已通过真机验收 | 在 Windows + Visual Studio 上 `flutter build windows` |
 | **Linux / macOS** | 尚未接入平台目录与构建流程 | 欢迎贡献 |
 
 > 每个设备的克隆副本、阅读进度和收藏都保存在本机（`<应用文档目录>/repos` 与
@@ -181,7 +181,9 @@ flutter build windows --release
 ```
 
 产物在 `build\windows\x64\runner\Release\`。桌面端复用移动端的阅读管线，
-支持本地目录选择、键鼠滚动和窗口缩放；键盘快捷键、多窗口等桌面原生体验仍在完善。
+支持本地目录选择、键鼠滚动和窗口缩放。默认窗口 1280×800 并居中，最小 720×520；
+快捷键包括 `Ctrl+F`（全局/仓库/文内查找）、`Esc`、`PageUp/PageDown`、`Space`
+（`Shift+Space` 上翻）、`Home/End`，编辑器内 `Ctrl+S` 保存。尚未实现多窗口。
 Linux / macOS 尚未配置平台目录。
 
 ## 🚀 从源码运行
@@ -247,7 +249,7 @@ lib/
 - [x] Mermaid 图表导出为 PNG
 - [x] 设置页信息架构与全站视觉统一
 - [ ] iPad 大屏阅读布局、分屏与手势验收
-- [ ] Windows 桌面打包与键鼠体验完善
+- [x] Windows 桌面打包与键鼠体验
 - [ ] Linux / macOS 平台接入（待评估）
 - [ ] 文内查找按章节精确滚动、UTF-16 文本支持
 

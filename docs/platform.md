@@ -14,6 +14,25 @@ Authentication: tokens, if ever added, stay on device only — never hardcode th
 log them. Only public repositories are supported (the user explicitly does not want
 private-repo support).
 
+### Windows desktop
+
+- `windows/runner/main.cpp` creates a 1280×800 window and calls
+  `CenterOnScreen(0.9)`: the window is centered on the monitor work area, and is
+  shrunk proportionally only when it would exceed 90% of that area. `WM_GETMINMAXINFO`
+  in `win32_window.cpp` enforces a 720×520 logical minimum (scaled for the current
+  DPI).
+- Keyboard handling lives in `DesktopShortcuts` (`lib/src/ui/desktop_shortcuts.dart`),
+  which wraps each page in `CallbackShortcuts` + an autofocused `Focus` and is a no-op
+  off desktop. `Ctrl+F` opens global search on home, focuses repository search, or
+  opens the reader find bar; `Esc` closes/clears. The reader and code viewer add
+  `PageUp/PageDown`, `Space`/`Shift+Space`, `Home`/`End`; text inputs keep their normal
+  editing keys while focused (see `isTextInputFocused`). The Markdown editor binds
+  `Ctrl+S` and intercepts window close through `AppLifecycleListener.onExitRequested`
+  when there are unsaved changes.
+- Layout breakpoints are shared with tablets: the home page switches at 1000 dp, while
+  the repository body caps content at 1040 dp and the editor at 860 dp.
+- There is no multi-window support and no Windows icon switching.
+
 ## Startup chain
 
 The native splash paints only the brand paper color (`launch_background` plus v31

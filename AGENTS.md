@@ -47,8 +47,9 @@ with the code in the same commit (see "Maintenance").
 - **Framework**: Flutter, Dart 3 / Flutter 3.47+. The product is cross-platform but
   mobile-first: Android is the primary release target, iOS/iPadOS is built from
   source and awaiting real-device acceptance, Windows is a secondary desktop target
-  built from source. Linux/macOS have no platform directory yet. iOS/Windows work
-  cannot be verified on this machine (no macOS / Windows host).
+  built from source and accepted on Windows 11 (shortcuts, window sizing, local
+  folders). Linux/macOS have no platform directory yet. iOS work cannot be verified
+  on this machine (no macOS host).
 - **Package id**: `com.intersetwq.pullread` for Android `applicationId`/`namespace`
   and the iOS bundle id. Kotlin `MainActivity` lives in
   `android/app/src/main/kotlin/com/intersetwq/pullread/`. Renamed from
