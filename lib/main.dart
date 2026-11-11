@@ -104,6 +104,9 @@ class _ReaderAppState extends State<ReaderApp> {
             title: 'PullRead 拉读',
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: brandPine),
+              // 页面底色统一为纯白（手机应用最常见），M3 种子默认的
+              // 灰调 surface 不再使用；深色保持种子默认
+              scaffoldBackgroundColor: Colors.white,
               useMaterial3: true,
               pageTransitionsTheme: transitions,
               snackBarTheme: snackbar,
@@ -141,7 +144,7 @@ class _StartupError extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: ColoredBox(
-        color: const Color(0xFFFBFAF6),
+        color: Colors.white,
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),

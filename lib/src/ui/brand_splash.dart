@@ -16,7 +16,7 @@ class BrandSplash extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: ColoredBox(
-        color: const Color(0xFFFBFAF6),
+        color: Colors.white,
         child: Center(
           child: Image(
             image: const AssetImage('assets/icon/app_logo.png'),

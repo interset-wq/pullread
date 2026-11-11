@@ -234,7 +234,7 @@ class HomeTokens {
   final Color chevron;
 
   static const light = HomeTokens(
-    paper: Color(0xFFFBFAF6),
+    paper: Color(0xFFFFFFFF),
     card: Color(0xFFFFFFFF),
     border: Color(0xFFE5E2D8),
     divider: Color(0xFFF2F0E8),
