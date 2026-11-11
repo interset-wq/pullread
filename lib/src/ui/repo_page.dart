@@ -15,6 +15,7 @@ import '../platforms/repo_info.dart';
 import '../search/repo_search.dart';
 import '../search/text_search.dart';
 import '../theme/app_prefs.dart';
+import 'desktop_shortcuts.dart';
 import 'open_note.dart';
 import 'pull_progress.dart';
 import 'search_snippet_text.dart';
@@ -110,6 +111,8 @@ class _RepoPageState extends State<RepoPage> {
 
   // 正文搜索（全文）：文件名搜索是同步过滤，正文搜索走后台 isolate + 防抖
   bool _contentMode = false;
+  final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   Timer? _searchDebounce;
   List<FileSearchResult>? _contentResults;
   bool _contentSearching = false;
@@ -171,7 +174,27 @@ class _RepoPageState extends State<RepoPage> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
+  }
+
+  void _focusSearch() {
+    _searchFocus.requestFocus();
+    _searchController.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _searchController.text.length,
+    );
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _contentResults = null;
+      _contentSearching = false;
+    });
   }
 
   /// 搜索框输入：文件名模式同步过滤；正文模式防抖后跑后台检索。
@@ -427,9 +450,21 @@ class _RepoPageState extends State<RepoPage> {
         ? entries!.isEmpty
         : dirs.isEmpty && notes.isEmpty;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title, style: theme.textTheme.titleLarge),
+    return DesktopShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+            _focusSearch,
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (_query.isNotEmpty) {
+            _clearSearch();
+          } else {
+            _searchFocus.unfocus();
+          }
+        },
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(title, style: theme.textTheme.titleLarge),
         actions: [
           IconButton(
             onPressed: _pull,
@@ -528,40 +563,39 @@ class _RepoPageState extends State<RepoPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: SearchBar(
-              hintText: _contentMode
-                  ? (searching ? '搜索正文…' : '搜索正文')
-                  : (searching ? '搜索中…' : '搜索文件'),
-              leading: const Icon(Icons.search),
-              elevation: const WidgetStatePropertyAll(0),
-              constraints: const BoxConstraints(minHeight: 44),
-              trailing: [
-                IconButton(
-                  tooltip: _contentMode ? '搜索文件名' : '搜索正文',
-                  icon: Icon(
-                    _contentMode ? Icons.title : Icons.subject,
-                    size: 20,
-                  ),
-                  onPressed: _toggleContentMode,
-                ),
-                if (searching)
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () {
-                      _searchDebounce?.cancel();
-                      setState(() {
-                        _query = '';
-                        _contentResults = null;
-                        _contentSearching = false;
-                      });
-                    },
-                  ),
-              ],
-              onChanged: _onQueryChanged,
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1040),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: SearchBar(
+                  controller: _searchController,
+                  focusNode: _searchFocus,
+                  hintText: _contentMode
+                      ? (searching ? '搜索正文…' : '搜索正文')
+                      : (searching ? '搜索中…' : '搜索文件'),
+                  leading: const Icon(Icons.search),
+                  elevation: const WidgetStatePropertyAll(0),
+                  constraints: const BoxConstraints(minHeight: 44),
+                  trailing: [
+                    IconButton(
+                      tooltip: _contentMode ? '搜索文件名' : '搜索正文',
+                      icon: Icon(
+                        _contentMode ? Icons.title : Icons.subject,
+                        size: 20,
+                      ),
+                      onPressed: _toggleContentMode,
+                    ),
+                    if (searching)
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: _clearSearch,
+                      ),
+                  ],
+                  onChanged: _onQueryChanged,
             ),
           ),
           if (_scanning || _linkChecking)
@@ -782,6 +816,9 @@ class _RepoPageState extends State<RepoPage> {
             ),
           ),
         ],
+        ),
+        ),
+        ),
       ),
     );
   }

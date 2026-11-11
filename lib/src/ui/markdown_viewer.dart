@@ -35,6 +35,7 @@ import '../theme/app_prefs.dart';
 import 'code_view.dart';
 import 'copy_button.dart';
 import 'code_font.dart';
+import 'desktop_shortcuts.dart';
 import 'h_scrollbar.dart';
 import 'image_actions.dart';
 import 'repo_page.dart';
@@ -221,6 +222,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   void dispose() {
     WakelockPlus.disable().catchError((Object _) {});
     HardwareKeyboard.instance.removeHandler(_handleVolumeKey);
+    _keyboardScrollTimer?.cancel();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _codeController.removeListener(_onCodeControllerChanged);
@@ -235,6 +237,9 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   /// 当前这轮滚动是否由用户发起（拖动或拖动后的惯性）。
   /// 续读恢复 / TOC 跳转都是程序化动画，不能把它们的中间位置写成进度。
   bool _userScrollActive = false;
+
+  /// 键盘翻页后短暂保留“用户主动滚动”标记，让进度照常落盘。
+  Timer? _keyboardScrollTimer;
 
   void _onCodeControllerChanged() {
     if (mounted) setState(() {});
@@ -461,12 +466,27 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _title ?? widget.note.fileName,
-          overflow: TextOverflow.ellipsis,
-        ),
+    return DesktopShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+            _toggleFindShortcut,
+        const SingleActivator(LogicalKeyboardKey.escape): _closeFindShortcut,
+        const SingleActivator(LogicalKeyboardKey.pageDown): () =>
+            _keyboardPage(1),
+        const SingleActivator(LogicalKeyboardKey.pageUp): () =>
+            _keyboardPage(-1),
+        const SingleActivator(LogicalKeyboardKey.space): () => _keyboardPage(1),
+        const SingleActivator(LogicalKeyboardKey.space, shift: true): () =>
+            _keyboardPage(-1),
+        const SingleActivator(LogicalKeyboardKey.home): _keyboardTop,
+        const SingleActivator(LogicalKeyboardKey.end): _keyboardBottom,
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            _title ?? widget.note.fileName,
+            overflow: TextOverflow.ellipsis,
+          ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(2),
           child: ValueListenableBuilder<double>(
@@ -673,7 +693,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           ),
         ],
       ),
-      bottomNavigationBar: _buildFooterNav(theme),
+        bottomNavigationBar: _buildFooterNav(theme),
+      ),
     );
   }
 
@@ -2055,6 +2076,70 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       _findIndex = -1;
     });
     _findController.clear();
+  }
+
+  void _toggleFindShortcut() {
+    if (_showRaw) {
+      _codeController.toggleFind();
+    } else {
+      _toggleFind();
+    }
+  }
+
+  void _closeFindShortcut() {
+    if (_showRaw) {
+      if (_codeController.findOpen) _codeController.closeFind();
+    } else if (_findOpen) {
+      _closeFind();
+    }
+  }
+
+  /// 键盘翻页也属于用户主动滚动，需让进度按正常节奏落盘。
+  void _markKeyboardScroll() {
+    _userScrollActive = true;
+    _keyboardScrollTimer?.cancel();
+    _keyboardScrollTimer = Timer(const Duration(milliseconds: 500), () {
+      _userScrollActive = false;
+    });
+  }
+
+  void _keyboardPage(double direction) {
+    if (isTextInputFocused) return;
+    if (_showRaw) {
+      _codeController.scrollByPage(direction);
+      return;
+    }
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final target =
+        (position.pixels + direction * position.viewportDimension * 0.9).clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        );
+    _markKeyboardScroll();
+    _scrollController.jumpTo(target);
+  }
+
+  void _keyboardTop() {
+    if (isTextInputFocused) return;
+    if (_showRaw) {
+      _codeController.scrollToTop();
+      return;
+    }
+    if (!_scrollController.hasClients) return;
+    _markKeyboardScroll();
+    _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+  }
+
+  void _keyboardBottom() {
+    if (isTextInputFocused) return;
+    if (_showRaw) {
+      _codeController.scrollToBottom();
+      return;
+    }
+    if (!_scrollController.hasClients) return;
+    _markKeyboardScroll();
+    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
   }
 
   void _onFindChanged(String value) {

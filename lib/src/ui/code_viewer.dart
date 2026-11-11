@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../notes/code_outline.dart';
 import '../utils/dir_size.dart' show formatBytes;
 import '../utils/text_encoding.dart';
 import 'code_view.dart';
+import 'desktop_shortcuts.dart';
 
 /// 代码文件只读查看页：语法高亮 + 行号 + 大纲跳转 + 文内查找 + 自动换行。
 ///
@@ -139,9 +140,29 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.fileName, overflow: TextOverflow.ellipsis),
+    return DesktopShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+            _controller.toggleFind,
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (_controller.findOpen) _controller.closeFind();
+        },
+        const SingleActivator(LogicalKeyboardKey.pageDown): () {
+          if (!isTextInputFocused) _controller.scrollByPage(1);
+        },
+        const SingleActivator(LogicalKeyboardKey.pageUp): () {
+          if (!isTextInputFocused) _controller.scrollByPage(-1);
+        },
+        const SingleActivator(LogicalKeyboardKey.home): () {
+          if (!isTextInputFocused) _controller.scrollToTop();
+        },
+        const SingleActivator(LogicalKeyboardKey.end): () {
+          if (!isTextInputFocused) _controller.scrollToBottom();
+        },
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.fileName, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
             tooltip: '大纲',
@@ -197,6 +218,7 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
             ],
           );
         },
+      ),
       ),
     );
   }

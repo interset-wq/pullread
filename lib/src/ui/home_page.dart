@@ -18,6 +18,7 @@ import '../theme/app_prefs.dart';
 import '../utils/dir_size.dart' show formatBytes;
 import 'bookmarks_page.dart';
 import 'brand_splash.dart';
+import 'desktop_shortcuts.dart';
 import 'global_search_page.dart';
 import 'home_feed.dart';
 import 'open_note.dart';
@@ -351,45 +352,62 @@ class _HomePageState extends State<HomePage> {
       limit: 5,
     );
     final isLandscape = MediaQuery.sizeOf(context).width >= 1000;
-    return Scaffold(
-      backgroundColor: tokens.paper,
-      appBar: isLandscape ? null : _buildAppBar(tokens, repos, locals),
-      floatingActionButton: _tab == _HomeTab.repos
-          ? FloatingActionButton(
-              backgroundColor: tokens.green,
-              foregroundColor: tokens.paper,
-              onPressed: _cloning ? null : _showCloneDialog,
-              child: _cloning
-                  ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: tokens.paper,
-                      ),
-                    )
-                  : const Icon(Icons.add),
-            )
-          : null,
-      body: isLandscape
-          ? _buildLandscape(
-              context,
-              tokens,
-              repos,
-              locals,
-              resume,
-              recents,
-              recentsAll,
-            )
-          : _buildPortrait(
-              context,
-              tokens,
-              repos,
-              locals,
-              resume,
-              recents,
-              recentsAll,
-            ),
+    return DesktopShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () =>
+            _openGlobalSearch(repos, locals),
+      },
+      child: Scaffold(
+        backgroundColor: tokens.paper,
+        appBar: isLandscape ? null : _buildAppBar(tokens, repos, locals),
+        floatingActionButton: _tab == _HomeTab.repos
+            ? FloatingActionButton(
+                backgroundColor: tokens.green,
+                foregroundColor: tokens.paper,
+                onPressed: _cloning ? null : _showCloneDialog,
+                child: _cloning
+                    ? SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: tokens.paper,
+                        ),
+                      )
+                    : const Icon(Icons.add),
+              )
+            : null,
+        body: isLandscape
+            ? _buildLandscape(
+                context,
+                tokens,
+                repos,
+                locals,
+                resume,
+                recents,
+                recentsAll,
+              )
+            : _buildPortrait(
+                context,
+                tokens,
+                repos,
+                locals,
+                resume,
+                recents,
+                recentsAll,
+              ),
+      ),
+    );
+  }
+
+  void _openGlobalSearch(List<Directory> repos, List<LocalFolder> locals) {
+    if (repos.isEmpty && locals.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            GlobalSearchPage(repos: repos, locals: _localMirrors),
+      ),
     );
   }
 
@@ -422,15 +440,7 @@ class _HomePageState extends State<HomePage> {
         icon: const Icon(Icons.search),
         onPressed: repos.isEmpty && locals.isEmpty
             ? null
-            : () => Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => GlobalSearchPage(
-                      repos: repos,
-                      locals: _localMirrors,
-                    ),
-                  ),
-                ),
+            : () => _openGlobalSearch(repos, locals),
       ),
       IconButton(
         tooltip: '更新收件箱',

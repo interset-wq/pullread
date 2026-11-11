@@ -26,10 +26,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
-  if (!window.Create(L"Pull 拉读", origin, size)) {
+  Win32Window::Size size(1280, 800);
+  if (!window.Create(L"PullRead", origin, size)) {
     return EXIT_FAILURE;
   }
+  // Fit the default window to the monitor work area and center it; 1280x800
+  // is a sensible desktop size but would overflow a 1080p screen at 150% DPI.
+  window.CenterOnScreen(0.9);
   window.SetQuitOnClose(true);
 
   ::MSG msg;
