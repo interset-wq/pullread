@@ -419,7 +419,9 @@ class _HomePageState extends State<HomePage> {
     return AppBar(
       backgroundColor: tokens.paper,
       surfaceTintColor: Colors.transparent,
-      scrolledUnderElevation: 0,
+      // 滚动后 header 与内容同色无边界，缺少区分度（用户反馈）：
+      // 给一点 scrolled 阴影，静止时保持无边界
+      scrolledUnderElevation: 1,
       elevation: 0,
       centerTitle: false,
       iconTheme: IconThemeData(color: tokens.icon),
@@ -1510,7 +1512,8 @@ class _FileListPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: tokens.paper,
         surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
+        // 与主 header 一致：滚动后给一点阴影区分内容
+        scrolledUnderElevation: 1,
         elevation: 0,
         iconTheme: IconThemeData(color: tokens.icon),
         title: Text(
