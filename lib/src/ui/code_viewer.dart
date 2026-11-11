@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../notes/code_outline.dart';
 import '../utils/dir_size.dart' show formatBytes;
 import '../utils/text_encoding.dart';
+import 'code_font.dart';
 import 'code_view.dart';
 import 'desktop_shortcuts.dart';
 
@@ -137,6 +138,65 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
     return _extLanguage[ext] ?? 'plaintext';
   }
 
+  /// 面包屑段（规范 2.1）：取路径末段们，仓库段松绿加粗、当前文件墨色等宽。
+  List<String> get _breadcrumbSegments {
+    final parts = widget.path
+        .replaceAll('\\', '/')
+        .split('/')
+        .where((p) => p.isNotEmpty)
+        .toList();
+    // 去掉盘符/协议头，最多留 4 段（过深路径折叠成 …）
+    final out = parts.where((p) => !p.endsWith(':') && p != '..').toList();
+    if (out.length > 4) {
+      return ['…', ...out.sublist(out.length - 3)];
+    }
+    return out;
+  }
+
+  /// 面包屑行：仓库段松绿加粗，分隔 `/` 浅灰，当前文件墨色等宽。
+  Widget _buildBreadcrumb(ThemeData theme) {
+    final dark = theme.brightness == Brightness.dark;
+    final segments = _breadcrumbSegments;
+    final pine = dark ? const Color(0xFF7BC7A5) : const Color(0xFF1F6F54);
+    final slashColor = dark ? const Color(0xFF4A4840) : const Color(0xFFC9C6BA);
+    return Container(
+      width: double.infinity,
+      color: theme.scaffoldBackgroundColor,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        reverse: true,
+        child: Row(
+          children: [
+            for (var i = 0; i < segments.length; i++) ...[
+              if (i > 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    '/',
+                    style: TextStyle(fontSize: 12.5, color: slashColor),
+                  ),
+                ),
+              Text(
+                segments[i],
+                style: i == segments.length - 1
+                    ? currentCodeFontStyle().copyWith(
+                        fontSize: 12.5,
+                        color: dark ? const Color(0xFFE8E6DC) : null,
+                      )
+                    : TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: pine,
+                      ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -164,13 +224,15 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
         appBar: AppBar(
           title: Text(widget.fileName, overflow: TextOverflow.ellipsis),
         actions: [
-          IconButton(
-            tooltip: '大纲',
-            icon: const Icon(Icons.toc_outlined),
-            onPressed: _symbols.isEmpty
-                ? null
-                : () => _controller.showOutline(context),
-          ),
+          // 平板横屏大纲侧栏常驻（规范 2.3），大纲钮只在窄屏出现
+          if (MediaQuery.sizeOf(context).width < 1000)
+            IconButton(
+              tooltip: '大纲',
+              icon: const Icon(Icons.toc_outlined),
+              onPressed: _symbols.isEmpty
+                  ? null
+                  : () => _controller.showOutline(context),
+            ),
           IconButton(
             tooltip: _controller.findOpen ? '关闭查找' : '查找',
             icon: Icon(_controller.findOpen ? Icons.search_off : Icons.search),
@@ -200,8 +262,15 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
             language: _language,
             outline: _symbols,
             controller: _controller,
+            sizeLabel: _truncated ? '前 5 MB' : formatBytes(_totalBytes),
           );
-          if (!_truncated) return code;
+          final page = Column(
+            children: [
+              _buildBreadcrumb(theme),
+              Expanded(child: code),
+            ],
+          );
+          if (!_truncated) return page;
           return Column(
             children: [
               Container(
@@ -214,7 +283,7 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
                   style: theme.textTheme.bodySmall,
                 ),
               ),
-              Expanded(child: code),
+              Expanded(child: page),
             ],
           );
         },

@@ -65,8 +65,13 @@ void main() {
     await tester.tap(find.text('Beta'));
     await tester.pumpAndSettle();
 
+    // 面包屑行是横向 Scrollable，这里要的是代码区的纵向滚动
     final scrollable = tester.state<ScrollableState>(
-      find.byType(Scrollable).first,
+      find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axis == Axis.vertical,
+          )
+          .first,
     );
     final expected = 16.0 + 4 * 19.5;
     expect(scrollable.position.pixels, greaterThan(0), reason: '点大纲条目应滚到对应行');
@@ -129,5 +134,50 @@ void main() {
       ),
     );
     expect(rich.text.toPlainText(), contains('中文'));
+  });
+
+  testWidgets('chip row shows language dot, line count and size', (tester) async {
+    await pumpPage(tester);
+
+    // 规范 2.1：语言圆点 chip + 行数 chip + 体积 chip + 唯一复制钮
+    expect(find.text('dart'), findsOneWidget);
+    expect(find.textContaining('行'), findsOneWidget);
+    expect(find.byTooltip('复制代码'), findsOneWidget);
+  });
+
+  testWidgets('selection shows the floating light toolbar with 4 actions',
+      (tester) async {
+    await pumpPage(tester);
+
+    // 长按代码区进入选择态：底部浮出白卡工具条（复制/分享/导出长图/取消）
+    final codeCenter = tester.getCenter(find.byType(HighlightView));
+    await tester.longPressAt(codeCenter);
+    await tester.pump();
+
+    expect(find.byTooltip('复制选中行'), findsOneWidget);
+    expect(find.byTooltip('分享选中行'), findsOneWidget);
+    expect(find.byTooltip('导出长图'), findsOneWidget);
+    expect(find.byTooltip('取消选区'), findsOneWidget);
+
+    // 取消后工具条消失
+    await tester.tap(find.byTooltip('取消选区'));
+    await tester.pump();
+    expect(find.byTooltip('复制选中行'), findsNothing);
+  });
+
+  testWidgets('wide layout shows the symbol sidebar with T/F prefixes',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await pumpPage(tester);
+
+    // 规范 2.3：≥1000dp 大纲侧栏常驻（T/F 前缀），AppBar 大纲钮消失
+    expect(find.byTooltip('大纲'), findsNothing);
+    expect(find.text('Alpha'), findsOneWidget);
+    expect(find.text('Beta'), findsOneWidget);
+    expect(find.text('T'), findsWidgets);
+    expect(find.text('F'), findsWidgets);
   });
 }
