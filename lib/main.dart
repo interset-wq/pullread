@@ -107,6 +107,14 @@ class _ReaderAppState extends State<ReaderApp> {
               // 页面底色统一为纯白（手机应用最常见），M3 种子默认的
               // 灰调 surface 不再使用；深色保持种子默认
               scaffoldBackgroundColor: Colors.white,
+              // Header 以 home 为准（docs/design/README.md 基准）：与屏底
+              // 同色、无 tint，滚动后 3dp 阴影明确「浮在内容之上」
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 3,
+                elevation: 0,
+              ),
               useMaterial3: true,
               pageTransitionsTheme: transitions,
               snackBarTheme: snackbar,
@@ -116,6 +124,12 @@ class _ReaderAppState extends State<ReaderApp> {
               colorScheme: ColorScheme.fromSeed(
                 seedColor: brandPine,
                 brightness: Brightness.dark,
+              ),
+              // 深色 header 保持种子 surface 底，滚动阴影行为与浅色一致
+              appBarTheme: const AppBarTheme(
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 3,
+                elevation: 0,
               ),
               useMaterial3: true,
               pageTransitionsTheme: transitions,

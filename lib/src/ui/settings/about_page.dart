@@ -115,7 +115,7 @@ class _AboutPageState extends State<AboutPage> {
                       backgroundColor: theme.scaffoldBackgroundColor,
                       foregroundColor: theme.colorScheme.onSurface,
                       elevation: 0,
-                      scrolledUnderElevation: 0,
+                      scrolledUnderElevation: 1,
                       centerTitle: true,
                       titleTextStyle: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
