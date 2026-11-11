@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'package:flutter_highlight/themes/github.dart';
@@ -12,6 +14,7 @@ import '../notes/math_render.dart';
 import '../theme/app_prefs.dart';
 import '../utils/text_encoding.dart';
 import 'code_font.dart';
+import 'desktop_shortcuts.dart';
 
 /// 本地 Markdown 编辑器：
 /// 源码编辑 + 预览切换，手动保存写回镜像文件与原文件夹（Android 经 SAF、
@@ -44,6 +47,7 @@ class MarkdownEditorPage extends StatefulWidget {
 class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   late final TextEditingController _controller;
   late String _savedText;
+  late final AppLifecycleListener _lifecycle;
 
   /// 原文件编码；保存时按同一编码写回，避免悄悄改编码。
   late final TextFileEncoding _encoding;
@@ -59,12 +63,30 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
     _encoding = detectTextEncoding(bytes);
     _savedText = decodeTextBytes(bytes);
     _controller = TextEditingController(text: _savedText);
+    // 桌面端点窗口关闭按钮不会走 Navigator.pop，必须在这里拦一次，
+    // 否则未保存的修改会随窗口消失（移动端仍由 PopScope 负责）。
+    _lifecycle = AppLifecycleListener(onExitRequested: _handleExitRequested);
   }
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<AppExitResponse> _handleExitRequested() async {
+    if (!_dirty) return AppExitResponse.exit;
+    if (_saving) return AppExitResponse.cancel;
+    final action = await _askDiscard();
+    switch (action) {
+      case 'save':
+        return await _save() ? AppExitResponse.exit : AppExitResponse.cancel;
+      case 'discard':
+        return AppExitResponse.exit;
+      default:
+        return AppExitResponse.cancel;
+    }
   }
 
   /// 保存：写镜像（dart:io 恒可写）→ 写回原文件夹（Android SAF / 桌面
@@ -122,12 +144,12 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
     return LocalFolderService.writeBack(folder, widget.relativePath, bytes);
   }
 
-  Future<void> _confirmDiscard() async {
-    final act = await showDialog<String>(
+  Future<String?> _askDiscard() {
+    return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('未保存的修改'),
-        content: const Text('修改尚未保存，离开将丢失。'),
+        content: const Text('修改尚未保存，离开会丢失。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'stay'),
@@ -144,6 +166,10 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDiscard() async {
+    final act = await _askDiscard();
     if (!mounted) return;
     switch (act) {
       case 'save':
@@ -156,12 +182,18 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return PopScope(
-      canPop: !_dirty,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _dirty) _confirmDiscard();
+    return DesktopShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
+          if (!_saving) _save();
+        },
       },
-      child: Scaffold(
+      child: PopScope(
+        canPop: !_dirty,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && _dirty) _confirmDiscard();
+        },
+        child: Scaffold(
         appBar: AppBar(
           title: Row(
             children: [
@@ -209,24 +241,32 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
         ),
         body: _preview
             ? _buildPreview(theme)
-            : Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: TextField(
-                  controller: _controller,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  keyboardType: TextInputType.multiline,
-                  // 脏状态驱动保存按钮颜色、「未保存」圆点与 PopScope.canPop：
-                  // 不监听的话编辑后离开不会弹提醒（canPop 仍是旧值）
-                  onChanged: (_) => setState(() {}),
-                  style: currentCodeFontStyle().copyWith(
-                    fontSize: 14,
-                    height: AppPrefs.instance?.lineHeight ?? 1.75,
+            : Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: TextField(
+                      controller: _controller,
+                      maxLines: null,
+                      expands: true,
+                      textAlignVertical: TextAlignVertical.top,
+                      keyboardType: TextInputType.multiline,
+                      // 未保存状态驱动保存按钮颜色、「未保存」圆点与 PopScope.canPop；
+                      // 在桌面端关闭编辑器离开时会弹提醒（canPop 不是绝对值）。
+                      onChanged: (_) => setState(() {}),
+                      style: currentCodeFontStyle().copyWith(
+                        fontSize: 14,
+                        height: AppPrefs.instance?.lineHeight ?? 1.75,
+                      ),
+                      decoration:
+                          const InputDecoration.collapsed(hintText: ''),
+                    ),
                   ),
-                  decoration: const InputDecoration.collapsed(hintText: ''),
                 ),
               ),
+        ),
       ),
     );
   }

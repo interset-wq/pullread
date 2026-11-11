@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reader/src/ui/repo_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,6 +54,42 @@ void main() {
 
     // 清空后回到普通目录列表
     await tester.tap(find.byIcon(Icons.close));
+    await tester.pump();
+    expect(find.text('beta.md'), findsWidgets);
+  });
+
+  testWidgets('Ctrl+F focuses search and Esc clears it', (tester) async {
+    final repo = Directory.systemTemp.createTempSync('repo-search-shortcut');
+    addTearDown(() {
+      if (repo.existsSync()) repo.deleteSync(recursive: true);
+    });
+    File('${repo.path}${Platform.pathSeparator}alpha.md')
+        .writeAsStringSync('# alpha\n');
+    File('${repo.path}${Platform.pathSeparator}beta.md')
+        .writeAsStringSync('# beta\n');
+
+    await tester.pumpWidget(
+      MaterialApp(home: RepoPage(repoDir: repo)),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 400)),
+    );
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    final searchBar = tester.widget<SearchBar>(find.byType(SearchBar));
+    expect(searchBar.focusNode?.hasFocus, isTrue);
+
+    await tester.enterText(find.byType(TextField).first, 'alp');
+    await tester.pump();
+    expect(find.text('beta.md'), findsNothing);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(find.text('beta.md'), findsWidgets);
   });

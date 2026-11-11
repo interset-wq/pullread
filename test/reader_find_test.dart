@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reader/src/notes/note_scanner.dart';
 import 'package:reader/src/ui/markdown_viewer.dart';
@@ -72,6 +73,41 @@ void main() {
     await tester.tap(find.byTooltip('关闭'));
     await tester.pump();
     expect(find.text('在本文中查找'), findsNothing);
+  });
+
+  testWidgets('Ctrl+F opens the find bar', (tester) async {
+    final repo = Directory.systemTemp.createTempSync('reader-find-shortcut');
+    addTearDown(() {
+      if (repo.existsSync()) repo.deleteSync(recursive: true);
+    });
+    final file = File('${repo.path}${Platform.pathSeparator}note.md')
+      ..writeAsStringSync('# 标题\n\n关键词\n');
+    final note = NoteFile(
+      relativePath: 'note.md',
+      absolutePath: file.path,
+      modified: file.statSync().modified,
+      sizeBytes: file.lengthSync(),
+    );
+
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MarkdownViewerPage(note: note, repoRoot: repo.path),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('在本文中查找'), findsNothing);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(find.text('在本文中查找'), findsOneWidget);
   });
 
   testWidgets('opening from a search result pre-fills the find bar',

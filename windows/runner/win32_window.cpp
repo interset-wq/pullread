@@ -153,6 +153,45 @@ bool Win32Window::Show() {
   return ShowWindow(window_handle_, SW_SHOWNORMAL);
 }
 
+void Win32Window::CenterOnScreen(double max_work_area_fraction) {
+  if (!window_handle_) {
+    return;
+  }
+
+  HMONITOR monitor = MonitorFromWindow(window_handle_, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO info = {};
+  info.cbSize = sizeof(info);
+  if (!GetMonitorInfo(monitor, &info)) {
+    return;
+  }
+
+  RECT rect = {};
+  if (!GetWindowRect(window_handle_, &rect)) {
+    return;
+  }
+
+  const int work_width = info.rcWork.right - info.rcWork.left;
+  const int work_height = info.rcWork.bottom - info.rcWork.top;
+  int width = rect.right - rect.left;
+  int height = rect.bottom - rect.top;
+
+  const int max_width =
+      static_cast<int>(work_width * max_work_area_fraction);
+  const int max_height =
+      static_cast<int>(work_height * max_work_area_fraction);
+  if (width > max_width) {
+    width = max_width;
+  }
+  if (height > max_height) {
+    height = max_height;
+  }
+
+  const int x = info.rcWork.left + (work_width - width) / 2;
+  const int y = info.rcWork.top + (work_height - height) / 2;
+  SetWindowPos(window_handle_, nullptr, x, y, width, height,
+               SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
 // static
 LRESULT CALLBACK Win32Window::WndProc(HWND const window,
                                       UINT const message,
@@ -186,6 +225,15 @@ Win32Window::MessageHandler(HWND hwnd,
         PostQuitMessage(0);
       }
       return 0;
+
+    case WM_GETMINMAXINFO: {
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      const UINT dpi = FlutterDesktopGetDpiForHWND(hwnd);
+      const double scale = dpi / 96.0;
+      info->ptMinTrackSize.x = Scale(720, scale);
+      info->ptMinTrackSize.y = Scale(520, scale);
+      return 0;
+    }
 
     case WM_DPICHANGED: {
       auto newRectSize = reinterpret_cast<RECT*>(lparam);

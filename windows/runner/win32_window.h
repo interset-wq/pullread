@@ -39,6 +39,10 @@ class Win32Window {
   // Show the current window. Returns true if the window was successfully shown.
   bool Show();
 
+  // Center the window in its monitor work area, shrinking it when it would
+  // exceed |max_work_area_fraction| of the available width or height.
+  void CenterOnScreen(double max_work_area_fraction);
+
   // Release OS resources associated with window.
   void Destroy();
 

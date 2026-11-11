@@ -59,6 +59,7 @@ class CodeViewController extends ChangeNotifier {
   void showOutline(BuildContext context) => _state?._showOutline(context);
   void scrollToTop() => _state?._scrollToTop();
   void scrollToBottom() => _state?._scrollToBottom();
+  void scrollByPage(double direction) => _state?._scrollByPage(direction);
 }
 
 class _CodeViewState extends State<CodeView> {
@@ -185,6 +186,14 @@ class _CodeViewState extends State<CodeView> {
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
     );
+  }
+
+  void _scrollByPage(double direction) {
+    if (!_verticalController.hasClients) return;
+    final position = _verticalController.position;
+    final target = (position.pixels + direction * position.viewportDimension * 0.9)
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    _verticalController.jumpTo(target);
   }
 
   void _showOutline(BuildContext context) {

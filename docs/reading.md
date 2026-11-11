@@ -2,6 +2,28 @@
 
 > 细节文档：阅读流程、查找、索引/搜索、标签、断链、存储与设置页。
 
+## Home (`home_page.dart`, `home_feed.dart`)
+
+- Three width modes: phone `<600`, tablet portrait `600–1000` (centered content
+  band, two-column grids) and tablet landscape `≥1000` (left reading column +
+  right repo/local pane with segmented tabs). The landscape header is drawn inside
+  the two columns, so `HomePage` has no global `AppBar` there.
+- Continue reading is a quiet divider row on phone and a large hero card on
+  tablets. Recent reading is capped at five entries, deduped against the current
+  continue-reading file, with a "全部 ›" list page.
+- Repository and local-folder tabs are mutually exclusive (`HomeSegmentedTabs`).
+  The add-repository entry is the FAB on the repo tab only; local folders use the
+  dashed "添加本地文件夹" card and never show the FAB.
+- Pin/delete (repos) and refresh/remove (local folders) live in each card's `⋮`
+  menu; destructive actions confirm first. The old horizontal
+  favorites/bookmarks strips were removed from the page — cross-source 收藏 and
+  书签 stay reachable from the home `⋮` menu.
+- Landscape single-repo mode shows a large repo card plus up to four "仓库内热门
+  目录" cards derived from `NoteIndexCache` (hidden when the cache is empty) and a
+  light guidance card, so a small library still fills the pane.
+- Tokens (paper/card/divider/green tint/pin/red) are defined once in
+  `HomeTokens` inside `home_feed.dart`, with paired light/dark values.
+
 ## Reading flow (`markdown_viewer.dart`)
 
 - **Open and resume**: after the first layout, restore the last position (heading
@@ -15,8 +37,8 @@
   (observed: 87% became 55%).
 - **Bookmarks** are paragraph-level: record heading + whole-document fraction in
   `RepoMeta.bookmarks` (100 per repo, dedupe within 1% of the same file). The
-  in-article panel can jump/delete. Home shows the five most recent; `BookmarksPage`
-  groups all by repository. Opening uses `MarkdownViewerPage.initialFraction`
+  in-article panel can jump/delete. The cross-source `BookmarksPage` (home `⋮` →
+  书签) groups all by repository. Opening uses `MarkdownViewerPage.initialFraction`
   (lower precedence than `initialFindQuery`, and it skips resume).
 - **Previous/next in the same directory** reuse `NoteIndexCache`; opening an article
   must not trigger a recursive scan. If the cache is missing, scan in the background
@@ -36,8 +58,8 @@
   `<docs>/local/.meta/recents.json`. Entries carry an ISO-8601 timestamp; home
   merges both roots, sorts newest first and dedupes per source. Never let each
   local mirror write its own recents file. Home filtering (`home_feed.dart`) also
-  drops entries whose file no longer exists, for both favorites and recents, so
-  deleted/renamed notes never leave unresponsive ghost cards.
+  drops entries whose file no longer exists, for both the `⋮` → 收藏 list and
+  recents, so deleted/renamed notes never leave unresponsive ghost cards.
 - **Repository reading status**: file rows show "read N% / finished" (<0.5% is not
   shown); the toolbar's "unread only" filter hides only files that already have
   reading records. Read all records at once with `RepoMeta.readAllProgress` and
@@ -76,8 +98,8 @@
 
 ## Tags, link checking, storage, settings
 
-- **Tags** (`lib/src/notes/tag_index.dart`, `lib/src/ui/tag_page.dart`): the home tag
-  icon opens a page aggregating front-matter `tags` from all repos and local mirrors
+- **Tags** (`lib/src/notes/tag_index.dart`, `lib/src/ui/tag_page.dart`): home `⋮` →
+  标签 opens a page aggregating front-matter `tags` from all repos and local mirrors
   (reads only the first 8 KB of each file, scans in an isolate). Selecting multiple
   tags requires ALL of them (AND) across sources. **Implicit directory tags** are a
   toggle (default on, top-right of the tag page): each directory level is merged into

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ import '../theme/app_prefs.dart';
 import '../utils/dir_size.dart' show formatBytes;
 import 'bookmarks_page.dart';
 import 'brand_splash.dart';
+import 'desktop_shortcuts.dart';
 import 'global_search_page.dart';
 import 'home_feed.dart';
 import 'open_note.dart';
@@ -50,9 +52,8 @@ class _HomePageState extends State<HomePage> {
   /// 各仓库/镜像里尚未读的「新增/更新」条目总数（更新收件箱的角标）。
   int _updateCount = 0;
 
-  /// 最近书签（首页横滑条，最多 5 条，跨仓库）。
-  List<({String repoName, Directory root, Bookmark bookmark})>
-      _recentBookmarks = const [];
+  /// 仓库 / 本地文件夹互斥切换（默认仓库）。
+  _HomeTab _tab = _HomeTab.repos;
 
   Future<Directory> get _reposRoot async {
     final docs = await getApplicationDocumentsDirectory();
@@ -85,7 +86,6 @@ class _HomePageState extends State<HomePage> {
       _localMirrors = mirrors;
     });
     unawaited(_refreshUpdateCount());
-    unawaited(_loadBookmarks());
   }
 
   /// 重新统计更新收件箱的未读数（仓库 + 本地镜像的 recentChanges）。
@@ -124,81 +124,6 @@ class _HomePageState extends State<HomePage> {
     );
     if (!mounted) return;
     await _refreshUpdateCount();
-  }
-
-  /// 收集跨仓库/本地镜像的书签，首页只展示最近 5 条。
-  Future<void> _loadBookmarks() async {
-    final out = <({String repoName, Directory root, Bookmark bookmark})>[];
-    for (final dir in _repos ?? const <Directory>[]) {
-      final name = dir.path.split(Platform.pathSeparator).last;
-      for (final bookmark in RepoMeta.readBookmarks(dir.path)) {
-        out.add((repoName: name, root: dir, bookmark: bookmark));
-      }
-    }
-    for (final folder in _localFolders ?? const <LocalFolder>[]) {
-      final dir = await LocalFolderService.mirrorDir(folder.name);
-      for (final bookmark in RepoMeta.readBookmarks(dir.path)) {
-        out.add((repoName: folder.name, root: dir, bookmark: bookmark));
-      }
-    }
-    out.sort((a, b) => b.bookmark.createdAt.compareTo(a.bookmark.createdAt));
-    if (!mounted) return;
-    setState(() => _recentBookmarks = out.take(5).toList());
-  }
-
-  Future<void> _openBookmark(
-    ({String repoName, Directory root, Bookmark bookmark}) entry,
-  ) async {
-    final bookmark = entry.bookmark;
-    final file = File(
-      '${entry.root.path}${Platform.pathSeparator}'
-      '${bookmark.relativePath.replaceAll('/', Platform.pathSeparator)}',
-    );
-    if (!file.existsSync()) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('文件已不存在；书签可在书签页删除')),
-      );
-      return;
-    }
-    final stat = file.statSync();
-    await openNoteFile(
-      context,
-      repoRoot: entry.root.path,
-      note: NoteFile(
-        relativePath: bookmark.relativePath,
-        absolutePath: file.path,
-        modified: stat.modified,
-        sizeBytes: stat.size,
-      ),
-      initialFraction: bookmark.fraction,
-    );
-    if (!mounted) return;
-    await _loadBookmarks();
-  }
-
-  /// 全部书签页（跨仓库）。
-  Future<void> _openBookmarks() async {
-    final sources = <BookmarkSource>[];
-    for (final dir in _repos ?? const <Directory>[]) {
-      sources.add(BookmarkSource(
-        name: dir.path.split(Platform.pathSeparator).last,
-        root: dir,
-      ));
-    }
-    for (final folder in _localFolders ?? const <LocalFolder>[]) {
-      sources.add(BookmarkSource(
-        name: folder.name,
-        root: await LocalFolderService.mirrorDir(folder.name),
-      ));
-    }
-    if (!mounted) return;
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(builder: (_) => BookmarksPage(sources: sources)),
-    );
-    if (!mounted) return;
-    await _loadBookmarks();
   }
 
   /// 添加本地文件夹（系统选择器授权 + 首次镜像）。
@@ -328,6 +253,59 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// 全部收藏页（首页不再放横滑条，入口收进 ⋮ 菜单）。
+  Future<void> _openStarred() async {
+    final repos = _repos ?? const <Directory>[];
+    final locals = _localMirrors;
+    final entries = <HomeRecentEntry>[
+      for (final (source, rel) in collectHomeStarred(repos, locals))
+        HomeRecentEntry(
+          source: source,
+          relativePath: rel,
+          isLocal: locals.any((dir) => dir.path == source.path),
+        ),
+    ];
+    if (!mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => _FileListPage(
+          title: '收藏',
+          emptyText: '还没有收藏',
+          entries: entries,
+          onOpen: _openRecentEntry,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  /// 全部书签页（跨仓库/本地文件夹）。
+  Future<void> _openBookmarks() async {
+    final sources = <BookmarkSource>[];
+    for (final dir in _repos ?? const <Directory>[]) {
+      sources.add(
+        BookmarkSource(
+          name: dir.path.split(Platform.pathSeparator).last,
+          root: dir,
+        ),
+      );
+    }
+    for (final folder in _localFolders ?? const <LocalFolder>[]) {
+      sources.add(
+        BookmarkSource(
+          name: folder.name,
+          root: await LocalFolderService.mirrorDir(folder.name),
+        ),
+      );
+    }
+    if (!mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => BookmarksPage(sources: sources)),
+    );
+  }
+
   Future<void> _loadRepos() async {
     List<Directory> dirs;
     try {
@@ -351,7 +329,6 @@ class _HomePageState extends State<HomePage> {
     });
     setState(() => _repos = dirs);
     unawaited(_refreshUpdateCount());
-    unawaited(_loadBookmarks());
   }
 
   void _showThemeSheet(AppPrefs prefs) {
@@ -361,558 +338,775 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     // 首屏仓库列表由 _loadRepos 直接读目录，通常一两帧内就绪。这里继续显示
-    // 品牌闪屏（与 main.dart 的初始化页同一实现），而不是转圈：否则闪屏尾帧
-    // 会和「屏幕中央的绿色小点」重叠，看起来像第三次启动动画。
+    // 品牌闪屏（与 main.dart 的初始化页同一实现），而不是转圈。
     if (_repos == null) return const BrandSplash();
-    final theme = Theme.of(context);
+    final tokens = HomeTokens.of(context);
     final repos = _repos ?? const <Directory>[];
     final locals = _localFolders ?? const <LocalFolder>[];
-    final starred = collectHomeStarred(repos, _localMirrors);
-    final recents = collectHomeRecents(
-      repos,
-      _localMirrors,
-      limit: AppPrefs.instance?.recentsLimit ?? 5,
+    final recentsAll =
+        collectHomeRecentEntries(repos, _localMirrors, limit: 50);
+    final resume = _continueEntry(recentsAll);
+    final recents = homeRecentsForDisplay(
+      all: recentsAll,
+      skip: resume?.entry,
+      limit: 5,
     );
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        // 头部左侧用 logo 代替文字品牌（文字受系统字体影响，行为难控）
-        title: Image.asset(
-          'assets/icon/app_logo.png',
-          width: 40,
-          height: 40,
-        ),
-        actions: [
-          IconButton(
-            tooltip: '搜索全部仓库和本地文件夹',
-            icon: const Icon(Icons.search),
-            onPressed: repos.isEmpty && locals.isEmpty
-                ? null
-                : () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => GlobalSearchPage(
-                          repos: repos,
-                          locals: _localMirrors,
+    final isLandscape = MediaQuery.sizeOf(context).width >= 1000;
+    return DesktopShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () =>
+            _openGlobalSearch(repos, locals),
+      },
+      child: Scaffold(
+        backgroundColor: tokens.paper,
+        appBar: isLandscape ? null : _buildAppBar(tokens, repos, locals),
+        floatingActionButton: _tab == _HomeTab.repos
+            ? FloatingActionButton(
+                backgroundColor: tokens.green,
+                foregroundColor: tokens.paper,
+                onPressed: _cloning ? null : _showCloneDialog,
+                child: _cloning
+                    ? SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: tokens.paper,
                         ),
-                      ),
+                      )
+                    : const Icon(Icons.add),
+              )
+            : null,
+        body: isLandscape
+            ? _buildLandscape(
+                context,
+                tokens,
+                repos,
+                locals,
+                resume,
+                recents,
+                recentsAll,
+              )
+            : _buildPortrait(
+                context,
+                tokens,
+                repos,
+                locals,
+                resume,
+                recents,
+                recentsAll,
+              ),
+      ),
+    );
+  }
+
+  void _openGlobalSearch(List<Directory> repos, List<LocalFolder> locals) {
+    if (repos.isEmpty && locals.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            GlobalSearchPage(repos: repos, locals: _localMirrors),
+      ),
+    );
+  }
+
+  AppBar _buildAppBar(
+    HomeTokens tokens,
+    List<Directory> repos,
+    List<LocalFolder> locals,
+  ) {
+    return AppBar(
+      backgroundColor: tokens.paper,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      elevation: 0,
+      centerTitle: false,
+      iconTheme: IconThemeData(color: tokens.icon),
+      title: Image.asset('assets/icon/app_logo.png', width: 34, height: 34),
+      actions: _headerActions(tokens, repos, locals, includeOverflow: true),
+    );
+  }
+
+  List<Widget> _headerActions(
+    HomeTokens tokens,
+    List<Directory> repos,
+    List<LocalFolder> locals, {
+    required bool includeOverflow,
+  }) {
+    return [
+      IconButton(
+        tooltip: '搜索全部仓库和本地文件夹',
+        icon: const Icon(Icons.search),
+        onPressed: repos.isEmpty && locals.isEmpty
+            ? null
+            : () => _openGlobalSearch(repos, locals),
+      ),
+      IconButton(
+        tooltip: '更新收件箱',
+        icon: Badge(
+          isLabelVisible: _updateCount > 0,
+          backgroundColor: tokens.red,
+          textColor: Colors.white,
+          label: Text(_updateCount > 99 ? '99+' : '$_updateCount'),
+          child: const Icon(Icons.inbox_outlined),
+        ),
+        onPressed: (repos.isEmpty && locals.isEmpty) ? null : _openUpdates,
+      ),
+      if (_updatingAll)
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      if (includeOverflow) _buildOverflow(tokens, repos, locals),
+    ];
+  }
+
+  Widget _buildOverflow(
+    HomeTokens tokens,
+    List<Directory> repos,
+    List<LocalFolder> locals,
+  ) {
+    return PopupMenuButton<String>(
+      tooltip: '更多',
+      icon: Icon(Icons.more_vert, color: tokens.icon),
+      onSelected: (value) {
+        final prefs = AppPrefs.instance;
+        switch (value) {
+          case 'tags':
+            _openTags(repos);
+          case 'starred':
+            _openStarred();
+          case 'bookmarks':
+            _openBookmarks();
+          case 'sync':
+            _pullAll();
+          case 'theme':
+            if (prefs != null) _showThemeSheet(prefs);
+          case 'settings':
+            if (prefs != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => SettingsPage(prefs: prefs),
+                ),
+              );
+            }
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'tags',
+          enabled: !(repos.isEmpty && locals.isEmpty),
+          child: const Row(
+            children: [
+              Icon(Icons.sell_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('标签'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'starred',
+          enabled: !(repos.isEmpty && locals.isEmpty),
+          child: const Row(
+            children: [
+              Icon(Icons.star_outline_rounded, size: 20),
+              SizedBox(width: 12),
+              Text('收藏'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'bookmarks',
+          enabled: !(repos.isEmpty && locals.isEmpty),
+          child: const Row(
+            children: [
+              Icon(Icons.bookmark_outline, size: 20),
+              SizedBox(width: 12),
+              Text('书签'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'sync',
+          enabled: !(_cloning || _updatingAll || _repos == null),
+          child: Row(
+            children: [
+              const Icon(Icons.cloud_sync_outlined, size: 20),
+              const SizedBox(width: 12),
+              Text(_updatingAll ? '正在更新…' : '全部更新'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'theme',
+          enabled: AppPrefs.instance != null,
+          child: const Row(
+            children: [
+              Icon(Icons.brightness_auto, size: 20),
+              SizedBox(width: 12),
+              Text('主题'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'settings',
+          enabled: AppPrefs.instance != null,
+          child: const Row(
+            children: [
+              Icon(Icons.settings_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('设置'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPortrait(
+    BuildContext context,
+    HomeTokens tokens,
+    List<Directory> repos,
+    List<LocalFolder> locals,
+    _ContinueTarget? resume,
+    List<HomeRecentEntry> recents,
+    List<HomeRecentEntry> recentsAll,
+  ) {
+    final isTablet = MediaQuery.sizeOf(context).width >= 600;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final contentWidth = isTablet
+            ? math.min(constraints.maxWidth, 720.0)
+            : constraints.maxWidth;
+        final horizontal = isTablet ? 24.0 : 20.0;
+        final innerWidth = contentWidth - horizontal * 2;
+        return Center(
+          child: SizedBox(
+            width: contentWidth,
+            child: RefreshIndicator(
+              onRefresh: _loadRepos,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(horizontal, 6, horizontal, 96),
+                children: [
+                  if (resume != null)
+                    isTablet
+                        ? HomeContinueHero(
+                            title: resume.entry.fileName,
+                            repo: _sourceLabel(resume.entry),
+                            fraction: resume.fraction,
+                            headingIndex: resume.headingIndex,
+                            remainingMinutes: resume.remainingMinutes,
+                            onTap: () => _openRecentEntry(resume.entry),
+                          )
+                        : HomeContinueRow(
+                            title: resume.entry.fileName,
+                            repo: _sourceLabel(resume.entry),
+                            fraction: resume.fraction,
+                            onTap: () => _openRecentEntry(resume.entry),
+                          ),
+                  if (recents.isNotEmpty) ...[
+                    if (resume != null) const SizedBox(height: 6),
+                    HomeSectionHeader(
+                      title: '最近阅读',
+                      onAction: recentsAll.isEmpty
+                          ? null
+                          : () => _openAllRecents(recentsAll),
                     ),
-          ),
-          IconButton(
-            tooltip: '更新收件箱',
-            icon: Badge(
-              isLabelVisible: _updateCount > 0,
-              label: Text(_updateCount > 99 ? '99+' : '$_updateCount'),
-              child: const Icon(Icons.inbox_outlined),
-            ),
-            onPressed: (repos.isEmpty && locals.isEmpty) ? null : _openUpdates,
-          ),
-          if (_updatingAll)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+                    if (isTablet)
+                      ..._recentGrid(recents, innerWidth)
+                    else
+                      for (final entry in recents)
+                        HomeRecentRow(
+                          title: entry.fileName,
+                          repo: _sourceLabel(entry),
+                          onTap: () => _openRecentEntry(entry),
+                        ),
+                  ],
+                  const SizedBox(height: 16),
+                  HomeSegmentedTabs(
+                    repoCount: repos.length,
+                    localCount: locals.length,
+                    localSelected: _tab == _HomeTab.locals,
+                    onChanged: (local) => setState(
+                      () => _tab = local ? _HomeTab.locals : _HomeTab.repos,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ..._tabContent(
+                    repos,
+                    locals,
+                    isTablet: isTablet,
+                    contentWidth: innerWidth,
+                  ),
+                ],
               ),
             ),
-          PopupMenuButton<String>(
-            tooltip: '更多',
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              final prefs = AppPrefs.instance;
-              switch (value) {
-                case 'tags':
-                  _openTags(repos);
-                case 'sync':
-                  _pullAll();
-                case 'theme':
-                  if (prefs != null) _showThemeSheet(prefs);
-                case 'settings':
-                  if (prefs != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => SettingsPage(prefs: prefs),
-                      ),
-                    );
-                  }
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'tags',
-                enabled: !(repos.isEmpty && locals.isEmpty),
-                child: const Row(
-                  children: [
-                    Icon(Icons.sell_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('标签'),
-                  ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLandscape(
+    BuildContext context,
+    HomeTokens tokens,
+    List<Directory> repos,
+    List<LocalFolder> locals,
+    _ContinueTarget? resume,
+    List<HomeRecentEntry> recents,
+    List<HomeRecentEntry> recentsAll,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final leftWidth =
+            (constraints.maxWidth * 0.36).clamp(340.0, 440.0);
+        final rightWidth = constraints.maxWidth - leftWidth - 1;
+        return SafeArea(
+          top: true,
+          child: Row(
+            children: [
+              SizedBox(
+                width: leftWidth,
+                child: _buildLeftPane(
+                  tokens,
+                  repos,
+                  locals,
+                  resume,
+                  recents,
+                  recentsAll,
                 ),
               ),
-              PopupMenuItem(
-                value: 'sync',
-                enabled: !(_cloning || _updatingAll || _repos == null),
-                child: Row(
-                  children: [
-                    const Icon(Icons.cloud_sync_outlined, size: 20),
-                    const SizedBox(width: 12),
-                    Text(_updatingAll ? '正在更新…' : '全部更新'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'theme',
-                enabled: AppPrefs.instance != null,
-                child: const Row(
-                  children: [
-                    Icon(Icons.brightness_auto, size: 20),
-                    SizedBox(width: 12),
-                    Text('主题'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'settings',
-                enabled: AppPrefs.instance != null,
-                child: const Row(
-                  children: [
-                    Icon(Icons.settings_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('设置'),
-                  ],
+              Container(width: 1, color: tokens.heroDivider),
+              Expanded(
+                child: _buildRightPane(
+                  tokens,
+                  repos,
+                  locals,
+                  rightWidth - 56,
                 ),
               ),
             ],
           ),
-        ],      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _cloning ? null : _showCloneDialog,
-        child: _cloning
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.add),
-      ),
-      body: _repos == null
-          ? const BrandSplash()
-          : RefreshIndicator(
-              onRefresh: _loadRepos,
-              child: repos.isEmpty && locals.isEmpty
-                  ? _EmptyState(
-                      onAdd: _showCloneDialog,
-                      onAddLocal: _addLocalFolder,
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                      itemCount: locals.length + repos.length + 1,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, i) {
-                        if (i == 0) {
-                          final resume =
-                              _continueReading(repos, _localMirrors);
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (resume != null) ...[
-                                _buildContinueCard(resume),
-                                const SizedBox(height: 16),
-                              ],
-                              _buildFileStrip(
-                                title: '⭐ 收藏',
-                                files: starred,
-                                starred: true,
-                              ),
-                              if (starred.isNotEmpty && recents.isNotEmpty)
-                                const SizedBox(height: 12),
-                              _buildFileStrip(
-                                title: '最近阅读',
-                                files: recents,
-                                starred: false,
-                              ),
-                              if (_recentBookmarks.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                _buildBookmarkStrip(theme),
-                              ],
-                              const SizedBox(height: 16),
-                              if (locals.isEmpty)
-                                // 空态：一张添加入口卡（避免孤立标题悬在仓库卡上方）
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Card(
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                      side: BorderSide(
-                                        color: theme.colorScheme.outlineVariant,
-                                      ),
-                                    ),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(16),
-                                      onTap: _addLocalFolder,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.create_new_folder_outlined,
-                                              color:
-                                                  theme.colorScheme.tertiary,
-                                              size: 32,
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Expanded(
-                                              child: Text(
-                                                '添加本地文件夹',
-                                                style: theme
-                                                    .textTheme.titleMedium,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Markdown / Notebook',
-                                              style: theme
-                                                  .textTheme.bodySmall
-                                                  ?.copyWith(
-                                                color: theme.colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                            ),
-                                            const Icon(Icons.chevron_right),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              else ...[
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '本地文件夹',
-                                        style: theme.textTheme.titleMedium,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      tooltip: '添加本地文件夹',
-                                      icon: const Icon(
-                                        Icons.create_new_folder_outlined,
-                                      ),
-                                      onPressed: _addLocalFolder,
-                                    ),
-                                  ],
-                                ),
-                                for (final folder in locals)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: _LocalCard(
-                                      name: folder.name,
-                                      onTap: () => _openLocal(folder),
-                                      onRefresh: () => _syncLocal(folder),
-                                      onRemove: () =>
-                                          _confirmRemoveLocal(folder),
-                                    ),
-                                  ),
-                              ],
-                            ],
-                          );
-                        }
-                        if (i <= locals.length) {
-                          // 本地卡片已在上方汇总区渲染，跳过占位
-                          return const SizedBox.shrink();
-                        }
-                        final repo = repos[i - locals.length - 1];
-                        final name =
-                            repo.path.split(Platform.pathSeparator).last;
-                        final meta = RepoMeta.read(repo.path);
-                        return _RepoCard(
-                          name: name,
-                          source: meta?.source,
-                          lastOpened: meta?.lastOpened,
-                          syncedAt: meta?.syncedAt,
-                          pinned: RepoMeta.isPinned(repo.path),
-                          onTogglePin: () {
-                            RepoMeta.togglePin(repo.path);
-                            _loadRepos();
-                          },
-                          onTap: () => _openRepo(repo),
-                          onDelete: () => _confirmDelete(repo),
-                        );
-                      },
-                    ),
-            ),
+        );
+      },
     );
   }
 
-  /// 「继续阅读」候选：最近阅读里第一篇文章，且进度在 (2%, 98%) 之间
-  /// （刚开始读的 0% 和已读完的不值得单独占一张卡）。
-  (Directory, String, double)? _continueReading(
+  Widget _buildLeftPane(
+    HomeTokens tokens,
     List<Directory> repos,
-    List<Directory> locals,
+    List<LocalFolder> locals,
+    _ContinueTarget? resume,
+    List<HomeRecentEntry> recents,
+    List<HomeRecentEntry> recentsAll,
   ) {
-    final limit = AppPrefs.instance?.recentsLimit ?? 5;
-    for (final (repo, relPath)
-        in collectHomeRecents(repos, locals, limit: limit)) {
-      final (fraction, _) = RepoMeta.readProgressInfo(repo.path, relPath);
-      if (fraction <= 0.02 || fraction >= 0.98) continue;
-      final file = File(
-        '${repo.path}${Platform.pathSeparator}'
-        '${relPath.replaceAll('/', Platform.pathSeparator)}',
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 14, 16, 10),
+          child: Row(
+            children: [
+              Image.asset(
+                'assets/icon/app_logo.png',
+                width: 34,
+                height: 34,
+              ),
+              const Spacer(),
+              ..._headerActions(
+                tokens,
+                repos,
+                locals,
+                includeOverflow: false,
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadRepos,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 96),
+              children: [
+                if (resume != null) ...[
+                  HomeContinueHero(
+                    title: resume.entry.fileName,
+                    repo: _sourceLabel(resume.entry),
+                    fraction: resume.fraction,
+                    headingIndex: resume.headingIndex,
+                    compact: true,
+                    onTap: () => _openRecentEntry(resume.entry),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (recents.isNotEmpty) ...[
+                  HomeSectionHeader(
+                    title: '最近阅读',
+                    onAction: recentsAll.isEmpty
+                        ? null
+                        : () => _openAllRecents(recentsAll),
+                  ),
+                  for (final entry in recents)
+                    HomeRecentRow(
+                      title: entry.fileName,
+                      repo: _sourceLabel(entry),
+                      onTap: () => _openRecentEntry(entry),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRightPane(
+    HomeTokens tokens,
+    List<Directory> repos,
+    List<LocalFolder> locals,
+    double contentWidth,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: math.min(contentWidth, 380),
+                child: HomeSegmentedTabs(
+                  repoCount: repos.length,
+                  localCount: locals.length,
+                  localSelected: _tab == _HomeTab.locals,
+                  onChanged: (local) => setState(
+                    () => _tab = local ? _HomeTab.locals : _HomeTab.repos,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              _buildOverflow(tokens, repos, locals),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 96),
+              children: _tabContent(
+                repos,
+                locals,
+                isTablet: true,
+                contentWidth: contentWidth,
+                landscape: true,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _tabContent(
+    List<Directory> repos,
+    List<LocalFolder> locals, {
+    required bool isTablet,
+    required double contentWidth,
+    bool landscape = false,
+  }) {
+    if (_tab == _HomeTab.repos) {
+      if (repos.isEmpty) {
+        return [
+          HomeEmptyCard(
+            title: '还没有仓库',
+            body: landscape
+                ? '右上角 + 添加一个仓库，开始离线阅读。'
+                : '点右下角 + 添加一个仓库，开始离线阅读。',
+            icon: Icons.folder_special_outlined,
+            actionLabel: '添加仓库',
+            onAction: _showCloneDialog,
+          ),
+        ];
+      }
+      final single = repos.length == 1;
+      if (isTablet && single) {
+        final repo = repos.first;
+        final children = <Widget>[
+          _repoCard(repo, large: true),
+        ];
+        if (landscape) {
+          final hot = _hotDirectories(repo);
+          if (hot.isNotEmpty) {
+            children.add(const SizedBox(height: 20));
+            children.add(const HomeSectionHeader(title: '仓库内热门目录'));
+            children.add(const SizedBox(height: 10));
+            children.add(
+              _twoColumn(
+                width: contentWidth,
+                gap: 12,
+                children: [
+                  for (final dir in hot)
+                    HomeHotDirectoryCard(
+                      name: dir.name,
+                      subtitle: '${dir.count} 篇 · 最近 ${dir.recentFile}',
+                      onTap: () => _openHotDirectory(repo, dir.name),
+                    ),
+                ],
+              ),
+            );
+          }
+          children.add(const SizedBox(height: 16));
+          children.add(
+            HomeEmptyCard(
+              title: '想读点新的？',
+              body: '右上角 + 添加一个仓库，或切到「本地文件夹」打开本地笔记。',
+              icon: Icons.auto_stories_outlined,
+              actionLabel: '添加仓库',
+              onAction: _showCloneDialog,
+            ),
+          );
+        }
+        return children;
+      }
+      if (isTablet) {
+        return [
+          _twoColumn(
+            width: contentWidth,
+            gap: 10,
+            children: [
+              for (final repo in repos) _repoCard(repo, large: false),
+            ],
+          ),
+        ];
+      }
+      return [
+        for (final repo in repos) ...[
+          _repoCard(repo, large: false),
+          const SizedBox(height: 10),
+        ],
+      ];
+    }
+
+    final children = <Widget>[];
+    if (locals.isEmpty) {
+      children.add(
+        HomeEmptyCard(
+          title: '还没有本地文件夹',
+          body: '选择手机或电脑上的 Markdown 文件夹，授权后即可离线阅读。',
+          icon: Icons.folder_open,
+        ),
       );
-      if (!file.existsSync()) continue;
-      return (repo, relPath, fraction);
+      children.add(const SizedBox(height: 10));
+    }
+    if (isTablet && locals.isNotEmpty) {
+      children.add(
+        _twoColumn(
+          width: contentWidth,
+          gap: 10,
+          children: [
+            for (final folder in locals) _localCard(folder),
+          ],
+        ),
+      );
+      children.add(const SizedBox(height: 10));
+    } else {
+      for (final folder in locals) {
+        children.add(_localCard(folder));
+        children.add(const SizedBox(height: 10));
+      }
+    }
+    children.add(HomeAddLocalCard(onTap: _addLocalFolder));
+    return children;
+  }
+
+  Widget _twoColumn({
+    required double width,
+    required double gap,
+    required List<Widget> children,
+  }) {
+    final itemWidth = math.max(0.0, (width - gap) / 2);
+    return Wrap(
+      spacing: gap,
+      runSpacing: gap,
+      alignment: WrapAlignment.start,
+      children: [
+        for (final child in children) SizedBox(width: itemWidth, child: child),
+      ],
+    );
+  }
+
+  List<Widget> _recentGrid(List<HomeRecentEntry> recents, double width) {
+    const gap = 12.0;
+    return [
+      const SizedBox(height: 10),
+      _twoColumn(
+        width: width,
+        gap: gap,
+        children: [
+          for (final entry in recents)
+            HomeRecentCard(
+              title: entry.fileName,
+              repo: _sourceLabel(entry),
+              chapter: homeChapterLabel(entry.relativePath),
+              timeLabel: homeRecentTimeLabel(entry.at),
+              onTap: () => _openRecentEntry(entry),
+            ),
+        ],
+      ),
+    ];
+  }
+
+  HomeRepoCard _repoCard(Directory repo, {required bool large}) {
+    final name = repo.path.split(Platform.pathSeparator).last;
+    final meta = RepoMeta.read(repo.path);
+    return HomeRepoCard(
+      name: name,
+      source: meta?.source,
+      lastOpened: meta?.lastOpened,
+      syncedAt: meta?.syncedAt,
+      pinned: RepoMeta.isPinned(repo.path),
+      fileCount: large ? NoteIndexCache.read(repo.path)?.length : null,
+      large: large,
+      onTap: () => _openRepo(repo),
+      onTogglePin: () {
+        RepoMeta.togglePin(repo.path);
+        _loadRepos();
+      },
+      onDelete: () => _confirmDelete(repo),
+    );
+  }
+
+  HomeLocalCard _localCard(LocalFolder folder) {
+    final mirror = _mirrorFor(folder.name);
+    return HomeLocalCard(
+      name: folder.name,
+      fileCount:
+          mirror == null ? null : NoteIndexCache.read(mirror.path)?.length,
+      onTap: () => _openLocal(folder),
+      onRefresh: () => _syncLocal(folder),
+      onRemove: () => _confirmRemoveLocal(folder),
+    );
+  }
+
+  Directory? _mirrorFor(String name) {
+    for (final dir in _localMirrors) {
+      if (dir.path.split(Platform.pathSeparator).last == name) return dir;
     }
     return null;
   }
 
-  /// 首页顶部「继续阅读」卡：直接回到上次读到的位置。
-  Widget _buildContinueCard((Directory, String, double) resume) {
-    final (repo, relPath, fraction) = resume;
-    final theme = Theme.of(context);
-    final repoName = repo.path.split(Platform.pathSeparator).last;
-    final origin = LocalFolderService.isLocalMirror(repo.path)
-        ? '本地 · $repoName'
-        : repoName;
-    final fileName = relPath.split('/').last;
-    return Material(
-      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _openRecentFile(repo, relPath),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Icon(
-                Icons.play_circle_outline,
-                color: theme.colorScheme.primary,
-                size: 30,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '继续阅读',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      fileName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$origin · 已读 ${(fraction * 100).round()}%',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
+  String _sourceLabel(HomeRecentEntry entry) =>
+      entry.isLocal ? '本地 · ${entry.repoName}' : entry.repoName;
+
+  /// 「继续阅读」候选：最近阅读里第一篇文章，且进度在 (2%, 98%) 之间
+  /// （刚开始读的 0% 和已读完的不值得单独占一栏）。
+  _ContinueTarget? _continueEntry(List<HomeRecentEntry> recents) {
+    for (final entry in recents) {
+      final (fraction, heading) = RepoMeta.readProgressInfo(
+        entry.source.path,
+        entry.relativePath,
+      );
+      if (fraction <= 0.02 || fraction >= 0.98) continue;
+      final file = File(
+        '${entry.source.path}${Platform.pathSeparator}'
+        '${entry.relativePath.replaceAll('/', Platform.pathSeparator)}',
+      );
+      if (!file.existsSync()) continue;
+      return _ContinueTarget(
+        entry: entry,
+        fraction: fraction,
+        headingIndex: heading,
+        remainingMinutes: estimateRemainingMinutes(
+          file.statSync().size,
+          fraction,
+        ),
+      );
+    }
+    return null;
+  }
+
+  List<_HotDirectory> _hotDirectories(Directory repo) {
+    final files = NoteIndexCache.read(repo.path);
+    if (files == null || files.isEmpty) return const [];
+    final counts =
+        <String, ({int count, String recent, DateTime modified})>{};
+    for (final file in files) {
+      final parts = file.relativePath.split('/');
+      if (parts.length < 2 || parts.first.isEmpty) continue;
+      final dir = parts.first;
+      final base = parts.last;
+      final prev = counts[dir];
+      if (prev == null) {
+        counts[dir] = (
+          count: 1,
+          recent: base,
+          modified: file.modified,
+        );
+      } else if (file.modified.isAfter(prev.modified)) {
+        counts[dir] = (
+          count: prev.count + 1,
+          recent: base,
+          modified: file.modified,
+        );
+      } else {
+        counts[dir] = (
+          count: prev.count + 1,
+          recent: prev.recent,
+          modified: prev.modified,
+        );
+      }
+    }
+    final dirs = [
+      for (final entry in counts.entries)
+        _HotDirectory(
+          name: entry.key,
+          count: entry.value.count,
+          recentFile: entry.value.recent,
+        ),
+    ]..sort((a, b) => b.count.compareTo(a.count));
+    return dirs.take(4).toList();
+  }
+
+  Future<void> _openAllRecents(List<HomeRecentEntry> entries) async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => _FileListPage(
+          title: '最近阅读',
+          emptyText: '还没有阅读记录',
+          entries: entries,
+          onOpen: _openRecentEntry,
         ),
       ),
     );
+    if (mounted) setState(() {});
   }
 
-  /// 首页书签条：最近 5 条书签，点卡片直达，「全部」进跨仓库书签页。
-  Widget _buildBookmarkStrip(ThemeData theme) {
-    if (_recentBookmarks.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text('书签', style: theme.textTheme.titleMedium),
-            ),
-            TextButton(
-              onPressed: _openBookmarks,
-              child: const Text('全部'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 76,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _recentBookmarks.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final entry = _recentBookmarks[i];
-              final fileName = entry.bookmark.relativePath.split('/').last;
-              return Material(
-                color: theme.colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => _openBookmark(entry),
-                  child: Container(
-                    width: 210,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.bookmark_outline,
-                          size: 22,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                entry.bookmark.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                '$fileName · '
-                                '${(entry.bookmark.fraction * 100).round()}%',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color:
-                                      theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+  Future<void> _openHotDirectory(Directory repo, String subPath) async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => RepoPage(repoDir: repo, subPath: subPath),
+        settings: const RouteSettings(name: 'repo-root'),
+      ),
     );
+    if (!mounted) return;
+    await _refreshUpdateCount();
   }
 
-  /// 首页横滑文件条（收藏 / 最近阅读）。
-  Widget _buildFileStrip({
-    required String title,
-    required List<(Directory, String)> files,
-    required bool starred,
-  }) {
-    if (files.isEmpty) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    final accent = starred
-        ? const Color(0xFFF5B301)
-        : theme.colorScheme.primary;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 76,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: files.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final (repo, relPath) = files[i];
-              final repoName =
-                  repo.path.split(Platform.pathSeparator).last;
-              final origin = LocalFolderService.isLocalMirror(repo.path)
-                  ? '本地 · $repoName'
-                  : repoName;
-              final fileName = relPath.split('/').last;
-              final parentDir = relPath.split('/')
-                ..removeLast()
-                ..removeWhere((s) => s.isEmpty);
-              final subtitle = parentDir.isEmpty
-                  ? origin
-                  : '$origin · ${parentDir.last}';
-              return Material(
-                color: theme.colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => _openRecentFile(repo, relPath),
-                  child: Container(
-                    width: 190,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          starred
-                              ? Icons.star_rounded
-                              : Icons.history_rounded,
-                          size: 22,
-                          color: accent,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                fileName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w500),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                subtitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color:
-                                      theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
+  void _openRecentEntry(HomeRecentEntry entry) {
+    _openRecentFile(entry.source, entry.relativePath);
   }
-
   /// 打开最近阅读的文章（统一走 [openNoteFile]：清除更新标记、记录最近打开；
   /// 文件已删除时忽略）。
   Future<void> _openRecentFile(Directory repo, String relPath) async {
@@ -1263,243 +1457,91 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-/// 空状态引导。
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAdd, this.onAddLocal});
+enum _HomeTab { repos, locals }
 
-  final VoidCallback onAdd;
+/// 「继续阅读」候选：最近阅读条目 + 进度信息。
+class _ContinueTarget {
+  const _ContinueTarget({
+    required this.entry,
+    required this.fraction,
+    this.headingIndex,
+    this.remainingMinutes,
+  });
 
-  /// 本地文件夹入口（可选：本地阅读器交付后出现）。
-  final VoidCallback? onAddLocal;
+  final HomeRecentEntry entry;
+  final double fraction;
+  final int? headingIndex;
+  final int? remainingMinutes;
+}
+
+/// 仓库内热门目录（来自 note_index 的真实扫描计数）。
+class _HotDirectory {
+  const _HotDirectory({
+    required this.name,
+    required this.count,
+    required this.recentFile,
+  });
+
+  final String name;
+  final int count;
+  final String recentFile;
+}
+
+/// 跨来源文件列表页（最近阅读 / 收藏共用）。
+class _FileListPage extends StatelessWidget {
+  const _FileListPage({
+    required this.title,
+    required this.emptyText,
+    required this.entries,
+    required this.onOpen,
+  });
+
+  final String title;
+  final String emptyText;
+  final List<HomeRecentEntry> entries;
+  final void Function(HomeRecentEntry entry) onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListView(
-      children: [
-        const SizedBox(height: 120),
-        Icon(Icons.auto_stories_outlined,
-            size: 72, color: theme.colorScheme.primary.withAlpha(120)),
-        const SizedBox(height: 16),
-        Center(
-          child: Text('克隆一次，常读常新',
-              style: theme.textTheme.titleMedium),
-        ),
-        const SizedBox(height: 24),
-        Center(
-          child: FilledButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add),
-            label: const Text('添加仓库'),
+    final tokens = HomeTokens.of(context);
+    return Scaffold(
+      backgroundColor: tokens.paper,
+      appBar: AppBar(
+        backgroundColor: tokens.paper,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        elevation: 0,
+        iconTheme: IconThemeData(color: tokens.icon),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: tokens.title,
           ),
         ),
-        if (onAddLocal != null) ...[
-          const SizedBox(height: 12),
-          Center(
-            child: OutlinedButton.icon(
-              onPressed: onAddLocal,
-              icon: const Icon(Icons.folder_open),
-              label: const Text('打开本地文件夹'),
+      ),
+      body: entries.isEmpty
+          ? Center(
+              child: Text(
+                emptyText,
+                style: TextStyle(fontSize: 13.5, color: tokens.meta),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+              itemCount: entries.length,
+              itemBuilder: (context, index) {
+                final entry = entries[index];
+                return HomeRecentRow(
+                  title: entry.fileName,
+                  repo: entry.isLocal
+                      ? '本地 · ${entry.repoName}'
+                      : entry.repoName,
+                  onTap: () => onOpen(entry),
+                );
+              },
             ),
-          ),
-        ],
-      ],
     );
   }
 }
-
-/// 仓库卡片。
-/// 相对时间文案（仓库卡「同步于 …」）。
-String _relativeTime(DateTime time) {
-  final diff = DateTime.now().difference(time);
-  if (diff.inMinutes < 1) return '刚刚';
-  if (diff.inHours < 1) return '${diff.inMinutes} 分钟前';
-  if (diff.inDays < 1) return '${diff.inHours} 小时前';
-  if (diff.inDays < 30) return '${diff.inDays} 天前';
-  return '${time.year}-${time.month.toString().padLeft(2, '0')}-'
-      '${time.day.toString().padLeft(2, '0')}';
-}
-
-class _RepoCard extends StatelessWidget {
-  const _RepoCard({
-    required this.name,
-    required this.onTap,
-    required this.onDelete,
-    required this.pinned,
-    required this.onTogglePin,
-    this.source,
-    this.lastOpened,
-    this.syncedAt,
-  });
-
-  final String name;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
-
-  /// 是否已置顶（仓库置顶）。
-  final bool pinned;
-  final VoidCallback onTogglePin;
-
-  /// 远端来源（host + /owner/repo），未记录时为 null。
-  final String? source;
-
-  /// 最近打开的文件（仓库相对路径），未记录时为 null。
-  final String? lastOpened;
-
-  /// 最近一次成功同步时间，未记录时为 null。
-  final DateTime? syncedAt;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final last = lastOpened;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        onLongPress: onTogglePin,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                pinned
-                    ? Icons.push_pin
-                    : Icons.folder_special_outlined,
-                color: pinned
-                    ? const Color(0xFFF5B301)
-                    : theme.colorScheme.primary,
-                size: 32,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name,
-                        style: theme.textTheme.titleMedium,
-                        overflow: TextOverflow.ellipsis),
-                    if (source != null && source!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(source!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                    ],
-                    if (syncedAt != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        '同步于 ${_relativeTime(syncedAt!)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    if (last != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        '最近：$last',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: pinned ? '取消置顶' : '置顶仓库',
-                icon: Icon(
-                  pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                  color: pinned ? const Color(0xFFF5B301) : null,
-                ),
-                onPressed: onTogglePin,
-              ),
-              IconButton(
-                tooltip: '删除仓库',
-                icon: const Icon(Icons.delete_outline),
-                color: theme.colorScheme.outline,
-                onPressed: onDelete,
-              ),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 本地文件夹卡片：打开/刷新/移除。
-class _LocalCard extends StatelessWidget {
-  const _LocalCard({
-    required this.name,
-    required this.onTap,
-    required this.onRefresh,
-    required this.onRemove,
-  });
-
-  final String name;
-  final VoidCallback onTap;
-  final VoidCallback onRefresh;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                Icons.folder_open,
-                color: theme.colorScheme.tertiary,
-                size: 32,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(name,
-                    style: theme.textTheme.titleMedium,
-                    overflow: TextOverflow.ellipsis),
-              ),
-              IconButton(
-                tooltip: '刷新镜像',
-                icon: const Icon(Icons.sync),
-                onPressed: onRefresh,
-              ),
-              IconButton(
-                tooltip: '移除',
-                icon: const Icon(Icons.delete_outline),
-                color: theme.colorScheme.outline,
-                onPressed: onRemove,
-              ),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 仓库内浏览页：保留仓库原目录结构逐层展开；搜索时全局扁平匹配。
