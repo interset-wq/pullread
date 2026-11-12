@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**PullRead** is a read-only, mobile-first reader for note repositories. It clones a Git
+**PullRead** is a mobile-first reader for note repositories. It clones a Git
 repository (GitHub, Gitee, GitCode/AtomGit, GitLab, self-hosted Gitea, …) onto the
 device and renders it natively: Markdown and Jupyter notebooks, syntax-highlighted
 code, article TOC, original directory tree, tags, bookmarks and full-text search.
@@ -28,8 +28,6 @@ with the code in the same commit (see "Maintenance").
 
 **Out of scope — do not add**
 
-- Any edit/commit/push capability for Git repositories (removed by the user in
-  2026-10). Local-folder editing is the only write path and never touches Git.
 - Backlinks/graphs, collaboration, private repositories, TTS, PDF, reading stats,
   deployment/CI/static-site generation.
 - Platform REST APIs. See `docs/platform.md`.
@@ -86,9 +84,7 @@ with the code in the same commit (see "Maintenance").
 These cut across features. Violating any of them has already caused a bug in this
 project or would cause data loss.
 
-1. **Git is read-only.** Clone/pull only; never commit, checkout user changes or
-   rewrite history.
-2. **Never delete outside the intended target.** Repo names and target paths must be
+1. **Never delete outside the intended target.** Repo names and target paths must be
    derived safely (see §5.1), and deletion helpers must refuse roots.
 3. **All Git work runs in a background isolate**, and native errors must be converted
    to plain Dart errors before crossing the isolate boundary.
@@ -113,8 +109,6 @@ rationale live in the docs below; read the matching doc before editing that area
 
 ### 5.1 Git and sync (`lib/src/git/`)
 
-- Git is read-only: clone and pull only, never commit, checkout user changes or rewrite
-  history.
 - Repo names come from `Uri.parse(url).pathSegments`, strip only a trailing `.git`, and
   must reject empty, `.`, `..`, dot-leading names, separators and Windows-illegal
   characters. The clone target's parent must be exactly the repos root, and
@@ -125,9 +119,8 @@ rationale live in the docs below; read the matching doc before editing that area
   crossing the isolate boundary.
 - Clone's timeout must `Isolate.kill` the worker and clean the target directory.
 - Never pass `checkoutBranch` to clone; read the real branch with `readHeadBranch`.
-- Branch switching is read-only too: only checkout existing local/remote refs, never
-  commit or push; validate the branch name and clear the index cache afterwards
-  (details in `docs/git-sync.md`).
+- Branch switching only checkouts existing local/remote refs; validate the branch
+  name and clear the index cache afterwards (details in `docs/git-sync.md`).
 - Pull is not cancellable; a diverged branch asks before delete + re-clone.
 - Every test that touches URLs or paths uses temporary directories only.
 
