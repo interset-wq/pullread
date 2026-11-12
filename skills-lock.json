@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "skills": {
+    "argent-screen-recording": {
+      "source": "software-mansion/argent",
+      "sourceType": "github",
+      "skillPath": "packages/skills/skills/argent-screen-recording/SKILL.md",
+      "computedHash": "57e54e8dcce7f1f5251221d69b0dd6b7dd0aefa265bf99234c89f0247d4e64e5",
+      "installMode": "copy"
+    },
+    "ffmpeg": {
+      "source": "temp\\video-toolkit-src",
+      "sourceUrl": "temp\\video-toolkit-src",
+      "sourceType": "git",
+      "skillPath": ".claude/skills/ffmpeg/SKILL.md",
+      "computedHash": "453ce416b404291eb9ae04164b68447b3f35d9fb019f924ab5b72c503b2a6dc8",
+      "installMode": "copy"
+    },
+    "playwright-recording": {
+      "source": "temp\\video-toolkit-src",
+      "sourceUrl": "temp\\video-toolkit-src",
+      "sourceType": "git",
+      "skillPath": ".claude/skills/playwright-recording/SKILL.md",
+      "computedHash": "8322ec362b632454e02e7f400b3788cd3a5d6b4a8148d8a17d5a8258f9f743f9",
+      "installMode": "copy"
+    }
+  }
+}

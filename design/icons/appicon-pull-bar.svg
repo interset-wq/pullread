@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>Pull 拉读 · 下拉条（全新）</title>
+  <!-- 全新：顶部一条提交/仓库横条，中间向下拉成箭尖——pull 动作本身。纸感底 + 松绿 -->
+  <rect width="256" height="256" rx="56" fill="#FBFAF6"/>
+  <g transform="translate(38.4 38.4) scale(0.7)">
+    <path fill="#1F6F54" d="
+      M72 72 H184 V92 H140 V138 H158
+      L128 178 L98 138 H116 V92 H72 Z"/>
+  </g>
+</svg>

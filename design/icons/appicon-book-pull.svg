@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>Pull 拉读 · 翻开书·书脊下垂箭（v3）</title>
+  <!-- 保留翻开书的上下弧张页轮廓，仅书脊中间向下拉出箭尖；书页负形横条。纸感底 + 松绿 -->
+  <rect width="256" height="256" rx="56" fill="#FBFAF6"/>
+  <g transform="translate(38.4 38.4) scale(0.7)">
+    <path fill="#1F6F54" fill-rule="evenodd" d="
+      M40 62
+      C72 48 104 50 128 62
+      C152 50 184 48 216 62
+      V148
+      C184 158 156 158 138 148
+      L128 198
+      L118 148
+      C100 158 72 158 40 148
+      Z
+      M62 90 H106 V102 H62 Z
+      M150 90 H194 V102 H150 Z"/>
+  </g>
+</svg>

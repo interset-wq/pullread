@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>Pull 拉读 · 书脊成箭（新方案）</title>
+  <!-- 翻开的书，底部书脊正中自然下垂成箭尖；书页负形横条代表文字。纸感底 + 松绿 -->
+  <rect width="256" height="256" rx="56" fill="#FBFAF6"/>
+  <g transform="translate(38.4 38.4) scale(0.7)">
+    <path fill="#1F6F54" fill-rule="evenodd" d="
+      M40 62
+      C72 48 104 50 128 62
+      C152 50 184 48 216 62
+      L216 156
+      L128 214
+      L40 156
+      Z
+      M62 88 H108 V100 H62 Z
+      M148 88 H194 V100 H148 Z"/>
+  </g>
+</svg>
