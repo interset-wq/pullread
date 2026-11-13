@@ -10,9 +10,12 @@ import 'markdown_viewer.dart';
 /// 标签页：聚合所有仓库（含本地文件夹镜像）front-matter 里的 tags，
 /// 点标签按 AND 过滤，结果跨仓库分组展示。
 class TagPage extends StatefulWidget {
-  const TagPage({required this.roots, super.key});
+  const TagPage({required this.roots, this.initialTags = const [], super.key});
 
   final List<Directory> roots;
+
+  /// 进入时预选中的标签（阅读页点 tags 跳转用）。
+  final List<String> initialTags;
 
   @override
   State<TagPage> createState() => _TagPageState();
@@ -29,6 +32,7 @@ class _TagPageState extends State<TagPage> {
   @override
   void initState() {
     super.initState();
+    _selected.addAll(widget.initialTags);
     _dirTags = AppPrefs.instance?.dirTags ?? true;
     _load();
   }
