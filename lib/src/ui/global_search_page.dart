@@ -80,7 +80,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
       _query = q;
       _hits = const [];
     });
-    if (q.length < 2) {
+    if (q.isEmpty) {
       setState(() => _searching = false);
       return;
     }
@@ -88,9 +88,9 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
     _debounce = Timer(const Duration(milliseconds: 400), () => _run(q));
   }
 
-  /// 条件变化（模式切换 / 仓库过滤）后重跑当前查询；查询太短直接忽略。
+  /// 条件变化（模式切换 / 仓库过滤）后重跑当前查询；空查询直接忽略。
   void _scheduleRun([int delayMs = 200]) {
-    if (_query.length < 2) return;
+    if (_query.isEmpty) return;
     _debounce?.cancel();
     setState(() => _searching = true);
     _debounce = Timer(Duration(milliseconds: delayMs), () => _run(_query));
@@ -104,7 +104,8 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
 
   Future<void> _run(String query) async {
     final seq = ++_seq;
-    unawaited(AppPrefs.instance?.addSearchHistory(query));
+    // 搜索历史不在这里写：防抖后即写会把 flut 这类半截输入记成历史，
+    // 改为真正打开结果时写入（_openHit）
     final merged = <_GlobalHit>[];
     for (final source in _sources) {
       if (!_inScope(source)) continue;
@@ -238,7 +239,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
   }
 
   Widget _buildBody(ThemeData theme) {
-    if (_query.length < 2) {
+    if (_query.isEmpty) {
       final history = AppPrefs.instance?.searchHistory ?? const <String>[];
       if (history.isEmpty) {
         return Center(
@@ -247,7 +248,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
             child: Text(
               widget.repos.isEmpty && widget.locals.isEmpty
                   ? '还没有仓库或本地文件夹'
-                  : '在 ${_sources.length} 个来源中搜索（至少 2 个字符）',
+                  : '在 ${_sources.length} 个来源中搜索',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -398,6 +399,8 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
     );
     if (!file.existsSync()) return;
     final stat = file.statSync();
+    // 打开结果 = 这条搜索对用户有意义，此刻才记入历史
+    unawaited(AppPrefs.instance?.addSearchHistory(_query));
     await openNoteFile(
       context,
       repoRoot: hit.source.root.path,
