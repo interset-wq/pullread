@@ -23,6 +23,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> {
   late double _pageMargin;
   late double _codeFoldThreshold;
   late double _recentsLimit;
+  late int _fontIndex;
 
   AppPrefs get _prefs => widget.prefs;
 
@@ -33,11 +34,13 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> {
     _pageMargin = _prefs.pageMargin;
     _codeFoldThreshold = _prefs.codeFoldThreshold.toDouble();
     _recentsLimit = _prefs.recentsLimit.toDouble();
+    _fontIndex = _prefs.readingFontIndex;
   }
 
   Future<void> _reset() async {
     await _prefs.setLineHeight(1.75);
     await _prefs.setPageMargin(16);
+    await _prefs.setReadingFontIndex(AppPrefs.kDefaultReadingFontIndex);
     await _prefs.setKeepScreenOn(true);
     await _prefs.setSwipePaging(false);
     await _prefs.setWideTable(true);
@@ -53,6 +56,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> {
       _pageMargin = 16;
       _codeFoldThreshold = 30;
       _recentsLimit = 5;
+      _fontIndex = AppPrefs.kDefaultReadingFontIndex;
     });
   }
 
@@ -70,6 +74,28 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> {
             title: '排版',
             help: '行距控制正文行与行之间的距离；页边距控制正文两侧的留白。',
             children: [
+              _TypographyPreview(
+                fontSize: AppPrefs.kReadingFontSizes[_fontIndex],
+                lineHeight: _lineHeight,
+                pageMargin: _pageMargin,
+              ),
+              SettingsSliderTile(
+                anchor: 'readingFontSize',
+                icon: Icons.text_fields_outlined,
+                title: '阅读字号',
+                subtitle: '正文文字大小',
+                valueLabel:
+                    '${AppPrefs.kReadingFontSizes[_fontIndex].toStringAsFixed(0)} dp',
+                value: _fontIndex.toDouble(),
+                min: 0,
+                max: (AppPrefs.kReadingFontSizes.length - 1).toDouble(),
+                divisions: AppPrefs.kReadingFontSizes.length - 1,
+                onChanged: (v) => setState(() => _fontIndex = v.round()),
+                onChangeEnd: (v) =>
+                    unawaited(_prefs.setReadingFontIndex(v.round())),
+                help:
+                    '共 ${AppPrefs.kReadingFontSizes.length} 档，与阅读页「字号」菜单一致；默认 16 dp。',
+              ),
               SettingsSliderTile(
                 anchor: 'lineHeight',
                 icon: Icons.format_line_spacing_outlined,
@@ -239,6 +265,57 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> {
                     unawaited(_prefs.setRecentsLimit(v.round())),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 排版实时预览卡：按当前草稿字号/行距/页边距渲染一段示例正文，
+/// 拖动滑杆时同步刷新，用户不必回文章试效果。
+class _TypographyPreview extends StatelessWidget {
+  const _TypographyPreview({
+    required this.fontSize,
+    required this.lineHeight,
+    required this.pageMargin,
+  });
+
+  final double fontSize;
+  final double lineHeight;
+  final double pageMargin;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 4, bottom: 12),
+      padding: EdgeInsets.symmetric(horizontal: pageMargin, vertical: 14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '预览',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '这是一段示例正文。字号、行距与页边距会在这里实时生效，'
+            '实际阅读效果与此一致。',
+            style: TextStyle(
+              fontSize: fontSize,
+              height: lineHeight,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
         ],
       ),

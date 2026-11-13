@@ -75,15 +75,20 @@ void main() {
     await tester.tap(find.text('阅读与显示'));
     await tester.pumpAndSettle();
 
+    // 排版组第一个滑杆是阅读字号（5 档分档滑杆），拖动跨档才改变值
     final slider = find.byType(Slider).first;
     final gesture = await tester.startGesture(tester.getCenter(slider));
     await gesture.moveBy(const Offset(30, 0));
     await tester.pump();
-    expect(prefs.lineHeight, 1.75);
+    expect(prefs.readingFontIndex, 1);
+
+    await gesture.moveBy(const Offset(200, 0));
+    await tester.pump();
+    expect(prefs.readingFontIndex, 1, reason: '拖动中不写盘');
 
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(prefs.lineHeight, isNot(1.75));
+    expect(prefs.readingFontIndex, isNot(1));
   });
 
   testWidgets('username is saved on focus loss, not per keystroke', (

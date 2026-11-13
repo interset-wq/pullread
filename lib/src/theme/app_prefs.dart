@@ -229,6 +229,7 @@ class AppPrefs extends ChangeNotifier {
     var treeMode = false;
     var searchHistory = const <String>[];
     var dirTags = true;
+    var readingFontIndex = kDefaultReadingFontIndex;
     try {
       final sp =
           await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
@@ -268,6 +269,7 @@ class AppPrefs extends ChangeNotifier {
       treeMode = sp.getBool(_treeModeKey) ?? false;
       searchHistory = sp.getStringList(_searchHistoryKey) ?? const <String>[];
       dirTags = sp.getBool(_dirTagsKey) ?? true;
+      readingFontIndex = sp.getInt(_fontKey) ?? kDefaultReadingFontIndex;
     } on Object {
       // 保持默认（跟随系统 + GitCode）
     }
@@ -294,6 +296,7 @@ class AppPrefs extends ChangeNotifier {
     prefs._treeMode = treeMode;
     prefs._searchHistory = searchHistory;
     prefs._dirTags = dirTags;
+    prefs._readingFontIndex = readingFontIndex;
     return _instance = prefs;
   }
 
@@ -551,24 +554,34 @@ class AppPrefs extends ChangeNotifier {
     }
   }
 
-  /// 阅读字号索引持久化（越界值由调用方校验）。
-  static Future<int> loadFontIndex() async {
-    try {
-      final sp =
-          await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
-      return sp.getInt(_fontKey) ?? 1;
-    } on Object {
-      return 1;
-    }
+  /// 阅读字号可选值（阅读页与设置页共用同一档位，index 持久化）。
+  static const kReadingFontSizes = [14.0, 16.0, 18.0, 20.0, 24.0];
+  static const kDefaultReadingFontIndex = 1;
+
+  /// 阅读字号档位索引（同 codeLineNumbers：热重载会保留旧实例，
+  /// getter 兜底默认值；越界档位由 getter 拉回默认，避免崩溃）。
+  int? _readingFontIndex;
+  int get readingFontIndex {
+    final i = _readingFontIndex ?? kDefaultReadingFontIndex;
+    return i >= 0 && i < kReadingFontSizes.length
+        ? i
+        : kDefaultReadingFontIndex;
   }
 
-  static Future<void> saveFontIndex(int index) async {
+  double get readingFontSize =>
+      kReadingFontSizes[readingFontIndex];
+
+  Future<void> setReadingFontIndex(int index) async {
+    if (index < 0 || index >= kReadingFontSizes.length) return;
+    if (index == readingFontIndex) return;
+    _readingFontIndex = index;
+    notifyListeners();
     try {
       final sp =
           await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
       await sp.setInt(_fontKey, index);
     } on Object {
-      // 忽略
+      // 保存失败不影响本次会话
     }
   }
 }

@@ -50,6 +50,14 @@ class SettingsEntry {
 
 const List<SettingsEntry> kSettingsEntries = [
   SettingsEntry(
+    title: '阅读字号',
+    section: '排版',
+    target: SettingsTarget.reading,
+    anchor: 'readingFontSize',
+    icon: Icons.text_fields_outlined,
+    aliases: ['字号', '字体大小', '文字大小', '大字', '小字', 'font'],
+  ),
+  SettingsEntry(
     title: '正文行距',
     section: '排版',
     target: SettingsTarget.reading,
