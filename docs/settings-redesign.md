@@ -225,9 +225,17 @@
      滚进可视区；
    - `SettingsBody` 从懒加载 `ListView` 改为 `SingleChildScrollView` + `Column`，
      保证屏幕外的锚点也已布局（设置项很少，提前构建没有性能问题）。
-2. 阅读页排版改成「实时预览卡 + 全宽滑杆」，让用户不必回文章试效果。
-3. 把阅读字号从 `SharedPreferences` 静态读写迁到 `AppPrefs`，设置页才可统一控制
-   （当前字号只存在于阅读页菜单：`markdown_viewer.dart:72-73`、`2244-2260`）。
+2. **排版实时预览卡 + 阅读字号（已完成，2026-11-13）**：
+   - `reading_settings_page.dart` 排版组顶部新增 `_TypographyPreview`，
+     按当前草稿字号/行距/页边距实时渲染示例正文；
+   - 新增「阅读字号」5 档滑杆（`SettingsSliderTile`，anchor `readingFontSize`），
+     拖动实时刷新预览，`onChangeEnd` 才写盘；
+   - `settings_search.dart` 注册 `readingFontSize` 条目（别名：字号/字体大小…）。
+3. **阅读字号迁入 `AppPrefs`（已完成，2026-11-13）**：
+   - `AppPrefs.kReadingFontSizes` 档位常量 + `readingFontIndex` 实例状态
+     （沿用 `fontIndex` key，静态 `loadFontIndex`/`saveFontIndex` 已删除）；
+   - `markdown_viewer.dart` 同步读实例，删除 `_load` 里的异步预读；
+   - 阅读页「字号」菜单与设置页共用同一档位来源。
 4. **平板/Windows 双栏（已完成，2026-11-10）**：≥1000 dp 时左侧 340 dp
    类别栏 + 右侧独立 Navigator 内容区；手机/窄窗口保持单列 push。
 

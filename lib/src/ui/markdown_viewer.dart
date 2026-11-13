@@ -71,8 +71,9 @@ class MarkdownViewerPage extends StatefulWidget {
 }
 
 class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
-  static const _fontSizes = [14.0, 16.0, 18.0, 20.0, 24.0];
-  int _fontIndex = 1;
+  // 字号档位与设置页共用同一来源（AppPrefs），index 持久化在 fontIndex key
+  List<double> get _fontSizes => AppPrefs.kReadingFontSizes;
+  int get _fontIndex => AppPrefs.instance?.readingFontIndex ?? 1;
 
   String? _title;
   List<String> _tags = const [];
@@ -479,12 +480,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
   }
 
   Future<String> _load() async {
-    // 字号先读出来再返回正文：否则字体设置的回调会在正文构建后再触发
-    // 一次整篇重建（长文等于白做一次解析 + 布局）
-    final savedFont = await AppPrefs.loadFontIndex();
-    if (savedFont >= 0 && savedFont < _fontSizes.length) {
-      _fontIndex = savedFont;
-    }
+    // 字号在 AppPrefs 启动加载时已就绪，同步读取即可，正文首建即用正确字号
     // 文本可能是 GBK/GB2312 等编码，统一走字节解码（UTF-8 优先，GBK 兜底）
     var raw = decodeTextBytes(
       await File(widget.note.absolutePath).readAsBytes(),
@@ -2637,8 +2633,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
             RadioGroup<int>(
               groupValue: _fontIndex,
               onChanged: (v) {
-                setState(() => _fontIndex = v!);
-                AppPrefs.saveFontIndex(v!);
+                setState(() {});
+                unawaited(AppPrefs.instance?.setReadingFontIndex(v!));
                 Navigator.pop(context);
               },
               child: Column(
