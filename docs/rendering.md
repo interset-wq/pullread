@@ -50,8 +50,14 @@
   Markdown so they render instead of staying inert text: `<table>` → Markdown table
   (reuses `htmlTableToMarkdown`; rowspan/colspan tables fall back to per-row stripped
   text), `<ul>/<ol>/<li>` → Markdown lists (innermost first, nested levels indented
-  4 spaces), `<blockquote>` → `>` quotes, `<hr>` → `---`. Only blocks that do not
-  cross a code-protected segment are converted; fenced code keeps raw HTML.
+  4 spaces; `<li>` auto-closes at the next `<li>`/list end, closing tags are
+  optional), `<a href>` → `[text](href)` (image-only labels flatten to plain
+  images like markdown badges; `javascript:` hrefs keep only the label),
+  `<blockquote>` → `>` quotes, `<hr>` → `---`. HTML comments are dropped and
+  common entities (`&amp; &lt; &gt; &quot; &#39; &nbsp;`, numeric) are decoded in
+  converted text. `<pre>` is part of the code-protected segments and becomes a
+  fenced code block (`language-x`/`lang-x` class → fence language); only blocks
+  that do not cross a code-protected segment are converted.
 - **SVG** (`repo_image.dart`, `markdown_source.dart`): local `.svg` uses
   `SvgPicture.file`; network bytes are sniffed and use `SvgPicture.memory`, scaled to
   available width by viewBox. `normalizeHtmlImages` only drops shields.io /

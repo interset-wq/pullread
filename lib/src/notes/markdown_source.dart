@@ -28,11 +28,35 @@ final RegExp _ignoredImageRegExp = RegExp(
   caseSensitive: false,
 );
 
-/// 代码保护段：围栏代码块（``` / ~~~，允许未闭合）与行内代码（单反引号）。
-/// 匹配到的段落内不做任何 HTML 归一化，标签原样显示。
+/// 代码保护段：围栏代码块（``` / ~~~，允许未闭合）、行内代码（单反引号）
+/// 与 HTML `<pre>` 块。匹配到的段落内不做任何 HTML 归一化，标签原样显示；
+/// `<pre>` 由 [normalizeHtmlImages] 额外转成围栏代码块。
 final RegExp _codeProtectedRegExp = RegExp(
-  r'```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]*`',
+  r'```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]*`'
+  r'|<pre\b[^>]*>[\s\S]*?(?:</pre\s*>|$)',
+  caseSensitive: false,
 );
+
+/// `<pre>` → 围栏代码块：内容剥壳（`<code>` 包裹常见）后实体解码，
+/// 语言取自 `<code class="language-x">` / `lang-x`。
+String _preToFence(String html) {
+  final lang = RegExp(
+    r'''<code\b[^>]*class=["'](?:language-|lang-)([\w+#-]+)''',
+    caseSensitive: false,
+  ).firstMatch(html)?.group(1);
+  final fenceMatch =
+      RegExp(r'<pre\b[^>]*>([\s\S]*?)(?:</pre\s*>|$)', caseSensitive: false)
+          .firstMatch(html);
+  final inner = (fenceMatch?.group(1) ?? '')
+      .replaceAll(RegExp(r'</?code\b[^>]*>', caseSensitive: false), '')
+      .replaceAll(RegExp(r'<[^>]+>'), '');
+  final text = _decodeEntities(inner);
+  if (text.trim().isEmpty) return '';
+  final fence = '```';
+  return '\n\n$fence${lang ?? ''}\n'
+      '${text.endsWith('\n') ? text : '$text\n'}'
+      '$fence\n\n';
+}
 
 /// <div><img src="x"/></div> 等 HTML 内嵌图片转 Markdown 图片语法，
 /// 徽章链接展平为纯图片，同时归一化 <br> 与块级 div/p/a 包裹。
@@ -40,13 +64,41 @@ String normalizeHtmlImages(String md) {
   final out = StringBuffer();
   var cursor = 0;
   for (final m in _codeProtectedRegExp.allMatches(md)) {
+    final seg = md.substring(cursor, m.start);
+    // <pre> 在保护段内整体捕获，转换成围栏代码块（实体解码、语言识别）
     out
-      ..write(_normalizeHtmlImagesPlain(md.substring(cursor, m.start)))
-      ..write(m.group(0)!);
+      ..write(_normalizeHtmlImagesPlain(seg))
+      ..write(
+        m.group(0)!.startsWith('<pre')
+            ? _preToFence(m.group(0)!)
+            : m.group(0)!,
+      );
     cursor = m.end;
   }
   out.write(_normalizeHtmlImagesPlain(md.substring(cursor)));
   return out.toString();
+}
+
+/// 常见 HTML 实体解码（含十进制/十六进制数字实体）；`&amp;` 最后替换，
+/// 避免二次解码。README 正文里 `&amp; &lt; &gt; &quot; &#39; &nbsp;` 最常见。
+String _decodeEntities(String s) {
+  var text = s.replaceAllMapped(
+    RegExp(r'&#x([0-9a-fA-F]+);|&#(\d+);'),
+    (m) {
+      final code = m.group(1) != null
+          ? int.parse(m.group(1)!, radix: 16)
+          : int.parse(m.group(2)!);
+      return String.fromCharCode(code);
+    },
+  );
+  return text
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&apos;', "'")
+      .replaceAll('&#39;', "'")
+      .replaceAll('&amp;', '&');
 }
 
 /// 顶层 ESM 语句的起始行：必须从第 0 列开始，缩进内容可能是代码示例。
@@ -209,6 +261,12 @@ String _normalizeHtmlImagesPlain(String md) {
 String _convertHtmlBlocks(String md) {
   var text = md;
 
+  // HTML 注释直接丢弃（正文里没有阅读价值；代码保护段内不经过这里）
+  text = text.replaceAll(
+    RegExp(r'<!--[\s\S]*?-->', caseSensitive: false),
+    '',
+  );
+
   // 表格：规整表格降级为 Markdown 表格；复杂表格剥壳保留行文本
   text = text.replaceAllMapped(
     RegExp(r'<table\b[^>]*>[\s\S]*?</table\s*>', caseSensitive: false),
@@ -235,6 +293,28 @@ String _convertHtmlBlocks(String md) {
     });
   }
 
+  // 链接：<a href="x">文字</a> → [文字](x)。
+  // 标签内是图片（README 徽章常见）时展平为纯图片，与 Markdown 徽章
+  // `[![alt](img)](link)` 的既有展平行为一致（丢弃链接目标）；
+  // javascript: 伪协议只保留文字，不产出可点击链接。
+  text = text.replaceAllMapped(
+    RegExp(
+      r'''<a\b[^>]*\shref=["']([^"']+)["'][^>]*>([\s\S]*?)</a\s*>''',
+      caseSensitive: false,
+    ),
+    (m) {
+      final href = m.group(1)!.trim();
+      final label = m.group(2)!.trim();
+      if (href.startsWith('javascript:')) return label;
+      final img = RegExp(
+        r'''<img[^>]*\ssrc=["']([^"']+)["'][^>]*>''',
+        caseSensitive: false,
+      ).firstMatch(label);
+      if (img != null) return '![](${img.group(1)!})';
+      return label.isEmpty ? '[$href]($href)' : '[$label]($href)';
+    },
+  );
+
   // 引用块：内容逐行加 "> "
   text = text.replaceAllMapped(
     RegExp(r'<blockquote\b[^>]*>([\s\S]*?)</blockquote\s*>', caseSensitive: false),
@@ -242,7 +322,7 @@ String _convertHtmlBlocks(String md) {
       final lines = m
           .group(1)!
           .split('\n')
-          .map((l) => l.trim())
+          .map((l) => _decodeEntities(l.trim()))
           .where((l) => l.isNotEmpty)
           .map((l) => '> $l')
           .join('\n');
@@ -271,23 +351,38 @@ String _htmlTableFallbackText(String html) => html
     )
     .replaceAll(RegExp(r'<[^>]+>'), '')
     .split('\n')
-    .map((l) => l.replaceAll(RegExp(r'\s+'), ' ').trim())
+    .map((l) => _decodeEntities(l.replaceAll(RegExp(r'\s+'), ' ').trim()))
     .where((l) => l.isNotEmpty)
     .join('\n');
 
 /// 单层 `<ul>/<ol>` 内容转 Markdown 列表；条目内容里已转换的子列表行
 /// 随条目缩进 4 空格，保持层级可读。
+///
+/// 大量真实 HTML 不给 `<li>` 写闭合标签（浏览器按下一个 `<li>`/列表结束
+/// 自动闭合），所以条目解析按「下一个 `<li>` 开标签或内容末尾」切段，
+/// 不要求 `</li>` 存在。
 String _htmlListToMarkdown(String tag, String body) {
   final ordered = tag.toLowerCase() == 'ol';
-  final items = RegExp(
-    r'<li\b[^>]*>([\s\S]*?)</li\s*>',
-    caseSensitive: false,
-  ).allMatches(body).map((m) => m.group(1)!).toList();
+  final itemStart = RegExp(r'<li\b[^>]*>', caseSensitive: false);
+  final matches = itemStart.allMatches(body).toList();
+  final items = <String>[];
+  for (var i = 0; i < matches.length; i++) {
+    // 条目以下一个 <li> 开标签为界（浏览器式自动闭合）；内容里的
+    // 行内标签不是边界。仅当条目以 </li> 收尾时吃掉闭合标签。
+    final rawEnd =
+        i + 1 < matches.length ? matches[i + 1].start : body.length;
+    items.add(
+      body.substring(matches[i].end, rawEnd).replaceFirst(
+            RegExp(r'</li\s*>\s*$', caseSensitive: false),
+            '',
+          ),
+    );
+  }
   if (items.isEmpty) return '';
   final out = <String>[];
   for (var i = 0; i < items.length; i++) {
     final bullet = ordered ? '${i + 1}.' : '-';
-    final lines = items[i]
+    final lines = _decodeEntities(items[i])
         .split('\n')
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
@@ -311,7 +406,8 @@ String _convertHtmlTags(String md) {
     RegExp(r'<h([1-6])\b[^>]*>([\s\S]*?)</h\1\s*>', caseSensitive: false),
     (m) {
       final level = int.parse(m.group(1)!);
-      final inner = m.group(2)!.replaceAll(RegExp(r'<[^>]+>'), '').trim();
+      final inner =
+          _decodeEntities(m.group(2)!.replaceAll(RegExp(r'<[^>]+>'), '').trim());
       return '\n\n${'#' * level} $inner\n\n';
     },
   );
