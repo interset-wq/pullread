@@ -293,6 +293,43 @@ String _convertHtmlBlocks(String md) {
     });
   }
 
+  // 未闭合到文档末尾的列表/引用/表格：真实文档经常忘写闭合标签，
+  // 浏览器按「吞到末尾」处理，这里同样降级转换，不再残留原始标签。
+  // 列表内容组沿用「拦截新开标签」的前瞻 + 锚定末尾，最内层先命中。
+  final unclosedList = RegExp(
+    r'<(ul|ol)\b[^>]*>((?:(?!<[uo]l\b)[\s\S])*)$',
+    caseSensitive: false,
+  );
+  guard = 0;
+  changed = true;
+  while (changed && guard++ < 16) {
+    changed = false;
+    text = text.replaceFirstMapped(unclosedList, (m) {
+      changed = true;
+      return '\n\n${_htmlListToMarkdown(m.group(1)!, m.group(2)!)}\n\n';
+    });
+  }
+  text = text.replaceAllMapped(
+    RegExp(
+      r'<blockquote\b[^>]*>((?:(?!<blockquote\b)[\s\S])*)$',
+      caseSensitive: false,
+    ),
+    (m) {
+      final lines = m
+          .group(1)!
+          .split('\n')
+          .map((l) => _decodeEntities(l.trim()))
+          .where((l) => l.isNotEmpty)
+          .map((l) => '> $l')
+          .join('\n');
+      return lines.isEmpty ? '' : '\n\n$lines\n\n';
+    },
+  );
+  text = text.replaceAllMapped(
+    RegExp(r'<table\b[^>]*>([\s\S]*)$', caseSensitive: false),
+    (m) => '\n\n${_htmlTableFallbackText(m.group(0)!)}\n\n',
+  );
+
   // 链接：<a href="x">文字</a> → [文字](x)。
   // 标签内是图片（README 徽章常见）时展平为纯图片，与 Markdown 徽章
   // `[![alt](img)](link)` 的既有展平行为一致（丢弃链接目标）；
@@ -336,8 +373,27 @@ String _convertHtmlBlocks(String md) {
     (m) => '\n\n---\n\n',
   );
 
+  // 定义列表：术语加粗成行，定义缩进挂在术语下（Markdown 无 dl 语法）
+  text = text.replaceAllMapped(
+    RegExp(r'<dt\b[^>]*>([\s\S]*?)</dt\s*>', caseSensitive: false),
+    (m) => '\n**${_stripInlineHtml(m.group(1)!)}**\n',
+  );
+  text = text.replaceAllMapped(
+    RegExp(r'<dd\b[^>]*>([\s\S]*?)</dd\s*>', caseSensitive: false),
+    (m) {
+      final inner = _stripInlineHtml(m.group(1)!);
+      return inner.isEmpty
+          ? ''
+          : '\n${inner.split('\n').map((l) => '    ${l.trim()}').join('\n')}\n';
+    },
+  );
+
   return text;
 }
+
+/// 行内片段转纯文本：剥标签 + 实体解码。
+String _stripInlineHtml(String s) =>
+    _decodeEntities(s.replaceAll(RegExp(r'<[^>]+>'), ' '));
 
 /// 复杂表格（rowspan/colspan 等）的回退：剥掉标签，每行一行文本。
 String _htmlTableFallbackText(String html) => html
@@ -401,6 +457,17 @@ String _htmlListToMarkdown(String tag, String body) {
 /// u/mark/kbd/sub/sup/small/span/font 等无等价语法的剥壳保留文字。
 String _convertHtmlTags(String md) {
   var text = md;
+  // 行内代码：<code>x</code> → `x`（<pre> 已在代码保护段内单独处理，
+  // 不会走到这里；标签内常见 &lt; 等实体，先剥壳再解码）
+  text = text.replaceAllMapped(
+    RegExp(r'<code\b[^>]*>([\s\S]*?)</code\s*>', caseSensitive: false),
+    (m) {
+      final inner = _decodeEntities(
+        m.group(1)!.replaceAll(RegExp(r'<[^>]+>'), ''),
+      ).trim();
+      return inner.isEmpty ? '' : '`$inner`';
+    },
+  );
   // 块级标题：<h1>标题</h1> → # 标题（多行内容取首行）
   text = text.replaceAllMapped(
     RegExp(r'<h([1-6])\b[^>]*>([\s\S]*?)</h\1\s*>', caseSensitive: false),
@@ -429,7 +496,7 @@ String _convertHtmlTags(String md) {
       )
       .replaceAll(
         RegExp(
-          r'</?(u|mark|kbd|sub|sup|small|span|font)\b[^>]*>',
+          r'</?(u|mark|kbd|sub|sup|small|span|font|dl)\b[^>]*>',
           caseSensitive: false,
         ),
         '',

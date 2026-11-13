@@ -56,8 +56,12 @@
   `<blockquote>` → `>` quotes, `<hr>` → `---`. HTML comments are dropped and
   common entities (`&amp; &lt; &gt; &quot; &#39; &nbsp;`, numeric) are decoded in
   converted text. `<pre>` is part of the code-protected segments and becomes a
-  fenced code block (`language-x`/`lang-x` class → fence language); only blocks
-  that do not cross a code-protected segment are converted.
+  fenced code block (`language-x`/`lang-x` class → fence language); inline
+  `<code>` becomes backticks; `<dl>/<dt>/<dd>` becomes a bold term line with an
+  indented definition. Blocks left **unclosed at end of document** (lists,
+  blockquotes, tables — real-world markup often omits closing tags) degrade the
+  same way instead of staying raw; only blocks that do not cross a code-protected
+  segment are converted.
 - **SVG** (`repo_image.dart`, `markdown_source.dart`): local `.svg` uses
   `SvgPicture.file`; network bytes are sniffed and use `SvgPicture.memory`, scaled to
   available width by viewBox. `normalizeHtmlImages` only drops shields.io /

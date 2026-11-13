@@ -197,6 +197,77 @@ void main() {
     });
   });
 
+  group('normalizeHtmlImages: long-tail HTML', () {
+    test('unclosed ul at end of document still converts', () {
+      const src = '正文\n\n<ul><li>甲<li>乙';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('- 甲'));
+      expect(out, contains('- 乙'));
+      expect(out.contains('<ul'), isFalse, reason: out);
+      expect(out, contains('正文'));
+    });
+
+    test('unclosed nested ul converts inner first then outer', () {
+      const src = '<ul><li>外层<ul><li>内层';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('- 外层'));
+      expect(out, contains('    - 内层'));
+      expect(out.contains('<ul'), isFalse, reason: out);
+    });
+
+    test('a closed list followed by an unclosed one converts both', () {
+      const src = '<ul><li>闭合</li></ul>\n\n段落文字\n\n<ol><li>尾项';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('- 闭合'));
+      expect(out, contains('1. 尾项'));
+      expect(out, contains('段落文字'));
+      expect(out.contains('<ul'), isFalse, reason: out);
+      expect(out.contains('<ol'), isFalse, reason: out);
+    });
+
+    test('unclosed table falls back to stripped rows', () {
+      const src = '<table><tr><td>x</td><td>y</td></tr><tr><td>a</td>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('x y'));
+      expect(out, contains('a'));
+      expect(out.contains('<table'), isFalse, reason: out);
+      expect(out.contains('<tr'), isFalse, reason: out);
+    });
+
+    test('unclosed blockquote converts to quote lines', () {
+      const src = '<blockquote>引用第一行\n引用第二行';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('> 引用第一行'));
+      expect(out, contains('> 引用第二行'));
+      expect(out.contains('<blockquote'), isFalse, reason: out);
+    });
+
+    test('dl/dt/dd becomes bold term with indented definition', () {
+      const src = '<dl><dt>术语</dt><dd>这是解释</dd>'
+          '<dt>第二项</dt><dd>第二个解释</dd></dl>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('**术语**'));
+      expect(out, contains('    这是解释'));
+      expect(out, contains('**第二项**'));
+      expect(out, contains('    第二个解释'));
+      expect(out.contains('<dl'), isFalse, reason: out);
+      expect(out.contains('<dt'), isFalse, reason: out);
+    });
+
+    test('inline code tag becomes backticks with entities decoded', () {
+      const src = '调用 <code>foo(&lt;bar&gt;)</code> 完成初始化';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('调用 `foo(<bar>)` 完成初始化'));
+      expect(out.contains('<code'), isFalse, reason: out);
+    });
+
+    test('inline code inside a blockquote also gets backticks', () {
+      const src = '<blockquote>用 <code>npm i</code> 安装</blockquote>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('> 用 `npm i` 安装'));
+    });
+  });
+
   test('slugifyHeading keeps CJK and dashes spaces', () {
     expect(slugifyHeading('Hello World'), 'hello-world');
     expect(slugifyHeading('第一 章：入门'), '第一-章入门');
