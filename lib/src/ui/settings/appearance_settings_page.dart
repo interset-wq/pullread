@@ -15,6 +15,68 @@ const Map<String, String> kAppIconLabels = {
   'tray': '页堆箭',
 };
 
+const Map<String, String> kPaperLightLabels = {
+  'white': '白纸',
+  'sepia': '暖色（sepia）',
+};
+
+const Map<String, String> kPaperDarkLabels = {
+  'soft': '柔和暗',
+  'black': '纯黑（OLED）',
+};
+
+class PaperColorSelector extends StatelessWidget {
+  const PaperColorSelector({required this.prefs, super.key});
+
+  final AppPrefs prefs;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: prefs,
+      builder: (context, _) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RadioGroup<String>(
+            groupValue: prefs.paperLight,
+            onChanged: (v) {
+              if (v != null) unawaited(prefs.setPaperLight(v));
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final entry in kPaperLightLabels.entries)
+                  RadioListTile<String>(
+                    value: entry.key,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('浅色 · ${entry.value}'),
+                  ),
+              ],
+            ),
+          ),
+          RadioGroup<String>(
+            groupValue: prefs.paperDark,
+            onChanged: (v) {
+              if (v != null) unawaited(prefs.setPaperDark(v));
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final entry in kPaperDarkLabels.entries)
+                  RadioListTile<String>(
+                    value: entry.key,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('深色 · ${entry.value}'),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class AppearanceSettingsPage extends StatelessWidget {
   const AppearanceSettingsPage({required this.prefs, this.focus, super.key});
 
@@ -44,6 +106,16 @@ class AppearanceSettingsPage extends StatelessWidget {
               SettingsAnchor(
                 id: 'theme',
                 child: ThemeModeSelector(prefs: prefs),
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: '阅读纸色',
+            help: '仅作用于阅读页、代码页和编辑器；首页与设置保持现有外观。',
+            children: [
+              SettingsAnchor(
+                id: 'readingPaper',
+                child: PaperColorSelector(prefs: prefs),
               ),
             ],
           ),

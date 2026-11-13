@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -32,6 +33,7 @@ import '../utils/text_encoding.dart';
 import '../notes/toc.dart';
 import '../search/text_search.dart';
 import '../theme/app_prefs.dart';
+import '../theme/reading_paper.dart';
 import 'code_view.dart';
 import 'copy_button.dart';
 import 'code_font.dart';
@@ -43,6 +45,7 @@ import 'image_gallery.dart';
 import 'markdown_editor.dart';
 import 'open_note.dart';
 import 'repo_image.dart';
+import 'tag_page.dart';
 
 /// 笔记阅读页：Markdown 渲染 + 代码高亮 + 相对路径图片。
 /// 移动端优先：舒适边距、字号调节、顶栏菜单。
@@ -122,11 +125,19 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
 
   /// 当前所在章节（TOC 高亮），-1 表示尚未定位。
   final _currentSection = ValueNotifier<int>(-1);
+
+  /// 目录关键词过滤：只影响目录弹层/侧栏的显示条目，跳转仍用原始索引。
+  String _tocFilter = '';
+  final TextEditingController _tocFilterController = TextEditingController();
   final List<GlobalKey> _headingKeys = [];
 
   /// 每个 TOC 标题在懒列表里的条目位置（`_buildBodyBlocks` 时填充），
   /// 供 scroll_to_index 跳到尚未构建的章节。
   final Map<int, int> _headingSlots = <int, int>{};
+
+  /// 最近一次正文构建产生的块总数（含面包屑头部，即 SliverList 里
+  /// 正文区段的条目数）。文内查找按行号插值到块槽位时用作上限。
+  int _bodyBlockCount = 0;
 
   final GlobalKey _viewportKey = GlobalKey();
 
@@ -232,6 +243,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     _progressNotifier.dispose();
     _forceExpand.dispose();
     _findController.dispose();
+    _tocFilterController.dispose();
     super.dispose();
   }
 
@@ -281,7 +293,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     final scheme = theme.colorScheme;
     return Container(
       width: 260,
-      color: theme.scaffoldBackgroundColor,
+      color: ReadingPaper.resolve(context, AppPrefs.instance).background,
       child: _toc.isEmpty
           ? Center(
               child: Text(
@@ -289,61 +301,118 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
               ),
             )
-          : ValueListenableBuilder<int>(
-              valueListenable: _currentSection,
-              builder: (context, currentSection, _) => ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _toc.length,
-              itemBuilder: (context, i) {
-                final selected = i == currentSection;
-                // 按标题层级缩进（板面按 一/二/三级 呈现文档结构）
-                final level = (_toc[i].level - 1).clamp(0, 3);
-                final dark = theme.brightness == Brightness.dark;
-                return Material(
-                  // 当前节：浅绿底 + 深绿字（板面样式，不遮全文显眼度）
-                  color: selected
-                      ? (dark ? const Color(0xFF23291F) : const Color(0xFFEDF5F0))
-                      : Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _jumpToHeadingTop(i),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          right: BorderSide(
-                            color: selected
-                                ? const Color(0xFF1F6F54)
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                        ),
-                      ),
-                      padding: EdgeInsets.only(
-                        left: 16.0 + level * 14,
-                        right: 10,
-                        top: 11,
-                        bottom: 11,
-                      ),
-                      child: Text(
-                        _toc[i].text,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          color: selected
-                              ? (dark
-                                    ? const Color(0xFF7BC7A5)
-                                    : const Color(0xFF1F6F54))
-                              : scheme.onSurface,
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                      ),
+          : Column(
+              children: [
+                // 章节筛选：与手机端目录弹层同一状态（_tocFilter）
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                  child: TextField(
+                    controller: _tocFilterController,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      suffixIcon: _tocFilter.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.close, size: 16),
+                              onPressed: () => setState(() {
+                                _tocFilter = '';
+                                _tocFilterController.clear();
+                              }),
+                            ),
+                      hintText: '筛选章节',
+                      border: const OutlineInputBorder(),
                     ),
+                    onChanged: (v) => setState(() => _tocFilter = v),
                   ),
-                );
-              },
-            ),
+                ),
+                Expanded(
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _currentSection,
+                    builder: (context, currentSection, _) {
+                      final indices = _filteredTocIndices();
+                      if (indices.isEmpty) {
+                        return Center(
+                          child: Text(
+                            '无匹配章节',
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 13,
+                            ),
+                          ),
+                        );
+                      }
+                      final numbering =
+                          AppPrefs.instance?.tocNumbering ?? false;
+                      return ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: indices.length,
+                      itemBuilder: (context, position) {
+                        final i = indices[position];
+                        final selected = i == currentSection;
+                        // 按标题层级缩进（板面按 一/二/三级 呈现文档结构）
+                        final level = (_toc[i].level - 1).clamp(0, 3);
+                        final dark = theme.brightness == Brightness.dark;
+                        return Material(
+                          // 当前节：浅绿底 + 深绿字（板面样式，不遮全文显眼度）
+                          color: selected
+                              ? (dark ? const Color(0xFF23291F) : const Color(0xFFEDF5F0))
+                              : Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _jumpToHeadingTop(i),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  right: BorderSide(
+                                    color: selected
+                                        ? const Color(0xFF1F6F54)
+                                        : Colors.transparent,
+                                    width: 3,
+                                  ),
+                                ),
+                              ),
+                              padding: EdgeInsets.only(
+                                left: 16.0 + level * 14,
+                                right: 10,
+                                top: 11,
+                                bottom: 11,
+                              ),
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    if (numbering)
+                                      TextSpan(
+                                        text: '${_tocNumber(i)}  ',
+                                        style: TextStyle(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    TextSpan(text: _toc[i].text),
+                                  ],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  color: selected
+                                      ? (dark
+                                            ? const Color(0xFF7BC7A5)
+                                            : const Color(0xFF1F6F54))
+                                      : scheme.onSurface,
+                                  fontWeight: selected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -595,6 +664,8 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     final wideLayout = windowWidth >= 1000;
     final tabletPortrait = windowWidth >= 600 && windowWidth < 1000;
     final dark = theme.brightness == Brightness.dark;
+    // 阅读纸色（白纸/sepia、柔和暗/OLED 纯黑）：仅覆盖阅读面背景体系
+    final paper = ReadingPaper.resolve(context, AppPrefs.instance);
     return DesktopShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyF, control: true):
@@ -611,7 +682,10 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
         const SingleActivator(LogicalKeyboardKey.end): _keyboardBottom,
       },
       child: Scaffold(
+        backgroundColor: paper.background,
         appBar: AppBar(
+          backgroundColor: paper.appBar,
+          foregroundColor: paper.onAppBar,
           title: Text(
             _title ?? widget.note.fileName,
             overflow: TextOverflow.ellipsis,
@@ -677,11 +751,21 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           if (_tags.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Text(
-                _tags.join(' · '),
-                style: theme.textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: InkWell(
+                onTap: _openTagFilter,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 2,
+                  ),
+                  child: Text(
+                    _tags.map((t) => '#$t').join('  '),
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
             ),
           PopupMenuButton<String>(
@@ -1837,6 +1921,7 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
           children.add(_alertBox(type, body, theme, config, generator));
       }
     }
+    _bodyBlockCount = children.length;
     return children;
   }
 
@@ -1939,7 +2024,11 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
                                 ),
                                 child: SizedBox(
                                   width: double.infinity,
-                                  child: child,
+                                  // 按块包 SelectionArea：长按选中、复制当前
+                                  // 段落；不跨块选择，避免与懒加载回收和
+                                  // 图片长按/代码块横向滚动的手势冲突。
+                                  // 长文档不整体包一层，防止选中态随块回收丢失。
+                                  child: SelectionArea(child: child),
                                 ),
                               ),
                             ),
@@ -2168,6 +2257,27 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
       parts.add(seg);
     }
     return parts.join(Platform.pathSeparator);
+  }
+
+  /// 打开标签页并预选本文的标签（与首页标签页同一聚合口径：仓库 + 本地镜像）。
+  Future<void> _openTagFilter() async {
+    final roots = <Directory>[Directory(widget.repoRoot)];
+    try {
+      for (final folder in await LocalFolderService.listFolders()) {
+        roots.add(await LocalFolderService.mirrorDir(folder.name));
+      }
+    } on Object {
+      // 镜像目录解析失败时只按当前仓库过滤
+    }
+    if (!mounted) return;
+    unawaited(
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => TagPage(roots: roots, initialTags: _tags),
+        ),
+      ),
+    );
   }
 
   /// 打开仓库内文件：统一走 [openNoteFile] 分流（笔记 → 阅读页，
@@ -2471,12 +2581,17 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     _jumpToMatch((_findIndex - 1 + _findMatches.length) % _findMatches.length);
   }
 
-  /// 跳到第 [index] 处命中：用命中行号找到所属章节（TOC 的 line 与正文
-  /// 同一坐标系），滚到该标题；没有标题时按字符比例估算滚动位置。
+  /// 跳到第 [index] 处命中：把命中行号在章节行区间内插值成正文列表的
+  /// 块槽位，直接 `scrollToIndex` 到目标块（同一章节的多个命中会落到
+  /// 不同块，"下一处"不再停在标题上）。无标题文档按全文行号比例映射
+  /// 到块索引；槽位估算是平均行高的近似，落点在命中块附近，正文里的
+  /// 高亮（textGenerator）负责精确定位。懒渲染下目标块未构建时，
+  /// scroll_to_index 会迭代校正估算位置。
   void _jumpToMatch(int index) {
     if (index < 0 || index >= _findMatches.length) return;
     final match = _findMatches[index];
     setState(() => _findIndex = index);
+    if (_bodyBlockCount == 0 || !_scrollController.hasClients) return;
     var heading = -1;
     for (var i = 0; i < _toc.length; i++) {
       if (_toc[i].line <= match.line) {
@@ -2485,10 +2600,56 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
         break;
       }
     }
-    if (heading >= 0 && heading < _headingKeys.length) {
-      _jumpToHeadingTop(heading);
+    int slotStart;
+    int slotEnd;
+    if (heading >= 0 && heading < _toc.length) {
+      // 有标题：以本章节起始标题的槽位为锚，下一标题（或正文末尾）
+      // 的槽位为界，按行号比例插值
+      final slot = _headingSlots[heading];
+      if (slot == null) return _jumpByFraction(match);
+      slotStart = slot;
+      final next = _headingSlots[heading + 1];
+      slotEnd = next ?? _bodyBlockCount;
+    } else {
+      // 无标题：全文行号比例映射到块索引
+      final total = _toc.isEmpty ? 0 : (_toc.last.line + 1);
+      final p = total > 0 ? match.line / total : 0.0;
+      slotStart = 0;
+      slotEnd = _bodyBlockCount;
+      final target =
+          (slotStart + p * (slotEnd - slotStart)).floor().clamp(0, slotEnd - 1);
+      unawaited(
+        _scrollController.scrollToIndex(
+          target,
+          preferPosition: AutoScrollPosition.begin,
+        ),
+      );
       return;
     }
+    // 章节终点：下一标题的起始行；最后一个章节延伸到文末
+    final endLine = heading + 1 < _toc.length
+        ? _toc[heading + 1].line
+        : (_toc.last.line + 1);
+    final spanLines = endLine - _toc[heading].line;
+    final p = spanLines > 0
+        ? ((match.line - _toc[heading].line) / spanLines).clamp(0.0, 1.0)
+        : 0.0;
+    if (slotEnd <= slotStart) {
+      return _jumpToHeadingTop(heading);
+    }
+    final target = (slotStart + p * (slotEnd - slotStart))
+        .floor()
+        .clamp(slotStart, slotEnd - 1);
+    unawaited(
+      _scrollController.scrollToIndex(
+        target,
+        preferPosition: AutoScrollPosition.begin,
+      ),
+    );
+  }
+
+  /// 兜底：拿不到标题槽位时退回旧的估算滚动（字符比例）。
+  void _jumpByFraction(TextMatch match) {
     final total = _bodySource?.length ?? 0;
     if (total == 0 || !_scrollController.hasClients) return;
     final fraction = (match.offset / total).clamp(0.0, 1.0);
@@ -2571,6 +2732,37 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     );
   }
 
+  /// 过滤后的目录条目（原始索引）：大小写不敏感包含匹配，空过滤词 =
+  /// 全部条目。只影响显示，跳转仍用原始索引（_headingSlots 按原始顺序）。
+  List<int> _filteredTocIndices() {
+    final q = _tocFilter.trim().toLowerCase();
+    if (q.isEmpty) {
+      return [for (var i = 0; i < _toc.length; i++) i];
+    }
+    return [
+      for (var i = 0; i < _toc.length; i++)
+        if (_toc[i].text.toLowerCase().contains(q)) i,
+    ];
+  }
+
+  /// 章节自动编号（issue #13）：按标题层级维护计数器，返回形如
+  /// `2.1.3` 的层级编号。计数沿祖先路径进行：更深层级首次出现时从
+  /// 1 重新计，更浅层级出现时重置更深层级；中间缺失的层级按 1 处理
+  ///（如 h1 直接跳 h3）。
+  String _tocNumber(int index) {
+    final counts = <int, int>{};
+    for (var i = 0; i <= index; i++) {
+      final level = _toc[i].level;
+      counts[level] = (counts[level] ?? 0) + 1;
+      counts.removeWhere((k, _) => k > level);
+    }
+    final base = _toc.isEmpty ? 1 : _toc.map((e) => e.level).reduce(math.min);
+    final target = _toc[index].level;
+    return [
+      for (var l = base; l <= target; l++) counts[l] ?? 1,
+    ].join('.');
+  }
+
   void _showTocSheet() {
     if (_toc.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2580,41 +2772,100 @@ class _MarkdownViewerPageState extends State<MarkdownViewerPage> {
     }
     showModalBottomSheet<void>(
       context: context,
-      builder: (context) => SafeArea(
-        child: ValueListenableBuilder<int>(
-          valueListenable: _currentSection,
-          builder: (context, current, _) {
-            final theme = Theme.of(context);
-            return ListView.builder(
-              itemCount: _toc.length,
-              itemBuilder: (context, i) {
-                final entry = _toc[i];
-                final isCurrent = i == current;
-                return ListTile(
-                  dense: true,
-                  selected: isCurrent,
-                  selectedTileColor: theme.colorScheme.primary.withAlpha(
-                    isCurrent ? 24 : 0,
-                  ),
-                  contentPadding: EdgeInsets.only(left: 16.0 * entry.level),
-                  title: Text(
-                    entry.text,
-                    style: TextStyle(
-                      fontSize: 15 - (entry.level - 2) * 0.5,
-                      fontWeight: entry.level <= 2 || isCurrent
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color: isCurrent ? theme.colorScheme.primary : null,
+      builder: (sheetContext) => SafeArea(
+        child: StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final indices = _filteredTocIndices();
+            final numbering =
+                AppPrefs.instance?.tocNumbering ?? false;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: TextField(
+                    // 独立控制器：关闭弹层即销毁，重开时回到未过滤状态
+                    controller: _tocFilterController,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: _tocFilter.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () {
+                                setSheetState(() => _tocFilter = '');
+                                _tocFilterController.clear();
+                              },
+                            ),
+                      hintText: '筛选章节',
+                      border: const OutlineInputBorder(),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    onChanged: (v) =>
+                        setSheetState(() => _tocFilter = v),
                   ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _jumpToHeadingTop(i);
-                  },
-                );
-              },
+                ),
+                Expanded(
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _currentSection,
+                    builder: (context, current, _) {
+                      final theme = Theme.of(context);
+                      if (indices.isEmpty) {
+                        return const Center(child: Text('无匹配章节'));
+                      }
+                      return ListView.builder(
+                        itemCount: indices.length,
+                        itemBuilder: (context, position) {
+                          final i = indices[position];
+                          final entry = _toc[i];
+                          final isCurrent = i == current;
+                          return ListTile(
+                            dense: true,
+                            selected: isCurrent,
+                            selectedTileColor: theme
+                                .colorScheme.primary
+                                .withAlpha(isCurrent ? 24 : 0),
+                            contentPadding: EdgeInsets.only(
+                              left: 16.0 * entry.level,
+                            ),
+                            title: Text.rich(
+                              TextSpan(
+                                children: [
+                                  if (numbering)
+                                    TextSpan(
+                                      text: '${_tocNumber(i)}  ',
+                                      style: TextStyle(
+                                        color: theme
+                                            .colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  TextSpan(text: entry.text),
+                                ],
+                              ),
+                              style: TextStyle(
+                                fontSize: 15 - (entry.level - 2) * 0.5,
+                                fontWeight:
+                                    entry.level <= 2 || isCurrent
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                color: isCurrent
+                                    ? theme.colorScheme.primary
+                                    : null,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _jumpToHeadingTop(i);
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             );
           },
         ),

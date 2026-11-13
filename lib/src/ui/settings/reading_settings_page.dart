@@ -138,6 +138,14 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> {
                 onChanged: (v) => unawaited(_prefs.setKeepScreenOn(v)),
               ),
               SettingsSwitchTile(
+                anchor: 'tocNumbering',
+                icon: Icons.format_list_numbered_outlined,
+                title: '目录章节编号',
+                subtitle: '目录标题前显示 2.1.3 形式的层级编号',
+                value: _prefs.tocNumbering,
+                onChanged: (v) => unawaited(_prefs.setTocNumbering(v)),
+              ),
+              SettingsSwitchTile(
                 anchor: 'swipePaging',
                 icon: Icons.swipe_outlined,
                 title: '手势翻页',

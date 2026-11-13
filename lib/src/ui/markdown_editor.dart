@@ -12,6 +12,7 @@ import 'package:mermaid_flutter/mermaid_flutter.dart';
 import '../local/local_folder_service.dart';
 import '../notes/math_render.dart';
 import '../theme/app_prefs.dart';
+import '../theme/reading_paper.dart';
 import '../utils/text_encoding.dart';
 import 'code_font.dart';
 import 'desktop_shortcuts.dart';
@@ -194,7 +195,13 @@ class _MarkdownEditorPageState extends State<MarkdownEditorPage> {
           if (!didPop && _dirty) _confirmDiscard();
         },
         child: Scaffold(
+        backgroundColor: ReadingPaper.resolve(context, AppPrefs.instance)
+            .background,
         appBar: AppBar(
+          backgroundColor:
+              ReadingPaper.resolve(context, AppPrefs.instance).appBar,
+          foregroundColor:
+              ReadingPaper.resolve(context, AppPrefs.instance).onAppBar,
           title: Row(
             children: [
               Flexible(

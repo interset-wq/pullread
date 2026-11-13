@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../notes/code_outline.dart';
+import '../theme/app_prefs.dart';
+import '../theme/reading_paper.dart';
 import '../utils/dir_size.dart' show formatBytes;
 import '../utils/text_encoding.dart';
 import 'code_font.dart';
@@ -221,7 +223,13 @@ class _CodeViewerPageState extends State<CodeViewerPage> {
         },
       },
       child: Scaffold(
+        backgroundColor: ReadingPaper.resolve(context, AppPrefs.instance)
+            .background,
         appBar: AppBar(
+          backgroundColor:
+              ReadingPaper.resolve(context, AppPrefs.instance).appBar,
+          foregroundColor:
+              ReadingPaper.resolve(context, AppPrefs.instance).onAppBar,
           title: Text(widget.fileName, overflow: TextOverflow.ellipsis),
         actions: [
           // 平板横屏大纲侧栏常驻（规范 2.3），大纲钮只在窄屏出现

@@ -44,6 +44,13 @@ class AppPrefs extends ChangeNotifier {
   static const _treeModeKey = 'treeMode';
   static const _searchHistoryKey = 'searchHistory';
   static const _dirTagsKey = 'dirTags';
+  static const _tocNumberingKey = 'tocNumbering';
+  static const _paperLightKey = 'paperLight';
+  static const _paperDarkKey = 'paperDark';
+
+  /// 浅色纸色可选值（白纸 / sepia 暖色），深色纸色（柔和暗 / OLED 纯黑）。
+  static const kPaperLightKeys = ['white', 'sepia'];
+  static const kPaperDarkKeys = ['soft', 'black'];
 
   /// 应用图标可选值（与 AndroidManifest activity-alias 对应）。
   static const kAppIconKeys = ['book', 'page', 'arrow', 'converge', 'tray'];
@@ -125,6 +132,53 @@ class AppPrefs extends ChangeNotifier {
 
   /// 目录名当隐式标签（标签页聚合用；没写 front-matter 的仓库也能导航）。
   bool get dirTags => _dirTags ?? true;
+
+  // 目录章节自动编号（issue #13）：目录弹层与平板侧栏的章节标题前
+  // 显示 `2.1.3` 层级编号。默认关闭——不是所有文档都适合编号。
+  bool? _tocNumbering;
+  bool get tocNumbering => _tocNumbering ?? false;
+
+  Future<void> setTocNumbering(bool v) async {
+    if (v == tocNumbering) return;
+    _tocNumbering = v;
+    notifyListeners();
+    try {
+      final sp =
+          await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
+      await sp.setBool(_tocNumberingKey, v);
+    } on Object {
+      // 保存失败不影响本次会话
+    }
+  }
+
+  // 阅读纸色：浅色 'white'（默认白纸）| 'sepia'（暖色纸）；
+  // 深色 'soft'（默认柔和暗）| 'black'（OLED 纯黑）。
+  // 仅作用于阅读面（阅读页/代码页/编辑器），首页与设置保持品牌视觉。
+  String? _paperLight;
+  String get paperLight =>
+      _paperLight != null && kPaperLightKeys.contains(_paperLight)
+          ? _paperLight!
+          : 'white';
+
+  String? _paperDark;
+  String get paperDark =>
+      _paperDark != null && kPaperDarkKeys.contains(_paperDark)
+          ? _paperDark!
+          : 'soft';
+
+  Future<void> setPaperLight(String v) async {
+    if (!kPaperLightKeys.contains(v) || v == paperLight) return;
+    _paperLight = v;
+    notifyListeners();
+    await _save(_paperLightKey, v);
+  }
+
+  Future<void> setPaperDark(String v) async {
+    if (!kPaperDarkKeys.contains(v) || v == paperDark) return;
+    _paperDark = v;
+    notifyListeners();
+    await _save(_paperDarkKey, v);
+  }
 
   Future<void> setDirTags(bool v) async {
     if (_dirTags == v) return;
@@ -229,6 +283,9 @@ class AppPrefs extends ChangeNotifier {
     var treeMode = false;
     var searchHistory = const <String>[];
     var dirTags = true;
+    var tocNumbering = false;
+    var paperLight = 'white';
+    var paperDark = 'soft';
     var readingFontIndex = kDefaultReadingFontIndex;
     try {
       final sp =
@@ -269,6 +326,11 @@ class AppPrefs extends ChangeNotifier {
       treeMode = sp.getBool(_treeModeKey) ?? false;
       searchHistory = sp.getStringList(_searchHistoryKey) ?? const <String>[];
       dirTags = sp.getBool(_dirTagsKey) ?? true;
+      tocNumbering = sp.getBool(_tocNumberingKey) ?? false;
+      paperLight = sp.getString(_paperLightKey) ?? 'white';
+      paperDark = sp.getString(_paperDarkKey) ?? 'soft';
+      paperLight = sp.getString(_paperLightKey) ?? 'white';
+      paperDark = sp.getString(_paperDarkKey) ?? 'soft';
       readingFontIndex = sp.getInt(_fontKey) ?? kDefaultReadingFontIndex;
     } on Object {
       // 保持默认（跟随系统 + GitCode）
@@ -296,6 +358,9 @@ class AppPrefs extends ChangeNotifier {
     prefs._treeMode = treeMode;
     prefs._searchHistory = searchHistory;
     prefs._dirTags = dirTags;
+    prefs._tocNumbering = tocNumbering;
+    if (kPaperLightKeys.contains(paperLight)) prefs._paperLight = paperLight;
+    if (kPaperDarkKeys.contains(paperDark)) prefs._paperDark = paperDark;
     prefs._readingFontIndex = readingFontIndex;
     return _instance = prefs;
   }

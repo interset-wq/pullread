@@ -70,6 +70,13 @@ void main() {
     await tester.tap(find.byTooltip('目录'));
     await tester.pumpAndSettle();
     expect(find.text('第 1 节'), findsWidgets, reason: '目录面板应已打开');
+    // 弹层加了筛选输入框后列表可视行数变少，ListView 本身也是懒构建：
+    // 先滚动到目标条目构建出来再点
+    await tester.scrollUntilVisible(
+      find.text('第 6 节'),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('第 6 节'));
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     expect(find.textContaining('第 6 节'), findsWidgets,
