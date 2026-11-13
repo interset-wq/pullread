@@ -77,12 +77,13 @@ void main() {
       );
     });
 
-    test('行内样式标签 strong/em 转 Markdown，code 保留', () {
+    test('行内样式标签 strong/em/code 均转 Markdown 语法', () {
       const src = '<strong>粗</strong> 与 <em>斜</em> 与 <code>x=1</code>\n';
       final out = normalizeHtmlImages(src);
       expect(out.contains('**粗**'), isTrue, reason: out);
       expect(out.contains('*斜*'), isTrue);
-      expect(out.contains('<code>x=1</code>'), isTrue);
+      expect(out.contains('`x=1`'), isTrue, reason: out);
+      expect(out.contains('<code>'), isFalse, reason: out);
     });
 
     test('div/span 等块级包装标签被剥离', () {
