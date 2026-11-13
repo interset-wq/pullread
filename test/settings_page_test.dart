@@ -186,5 +186,33 @@ void main() {
     expect(find.text('清空收藏'), findsOneWidget);
     expect(find.text('存储占用'), findsOneWidget);
     expect(find.text('未写回的修改'), findsOneWidget);
+    expect(find.text('清空搜索历史'), findsOneWidget);
+  });
+
+  testWidgets('clearing search history requires confirmation and empties it', (
+    tester,
+  ) async {
+    final prefs = await AppPrefs.load();
+    await prefs.addSearchHistory('flutter');
+    await prefs.addSearchHistory('dart');
+    await tester.pumpWidget(MaterialApp(home: DataSettingsPage(prefs: prefs)));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('2 条搜索历史'), findsOneWidget);
+
+    await tester.tap(find.text('清空搜索历史'));
+    await tester.pumpAndSettle();
+    // 确认弹窗出现，取消不清空
+    expect(find.textContaining('将删除 2 条搜索历史'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(prefs.searchHistory, hasLength(2));
+
+    await tester.tap(find.text('清空搜索历史'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('清空').last);
+    await tester.pumpAndSettle();
+    expect(prefs.searchHistory, isEmpty);
+    expect(find.text('暂无搜索历史'), findsOneWidget);
   });
 }
