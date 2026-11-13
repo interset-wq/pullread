@@ -45,6 +45,13 @@
   send `If-None-Match`/`If-Modified-Since`; a 304 reuses the cache and resets the
   freshness window without re-downloading bytes. Manual retry skips conditional
   headers.
+- **Block-level HTML in Markdown** (`markdown_source.dart`, `normalizeHtmlImages`):
+  before image normalization, `_convertHtmlBlocks` converts common HTML blocks to
+  Markdown so they render instead of staying inert text: `<table>` → Markdown table
+  (reuses `htmlTableToMarkdown`; rowspan/colspan tables fall back to per-row stripped
+  text), `<ul>/<ol>/<li>` → Markdown lists (innermost first, nested levels indented
+  4 spaces), `<blockquote>` → `>` quotes, `<hr>` → `---`. Only blocks that do not
+  cross a code-protected segment are converted; fenced code keeps raw HTML.
 - **SVG** (`repo_image.dart`, `markdown_source.dart`): local `.svg` uses
   `SvgPicture.file`; network bytes are sniffed and use `SvgPicture.memory`, scaled to
   available width by viewBox. `normalizeHtmlImages` only drops shields.io /
