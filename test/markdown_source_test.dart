@@ -69,6 +69,134 @@ void main() {
     });
   });
 
+  group('normalizeHtmlImages: parse hardening', () {
+    test('li without closing tags auto-closes at the next li', () {
+      const src = '<ul><li>甲<li>乙<li>丙</ul>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('- 甲'));
+      expect(out, contains('- 乙'));
+      expect(out, contains('- 丙'));
+      expect(out.contains('<li'), isFalse, reason: out);
+    });
+
+    test('li auto-close keeps inline tags inside items', () {
+      const src = '<ul><li>加粗<b>重点</b>结尾<li>第二项</ul>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('- 加粗**重点**结尾'));
+      expect(out, contains('- 第二项'));
+    });
+
+    test('ol numbering survives unclosed li items', () {
+      const src = '<ol><li>第一<li>第二<li>第三</ol>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('1. 第一'));
+      expect(out, contains('2. 第二'));
+      expect(out, contains('3. 第三'));
+    });
+
+    test('a href becomes a markdown link', () {
+      const src = '<p>看 <a href="https://example.com/docs">文档</a> 说明</p>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('[文档](https://example.com/docs)'));
+      expect(out.contains('<a'), isFalse);
+    });
+
+    test('bare a without href keeps text only', () {
+      const src = '<a name="anchor">锚点文字</a>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('锚点文字'));
+      expect(out.contains(']('), isFalse, reason: out);
+    });
+
+    test('javascript: href keeps label but emits no link', () {
+      const src = '<a href="javascript:evil()">点我</a>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('点我'));
+      expect(out.contains(']('), isFalse, reason: out);
+    });
+
+    test('html badge link flattens to a plain image', () {
+      const src =
+          '<a href="https://example.com/repo"><img src="https://img.example/badge.svg" alt="badge"/></a>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('![](https://img.example/badge.svg)'));
+      expect(out.contains('[!['), isFalse, reason: out);
+    });
+
+    test('empty label falls back to the href as label', () {
+      const src = '<a href="https://example.com"></a>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('[https://example.com](https://example.com)'));
+    });
+
+    test('html comments are removed', () {
+      const src = '正文<!-- <table><tr><td>藏起来的</td></tr></table> -->续文';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('正文'));
+      expect(out, contains('续文'));
+      expect(out.contains('藏起来的'), isFalse);
+      expect(out.contains('<!--'), isFalse);
+    });
+
+    test('entities are decoded in lists, headings and quotes', () {
+      const src = '<ul><li>A &amp; B &gt; C</li></ul>\n'
+          '<h2>标题 &quot;引用&quot;</h2>\n'
+          '<blockquote>&lt;tag&gt; 与 &#39;单引号&#39;</blockquote>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('- A & B > C'));
+      expect(out, contains('## 标题 "引用"'));
+      expect(out, contains('> <tag> 与 \'单引号\''));
+      expect(out.contains('&amp;'), isFalse, reason: out);
+    });
+
+    test('pre becomes a fenced code block with language', () {
+      const src = '<pre><code class="language-dart">void main() {'
+          '\n  print(&quot;hi&quot;);\n}</code></pre>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('```dart'));
+      expect(out, contains('print("hi");'));
+      expect(out.contains('<pre'), isFalse, reason: out);
+      expect(out.contains('&quot;'), isFalse);
+    });
+
+    test('pre without language class yields a bare fence', () {
+      const src = '<pre>x = 1 &amp;&amp; 2</pre>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('```\nx = 1 && 2\n```'));
+      expect(out.contains('language'), isFalse, reason: out);
+    });
+
+    test('html inside pre is kept as code text, not converted', () {
+      const src = '<pre><code>&lt;div&gt;&lt;img src="x.png"&gt;&lt;/div&gt;</code></pre>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('<div><img src="x.png"></div>'));
+      expect(out.contains('![](x.png)'), isFalse, reason: out);
+    });
+
+    test('unclosed pre at end of document still fences its content', () {
+      const src = '正文\n<pre>let a = 1;';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('```'));
+      expect(out, contains('let a = 1;'));
+    });
+
+    test('table with thead/tbody still converts', () {
+      const src = '<table><thead><tr><th>H1</th><th>H2</th></tr></thead>'
+          '<tbody><tr><td>a</td><td>b</td></tr></tbody></table>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('| H1 | H2 |'));
+      expect(out, contains('| a | b |'));
+      expect(out.contains('<thead'), isFalse, reason: out);
+    });
+
+    test('pre inside fenced markdown code is untouched', () {
+      const src = '```\n<pre><code>x</code></pre>\n```';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('<pre><code>x</code></pre>'));
+      expect(out.contains('```dart'), isFalse);
+    });
+  });
+
   test('slugifyHeading keeps CJK and dashes spaces', () {
     expect(slugifyHeading('Hello World'), 'hello-world');
     expect(slugifyHeading('第一 章：入门'), '第一-章入门');
