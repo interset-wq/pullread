@@ -46,10 +46,13 @@
 - **In-text find**: the AppBar search icon opens a find bar (Raw mode uses
   `CodeView`'s source find). Matches are reported by line in the same coordinate
   system as `TocEntry.line` (both based on the post-front-matter / converted body).
-  Jumps currently locate the heading that contains the match; documents without
-  headings scroll by character ratio. Match highlighting is per character via
-  `MarkdownGenerator.textGenerator` (`_FindHighlightNode`), case-insensitive, and
-  only applies to plain-text nodes (not links/code blocks).
+  Jumps locate the exact block: the match line is interpolated between the
+  chapter's heading slot and the next heading's slot (`_headingSlots` +
+  `scroll_to_index`, lazy-list safe), and documents without headings map the
+  line ratio onto the block index. Slot positions are average-height estimates;
+  the per-character highlight (`MarkdownGenerator.textGenerator`,
+  `_FindHighlightNode`, case-insensitive, plain-text nodes only — not
+  links/code blocks) pins the exact spot on arrival.
 - **Search entry**: opening from a body search result passes `initialFindQuery` so
   the find bar opens, counts matches and jumps to the first one.
 - **Recent reading** (`RepoMeta.pushRecent` / `readRecentEntries`): recorded per
@@ -83,8 +86,11 @@
   `本地 · <name>` so they stay distinct from same-named repos). Supports search
   history (persisted in `AppPrefs`,
   max 12; tap to search, ✕ to delete), source filters (multi-select; none = all)
-  and "body / title only" modes. Title-only matches filenames/paths without reading
-  files and does not open with a find query.
+  and "body / title only" modes. Single-character queries are allowed (the old
+  2-char gate blocked common CJK searches); history is recorded only when a
+  result is actually opened (`_openHit`), not when the debounced search runs, so
+  partial input like `flut` never becomes a history entry. Title-only matches
+  filenames/paths without reading files and does not open with a find query.
 - Body search reads md/ipynb inside an isolate (max 2 MB per file) and does linear
   matching: split the query on whitespace (including full-width spaces), require
   **all terms** (AND), and produce per-term highlight ranges with
@@ -104,6 +110,12 @@
   tags requires ALL of them (AND) across sources. **Implicit directory tags** are a
   toggle (default on, top-right of the tag page): each directory level is merged into
   the tag set, so repos without front matter are still navigable.
+- **TOC filter & numbering**: the in-article TOC (mobile bottom sheet and the
+  ≥1000dp sidebar) has a keyword filter (`_tocFilter`) — display-only, jumps
+  still use original `_toc` indices. Optional hierarchical chapter numbering
+  (`AppPrefs.tocNumbering`, default off, settings → 阅读行为) prefixes entries
+  with `2.1.3`-style paths computed from heading levels; blank intermediate
+  levels count as 1.
 - **Link checking** (`lib/src/notes/link_check.dart`): repo page "more → check broken
   links" validates relative links/images in bulk, skipping external URLs, anchors and
   code blocks, decoding percent-encoding and resolving `../`. Results are grouped by
@@ -114,6 +126,11 @@
   draft and persist only on `onChangeEnd`; the fold threshold is disabled while long
   code folding is off; desktop icon switching is Android-only; every subpage has
   "restore this page". Shared theme selection is in `theme_mode_selector.dart`.
+- **Reading paper** (`lib/src/theme/reading_paper.dart`): the reading surfaces
+  (reader, code viewer, editor) resolve their background from `AppPrefs.paperLight`
+  (`white`/`sepia`) and `paperDark` (`soft`/`black` for OLED); the Scaffold, AppBar
+  and TOC sidebar use it, while body text, code blocks and tables keep their existing
+  light/dark colors. Home and settings keep the brand look.
 - **Storage page** (`lib/src/ui/storage_page.dart`, `lib/src/utils/dir_size.dart`):
   settings → Storage & data → Storage shows disk usage for `repos`, `local`,
   `imgcache` and `.meta` (recursive sizes summed in a background isolate). Image cache
