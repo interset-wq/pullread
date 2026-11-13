@@ -12,6 +12,63 @@ void main() {
     expect(estimateReadingMinutes(code), 3);
   });
 
+  group('normalizeHtmlImages: block-level HTML', () {
+    test('converts a simple HTML table to a Markdown table', () {
+      const src = '<table><tr><th>A</th><th>B</th></tr>'
+          '<tr><td>1</td><td>2</td></tr></table>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('| A | B |'));
+      expect(out, contains('| --- | --- |'));
+      expect(out, contains('| 1 | 2 |'));
+      expect(out.contains('<table'), isFalse, reason: out);
+    });
+
+    test('complex table falls back to stripped per-row text', () {
+      const src = '<table><tr><td rowspan="2">x</td><td>y</td></tr>'
+          '<tr><td>z</td></tr></table>';
+      final out = normalizeHtmlImages(src);
+      expect(out.contains('<t'), isFalse, reason: out);
+      expect(out, contains('x y'));
+      expect(out, contains('z'));
+    });
+
+    test('converts ul and ol lists', () {
+      const src = '<ul><li>甲</li><li>乙</li></ul>\n'
+          '<ol><li>第一</li><li>第二</li></ol>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('- 甲'));
+      expect(out, contains('- 乙'));
+      expect(out, contains('1. 第一'));
+      expect(out, contains('2. 第二'));
+      expect(out.contains('<li'), isFalse, reason: out);
+    });
+
+    test('nested lists keep hierarchy via indentation', () {
+      const src = '<ul><li>外层<ul><li>内层</li></ul></li>'
+          '<li>兄弟</li></ul>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('- 外层'));
+      expect(out, contains('    - 内层'));
+      expect(out, contains('- 兄弟'));
+    });
+
+    test('blockquote and hr are converted', () {
+      const src = '<blockquote>引用一句话</blockquote>\n正文\n<hr>';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('> 引用一句话'));
+      expect(out, contains('---'));
+      expect(out.contains('<blockquote'), isFalse);
+      expect(out.contains('<hr'), isFalse);
+    });
+
+    test('HTML inside fenced code blocks is left untouched', () {
+      const src = '```\n<table><tr><td>x</td></tr></table>\n<ul><li>y</li></ul>\n```';
+      final out = normalizeHtmlImages(src);
+      expect(out, contains('<table><tr><td>x</td></tr></table>'));
+      expect(out, contains('<ul><li>y</li></ul>'));
+    });
+  });
+
   test('slugifyHeading keeps CJK and dashes spaces', () {
     expect(slugifyHeading('Hello World'), 'hello-world');
     expect(slugifyHeading('第一 章：入门'), '第一-章入门');

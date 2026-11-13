@@ -3,6 +3,8 @@
 /// 也避免 `markdown_viewer.dart` 继续膨胀。
 library;
 
+import 'ipynb_images.dart' show htmlTableToMarkdown;
+
 /// 匹配 <img src="...">（属性顺序任意、单双引号均可、含尾部其余属性）。
 final RegExp _htmlImgRegExp = RegExp(
   r'''<img[^>]*\ssrc=["']([^"']+)["'][^>]*>''',
@@ -180,7 +182,7 @@ int _bracketDelta(String line) {
 
 /// 普通文本段的 HTML 归一化（调用前已剥离代码保护段）。
 String _normalizeHtmlImagesPlain(String md) {
-  final stripped = md
+  final stripped = _convertHtmlBlocks(md)
       .replaceAllMapped(_htmlImgRegExp, (m) => '\n\n![](${m.group(1)!})\n\n')
       .replaceAllMapped(
         _badgeLinkImgRegExp,
@@ -198,6 +200,105 @@ String _normalizeHtmlImagesPlain(String md) {
       // 徽章/SVG 图片在排版中无意义，直接忽略
       .replaceAll(_ignoredImageRegExp, '');
   return _convertHtmlTags(stripped);
+}
+
+/// 块级 HTML 转 Markdown：`<table>` → Markdown 表格（复用 notebook 的
+/// 降级逻辑，复杂表格回退为按行剥壳的纯文本）、`<ul>/<ol>/<li>` →
+/// Markdown 列表、`<blockquote>` → `>` 引用、`<hr>` → `---`。
+/// 只处理不跨越代码保护段的块；含行内代码的表格会被分段拆散而保持原样。
+String _convertHtmlBlocks(String md) {
+  var text = md;
+
+  // 表格：规整表格降级为 Markdown 表格；复杂表格剥壳保留行文本
+  text = text.replaceAllMapped(
+    RegExp(r'<table\b[^>]*>[\s\S]*?</table\s*>', caseSensitive: false),
+    (m) {
+      final converted = htmlTableToMarkdown(m.group(0)!);
+      return '\n\n${converted ?? _htmlTableFallbackText(m.group(0)!)}\n\n';
+    },
+  );
+
+  // 列表：先转最内层，外层转换时把已转好的子列表行缩进 4 空格。
+  // 内容组必须惰性：闭合标签以 `</` 开头，不会被前瞻拦截，
+  // 贪婪匹配会一路吞掉外层的 `</ul>`，把两层列表错并成一个。
+  final innerList = RegExp(
+    r'<(ul|ol)\b[^>]*>((?:(?!<[uo]l\b)[\s\S])*?)</\1\s*>',
+    caseSensitive: false,
+  );
+  var guard = 0;
+  var changed = true;
+  while (changed && guard++ < 16) {
+    changed = false;
+    text = text.replaceFirstMapped(innerList, (m) {
+      changed = true;
+      return '\n\n${_htmlListToMarkdown(m.group(1)!, m.group(2)!)}\n\n';
+    });
+  }
+
+  // 引用块：内容逐行加 "> "
+  text = text.replaceAllMapped(
+    RegExp(r'<blockquote\b[^>]*>([\s\S]*?)</blockquote\s*>', caseSensitive: false),
+    (m) {
+      final lines = m
+          .group(1)!
+          .split('\n')
+          .map((l) => l.trim())
+          .where((l) => l.isNotEmpty)
+          .map((l) => '> $l')
+          .join('\n');
+      return lines.isEmpty ? '' : '\n\n$lines\n\n';
+    },
+  );
+
+  // 水平分割线
+  text = text.replaceAllMapped(
+    RegExp(r'<hr\b[^>]*/?>', caseSensitive: false),
+    (m) => '\n\n---\n\n',
+  );
+
+  return text;
+}
+
+/// 复杂表格（rowspan/colspan 等）的回退：剥掉标签，每行一行文本。
+String _htmlTableFallbackText(String html) => html
+    .replaceAllMapped(
+      RegExp(r'</tr\s*>', caseSensitive: false),
+      (m) => '\n',
+    )
+    .replaceAllMapped(
+      RegExp(r'</t[hd]\s*>', caseSensitive: false),
+      (m) => ' ',
+    )
+    .replaceAll(RegExp(r'<[^>]+>'), '')
+    .split('\n')
+    .map((l) => l.replaceAll(RegExp(r'\s+'), ' ').trim())
+    .where((l) => l.isNotEmpty)
+    .join('\n');
+
+/// 单层 `<ul>/<ol>` 内容转 Markdown 列表；条目内容里已转换的子列表行
+/// 随条目缩进 4 空格，保持层级可读。
+String _htmlListToMarkdown(String tag, String body) {
+  final ordered = tag.toLowerCase() == 'ol';
+  final items = RegExp(
+    r'<li\b[^>]*>([\s\S]*?)</li\s*>',
+    caseSensitive: false,
+  ).allMatches(body).map((m) => m.group(1)!).toList();
+  if (items.isEmpty) return '';
+  final out = <String>[];
+  for (var i = 0; i < items.length; i++) {
+    final bullet = ordered ? '${i + 1}.' : '-';
+    final lines = items[i]
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    if (lines.isEmpty) continue;
+    out.add('$bullet ${lines.first}');
+    for (final l in lines.skip(1)) {
+      out.add('    $l');
+    }
+  }
+  return out.join('\n');
 }
 
 /// HTML 标签转 Markdown：
