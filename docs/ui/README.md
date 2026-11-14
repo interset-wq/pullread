@@ -52,4 +52,4 @@ docs/ui/
 | 搜索页 | 仅 HTML（`search-redesign/`） | 已实现 |
 | 目录树 | 仅 HTML（`tree-redesign/`） | 已实现 |
 | 电子书模式 | 待新增 | v2 M1–M2 |
-| 分屏阅读 | 待新增 | v2 M3 |
+| 分屏阅读 | `split-reader.md` | MVP 已实现 |

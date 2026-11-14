@@ -2572,6 +2572,8 @@ class ReaderPaneState extends State<ReaderPane> {
           note: note,
           repoRoot: widget.repoRoot,
           book: widget.book,
+          embedded: widget.embedded,
+          leading: widget.leading,
         ),
       ),
     );

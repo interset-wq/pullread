@@ -43,7 +43,7 @@
 | M0 | 阅读内核抽取（`ReaderController` / `ReaderPane`），无用户可见变化 | 进行中：已拆出 `ReaderPane` 文件边界与 `embedded` 无 chrome 形态；`ReaderController` 仍待拆 |
 | M1 | 书单与书根：大纲解析、自动推断、书单缓存 | 进行中：解析/发现/推断已完成；`.meta` 书单缓存待补 |
 | M2 | 电子书阅读 MVP：入口、书级目录、章间衔接、书级进度 | MVP 已完成：入口/书单/书根切换/章节翻页/书级进度/宽屏书目录 + 窄屏弹层；待真机验收 |
-| M3 | 多开阅读：双栏壳、手机切换器、跨来源会话 | 未开始 |
+| M3 | 多开阅读：双栏壳、手机切换器、跨来源会话 | 进行中：双栏壳/窄屏切换器/最近阅读跨来源选择已落地；书内章节组合与真机验收待补 |
 | M4 | 联调、设置项、文档与 `2.0.0-rc1` 发布 | 未开始 |
 
 ## 4. 进行中（主责 agent 占用文件）
@@ -52,7 +52,7 @@ v2 阅读内核 / 电子书 MVP 正在本分支推进；以下文件暂由本任
 
 | 任务 | 状态 | 涉及文件 |
 | --- | --- | --- |
-| M0 阅读内核 + M1 书单 + M2 电子书入口 | 进行中 | `lib/src/ui/reader/reader_pane.dart`、`lib/src/ui/reader/book_reader_page.dart`、`lib/src/ui/markdown_viewer.dart`、`lib/src/books/`、`lib/src/git/repo_meta.dart`、`lib/src/ui/repo_page.dart` |
+| M0 阅读内核 + M2 电子书 + M3 多开 | 进行中 | `lib/src/ui/reader/reader_pane.dart`、`lib/src/ui/reader/book_reader_page.dart`、`lib/src/ui/reader/split_reader_page.dart`、`lib/src/ui/reader/reader_session.dart`、`lib/src/ui/home_page.dart`、`lib/src/ui/markdown_viewer.dart`、`lib/src/books/`、`lib/src/git/repo_meta.dart`、`lib/src/ui/repo_page.dart` |
 
 ## 5. 真机验收清单（v1 收尾，不阻塞 v2）
 

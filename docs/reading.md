@@ -32,6 +32,12 @@
   `ReaderPane(embedded: true)` drops the page `Scaffold`/`AppBar` and renders a
   compact pane bar (title, find, star, more sheet) so split reading can host two
   independent readers under one route.
+- **Multi-open** (`reader/split_reader_page.dart`, `reader/reader_session.dart`):
+  opened from the home AppBar, with candidates from cross-source recents. At
+  ≥900 dp two columns render side by side; below that an `IndexedStack` plus a
+  bottom segmented switcher keeps both pane states alive. Each pane has its own
+  nested `Navigator`, so chapter/sibling navigation and the back stack stay
+  local; closing a pane clears only that slot.
 - **Open and resume**: after the first layout, restore the last position (heading
   anchor first, fraction fallback) and offer "read from start" in a SnackBar. Do not
   show a modal on every open (old behavior).

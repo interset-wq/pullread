@@ -23,6 +23,7 @@ import 'global_search_page.dart';
 import 'home_feed.dart';
 import 'open_note.dart';
 import 'pull_progress.dart';
+import 'reader/split_reader_page.dart';
 import 'repo_page.dart';
 import 'settings/settings_page.dart';
 import 'settings/theme_mode_selector.dart';
@@ -400,6 +401,27 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _openSplitReader() async {
+    final entries = collectHomeRecentEntries(
+      _repos ?? const <Directory>[],
+      _localMirrors,
+      limit: 50,
+    );
+    if (entries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('还没有可多开的阅读记录')),
+      );
+      return;
+    }
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => SplitReaderPage(candidates: entries),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   void _openGlobalSearch(List<Directory> repos, List<LocalFolder> locals) {
     if (repos.isEmpty && locals.isEmpty) return;
     Navigator.push(
@@ -437,6 +459,11 @@ class _HomePageState extends State<HomePage> {
     required bool includeOverflow,
   }) {
     return [
+      IconButton(
+        tooltip: '多开阅读',
+        icon: const Icon(Icons.vertical_split_outlined),
+        onPressed: (repos.isEmpty && locals.isEmpty) ? null : _openSplitReader,
+      ),
       IconButton(
         tooltip: '搜索全部仓库和本地文件夹',
         icon: const Icon(Icons.search),
