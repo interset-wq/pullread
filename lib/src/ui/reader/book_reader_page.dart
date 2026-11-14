@@ -10,6 +10,7 @@ import '../../notes/note_index.dart';
 import '../../notes/note_scanner.dart';
 import '../home_feed.dart';
 import '../markdown_viewer.dart';
+import '../../theme/app_prefs.dart';
 
 /// 电子书入口：书级目录、书根切换与继续阅读。
 ///
@@ -41,6 +42,9 @@ class _BookReaderPageState extends State<BookReaderPage> {
   BookOutline? _outline;
   List<BookRoot> _roots = const [];
   bool _loading = true;
+
+  /// 目录编号开关：每本书独立记忆，未设置时跟随全局 `AppPrefs.tocNumbering`。
+  bool _numbering = false;
 
   @override
   void initState() {
@@ -81,6 +85,10 @@ class _BookReaderPageState extends State<BookReaderPage> {
       _files = files;
       _outline = state.outline;
       _roots = state.roots;
+      _numbering =
+          RepoMeta.readBookNumbering(widget.repoRoot, _rootPath) ??
+          AppPrefs.instance?.tocNumbering ??
+          false;
       _loading = false;
     });
   }
@@ -192,6 +200,14 @@ class _BookReaderPageState extends State<BookReaderPage> {
     return index < 0 ? 0 : index;
   }
 
+  /// 切换目录编号：每本书独立记忆（rootPath 维度），不影响其他书。
+  void _toggleNumbering() {
+    setState(() {
+      _numbering = !_numbering;
+      RepoMeta.saveBookNumbering(widget.repoRoot, _rootPath, _numbering);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = HomeTokens.of(context);
@@ -211,6 +227,17 @@ class _BookReaderPageState extends State<BookReaderPage> {
           ),
         ),
         actions: [
+          if (outline != null && outline.chapters.isNotEmpty)
+            IconButton(
+              tooltip: _numbering ? '关闭目录编号' : '开启目录编号',
+              icon: Icon(
+                _numbering
+                    ? Icons.format_list_numbered
+                    : Icons.format_list_bulleted,
+                color: tokens.icon,
+              ),
+              onPressed: _toggleNumbering,
+            ),
           if (_roots.length > 1)
             PopupMenuButton<String>(
               tooltip: '切换书根',
@@ -393,7 +420,17 @@ class _BookReaderPageState extends State<BookReaderPage> {
               child: Column(
                 children: [
                   for (var i = 0; i < outline.chapters.length; i++) ...[
-                    _chapterRow(tokens, outline, i, progressPath),
+                    _chapterRow(
+                      tokens,
+                      outline,
+                      i,
+                      progressPath,
+                      _numbering
+                          ? computeChapterNumbers(
+                              [for (final c in outline.chapters) c.depth],
+                            )[i]
+                          : null,
+                    ),
                     if (i != outline.chapters.length - 1)
                       Divider(
                         height: 1,
@@ -415,6 +452,7 @@ class _BookReaderPageState extends State<BookReaderPage> {
     BookOutline outline,
     int index,
     String? progressPath,
+    String? number,
   ) {
     final chapter = outline.chapters[index];
     final current = chapter.path == progressPath;
@@ -423,6 +461,9 @@ class _BookReaderPageState extends State<BookReaderPage> {
     final missing = !File(
       '${widget.repoRoot}$sep${chapter.path.replaceAll('/', sep)}',
     ).existsSync();
+    final title = number == null
+        ? chapter.title
+        : '$number  ${chapter.title}';
     return InkWell(
       onTap: () => _openChapter(outline, index),
       borderRadius: BorderRadius.circular(16),
@@ -455,7 +496,7 @@ class _BookReaderPageState extends State<BookReaderPage> {
             ),
             Expanded(
               child: Text(
-                chapter.title,
+                title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

@@ -23,16 +23,10 @@ class UserChapter {
     final p = raw['p'];
     final t = raw['t'];
     if (p is! String || p.isEmpty) return null;
-    var path = p.replaceAll('\\', '/');
-    // 兼容历史数据：链接里的空格可能被存成 %20 等转义，真实文件名不含
-    if (path.contains('%')) {
-      try {
-        final decoded = Uri.decodeFull(path);
-        if (decoded != path) path = decoded;
-      } on ArgumentError {
-        // 保持原文
-      }
-    }
+    // 路径保持原样：%20 转义由 BookOutlineReader.read 对照真实文件
+    // 解析（原始路径存在就用原始，解码后存在才用解码），盲目解码会把
+    // 字面含 %20 的真实文件名破坏掉
+    final path = p.replaceAll('\\', '/');
     final d = raw['d'];
     return UserChapter(
       path: path,

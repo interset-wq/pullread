@@ -3,6 +3,7 @@ import 'dart:io';
 
 import '../git/repo_meta.dart';
 import '../notes/note_scanner.dart';
+import '../utils/uri_text.dart';
 import 'book.dart';
 import 'user_books.dart';
 
@@ -27,16 +28,28 @@ class BookOutlineReader {
     final existing = <String>{
       for (final file in files) file.relativePath.replaceAll('\\', '/'),
     };
+    // 转义路径按真实文件解析：原始路径存在就用原始（文件名字面含
+    // %20 的仓库不受影响），解码后存在才用解码（历史 SUMMARY 链接）
+    String? resolvePath(String path) {
+      if (existing.contains(path)) return path;
+      if (path.contains('%')) {
+        final decoded = decodeUriPathLenient(path);
+        if (existing.contains(decoded)) return decoded;
+      }
+      return null;
+    }
+
     for (final userBook in UserBookStore.read(repoRoot)) {
       if (normalizeRoot(userBook.rootPath) != root) continue;
-      // 按真实文件过滤：pull 删文件 / 缓存过期 / %20 转义都不再进入阅读
+      // 按真实文件过滤：pull 删文件 / 缓存过期 / 转义不一致都不再进入阅读
       final chapters = <BookChapter>[];
       for (final chapter in userBook.chapters) {
-        if (!existing.contains(chapter.path)) continue;
+        final path = resolvePath(chapter.path);
+        if (path == null) continue;
         chapters.add(
           BookChapter(
             title: chapter.title,
-            path: chapter.path,
+            path: path,
             depth: chapter.depth,
           ),
         );
@@ -327,11 +340,9 @@ class BookOutlineReader {
     if (uri == null || uri.hasScheme) return null;
     raw = raw.split('#').first.split('?').first;
     if (raw.isEmpty) return null;
-    try {
-      raw = Uri.decodeFull(raw);
-    } on ArgumentError {
-      // 保持原文
-    }
+    // 宽容解码：Uri.decodeFull 遇到「未编码中文 + %20」混合会抛异常
+    // （hello-agents 的 _sidebar.md 正是这种），保留原文会让章节打不开
+    raw = decodeUriPathLenient(raw);
     raw = raw.replaceAll('\\', '/');
     final segments = <String>[];
     if (raw.startsWith('/')) {

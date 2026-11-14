@@ -386,6 +386,33 @@ class RepoMeta {
     _write(repoRoot, raw);
   }
 
+  /// 每本书的目录编号开关（rootPath → bool），未设置返回 null
+  /// （由全局 `AppPrefs.tocNumbering` 决定默认值）。
+  static bool? readBookNumbering(String repoRoot, String rootPath) {
+    final map = _readRaw(repoRoot)['bookNumbering'];
+    if (map is! Map) return null;
+    final value = map[rootPath];
+    return value is bool ? value : null;
+  }
+
+  static void saveBookNumbering(
+    String repoRoot,
+    String rootPath,
+    bool numbering,
+  ) {
+    final raw = _readRaw(repoRoot);
+    final map = <String, dynamic>{};
+    final existing = raw['bookNumbering'];
+    if (existing is Map) {
+      for (final entry in existing.entries) {
+        map['${entry.key}'] = entry.value;
+      }
+    }
+    map[rootPath] = numbering;
+    raw['bookNumbering'] = map;
+    _write(repoRoot, raw);
+  }
+
   /// 读取文章的已保存滚动进度（0~1 的比例位置），无记录返回 null。
   static double? readProgress(String repoRoot, String relativePath) {
     final (f, _) = readProgressInfo(repoRoot, relativePath);

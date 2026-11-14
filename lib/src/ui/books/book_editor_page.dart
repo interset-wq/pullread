@@ -59,18 +59,13 @@ class BookEditorPage extends StatefulWidget {
         inside = path.substring(scanDir.length + 1);
       }
       final depth = inside.split('/').length - 1;
-      // README.md 的文件名没有信息量，用父目录名当标题
-      // （如 write-a-hash-table 的 01-introduction/README.md → "01 introduction"）。
-      // 注意 NoteFile.fileName 不含扩展名。
-      final segments = inside.split('/');
-      final baseName = file.fileName.toLowerCase();
-      final title = segments.length >= 2 && (baseName == 'readme' || baseName == 'readme.md')
-          ? _titleFromFileName(segments[segments.length - 2])
-          : _titleFromFileName(file.fileName);
+      // 目录 item 一律使用文件名（去扩展名、逐字保留）：
+      // 编号系统负责区分层级与顺序，标题不再做数字剥离等加工
+      final fileName = file.fileName;
       chapters.add(
         UserChapter(
           path: path,
-          title: title,
+          title: fileName,
           depth: depth,
         ),
       );
@@ -81,12 +76,11 @@ class BookEditorPage extends StatefulWidget {
     return chapters;
   }
 
-  static String _titleFromFileName(String fileName) {
-    final dot = fileName.lastIndexOf('.');
-    var name = dot > 0 ? fileName.substring(0, dot) : fileName;
-    name = name.replaceFirst(RegExp(r'^\d+[._\-\s]+'), '');
-    name = name.replaceAll(RegExp(r'[_-]+'), ' ').trim();
-    return name.isEmpty ? fileName : name;
+  /// 目录 item 标题 = 文件名（去扩展名、逐字保留）。
+  static String baseTitleForPath(String path) {
+    final base = path.replaceAll('\\', '/').split('/').last;
+    final dot = base.lastIndexOf('.');
+    return dot > 0 ? base.substring(0, dot) : base;
   }
 
   @override
@@ -244,7 +238,7 @@ class _BookEditorPageState extends State<BookEditorPage> {
         _chapters.add(
           UserChapter(
             path: path,
-            title: BookEditorPage._titleFromFileName(path),
+            title: BookEditorPage.baseTitleForPath(path),
           ),
         );
       }

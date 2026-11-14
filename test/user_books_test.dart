@@ -100,13 +100,15 @@ void main() {
     expect(fallback!.title, 'readme.md');
   });
 
-  test('URL-escaped chapter paths (%20) are decoded on read', () {
+  test('chapter paths are stored verbatim (%20 resolved at read time)', () {
+    // 盲解码会破坏字面含 %20 的真实文件名；转义解析已移到
+    // BookOutlineReader.read 对照真实文件进行（book_outline_test 覆盖）
     final chapter = UserChapter.fromJson({
       'p': 'docs/my%20file.md',
       't': 'my file',
     });
     expect(chapter, isNotNull);
-    expect(chapter!.path, 'docs/my file.md');
+    expect(chapter!.path, 'docs/my%20file.md');
   });
 
   test('chapter depth survives the JSON round-trip', () {

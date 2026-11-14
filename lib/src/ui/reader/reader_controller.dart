@@ -42,7 +42,18 @@ class ReaderController {
 
   /// 读取当前文件并刷新解析状态，返回渲染正文。
   Future<String> load() async {
-    var raw = decodeTextBytes(await File(note.absolutePath).readAsBytes());
+    String raw;
+    try {
+      raw = decodeTextBytes(await File(note.absolutePath).readAsBytes());
+    } on FileSystemException catch (error) {
+      // 带上路径与 OS 原因：长路径、权限、文件消失等在报错里能直接分辨
+      throw FileSystemException(
+        '读取文件失败：${error.message}（${error.osError?.message ?? error.message}）\n'
+        '${note.absolutePath}',
+        note.absolutePath,
+        error.osError,
+      );
+    }
     rawSource = raw;
     rawOutline = _buildRawOutline(raw);
     RepoMeta.touchLastOpened(repoRoot, note.relativePath);

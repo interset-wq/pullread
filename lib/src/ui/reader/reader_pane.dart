@@ -18,6 +18,8 @@ import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../utils/uri_text.dart';
+
 import '../../books/book.dart';
 import '../../git/repo_meta.dart';
 import '../../local/local_folder_service.dart';
@@ -96,6 +98,17 @@ class ReaderPaneState extends State<ReaderPane> {
   String? get _title => _controller.title;
   List<String> get _tags => _controller.tags;
   List<TocEntry> get _toc => _controller.toc;
+
+  /// 单页目录编号覆盖：null = 跟随全局 `AppPrefs.tocNumbering`。
+  bool? _tocNumberingOverride;
+
+  bool get _effectiveTocNumbering =>
+      _tocNumberingOverride ?? AppPrefs.instance?.tocNumbering ?? false;
+
+  void _toggleTocNumbering({void Function()? onChanged}) {
+    setState(() => _tocNumberingOverride = !_effectiveTocNumbering);
+    onChanged?.call();
+  }
   int get _readingMinutes => _controller.readingMinutes;
   String? get _bodySource => _controller.bodySource;
   String get _rawLanguage => _controller.rawLanguage;
@@ -363,24 +376,43 @@ class ReaderPaneState extends State<ReaderPane> {
                 // 章节筛选：与手机端目录弹层同一状态（_tocFilter）
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
-                  child: TextField(
-                    controller: _tocFilterController,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      suffixIcon: _tocFilter.isEmpty
-                          ? null
-                          : IconButton(
-                              icon: const Icon(Icons.close, size: 16),
-                              onPressed: () => setState(() {
-                                _tocFilter = '';
-                                _tocFilterController.clear();
-                              }),
-                            ),
-                      hintText: '筛选章节',
-                      border: const OutlineInputBorder(),
-                    ),
-                    onChanged: (v) => setState(() => _tocFilter = v),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _tocFilterController,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            suffixIcon: _tocFilter.isEmpty
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.close, size: 16),
+                                    onPressed: () => setState(() {
+                                      _tocFilter = '';
+                                      _tocFilterController.clear();
+                                    }),
+                                  ),
+                            hintText: '筛选章节',
+                            border: const OutlineInputBorder(),
+                          ),
+                          onChanged: (v) => setState(() => _tocFilter = v),
+                        ),
+                      ),
+                      // 单页覆盖：只改本文的编号显示，不动全局设置
+                      IconButton(
+                        tooltip: _effectiveTocNumbering
+                            ? '关闭本文目录编号'
+                            : '开启本文目录编号',
+                        icon: Icon(
+                          _effectiveTocNumbering
+                              ? Icons.format_list_numbered
+                              : Icons.format_list_bulleted,
+                          size: 20,
+                        ),
+                        onPressed: () => _toggleTocNumbering(),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -399,8 +431,7 @@ class ReaderPaneState extends State<ReaderPane> {
                           ),
                         );
                       }
-                      final numbering =
-                          AppPrefs.instance?.tocNumbering ?? false;
+                      final numbering = _effectiveTocNumbering;
                       return ListView.builder(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: indices.length,
@@ -474,6 +505,19 @@ class ReaderPaneState extends State<ReaderPane> {
     );
   }
 
+  /// 书目录的层级编号（1、1.1、1.1.1…）；每书开关未开启时返回 null。
+  List<String>? get _bookNumbers {
+    final book = widget.book;
+    if (book == null) return null;
+    final on = RepoMeta.readBookNumbering(widget.repoRoot, book.rootPath) ??
+        AppPrefs.instance?.tocNumbering ??
+        false;
+    if (!on) return null;
+    return computeChapterNumbers(
+      [for (final chapter in book.chapters) chapter.depth],
+    );
+  }
+
   Widget _buildBookTocSidebar(ThemeData theme) {
     final book = widget.book!;
     final scheme = theme.colorScheme;
@@ -529,6 +573,7 @@ class ReaderPaneState extends State<ReaderPane> {
               itemBuilder: (context, index) => _bookChapterTile(
                 theme,
                 index,
+                number: _bookNumbers?[index],
                 onTap: () => _openSibling(_bookNote(book.chapters[index])),
               ),
             ),
@@ -593,6 +638,7 @@ class ReaderPaneState extends State<ReaderPane> {
                   itemBuilder: (_, index) => _bookChapterTile(
                     theme,
                     index,
+                    number: _bookNumbers?[index],
                     onTap: () {
                       Navigator.pop(sheetContext);
                       _openSibling(_bookNote(book.chapters[index]));
@@ -610,6 +656,7 @@ class ReaderPaneState extends State<ReaderPane> {
   Widget _bookChapterTile(
     ThemeData theme,
     int index, {
+    String? number,
     required VoidCallback onTap,
   }) {
     final book = widget.book!;
@@ -639,13 +686,17 @@ class ReaderPaneState extends State<ReaderPane> {
           child: Row(
             children: [
               SizedBox(
-                width: 28,
-                child: Text(
-                  '${index + 1}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: selected ? green : scheme.onSurfaceVariant,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                width: 30,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    number ?? '${index + 1}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: selected ? green : scheme.onSurfaceVariant,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -2682,7 +2733,10 @@ class ReaderPaneState extends State<ReaderPane> {
       if (idx >= 0) _jumpToHeadingTop(idx);
       return;
     }
-    final decoded = Uri.decodeComponent(pathPart);
+    // 链接里的 %20 等转义解码成真实文件名；「未编码中文 + %20」混合
+    // 是真实仓库常态（docsify），Uri.decodeComponent 会直接抛异常，
+    // 这里用宽容解码，畸形 % 也不会崩
+    final decoded = decodeUriPathLenient(pathPart);
     final target = _resolveLocalPath(decoded);
     if (target == null || !target.startsWith(widget.repoRoot)) {
       return;
@@ -3247,33 +3301,51 @@ class ReaderPaneState extends State<ReaderPane> {
         child: StatefulBuilder(
           builder: (sheetContext, setSheetState) {
             final indices = _filteredTocIndices();
-            final numbering =
-                AppPrefs.instance?.tocNumbering ?? false;
+            final numbering = _effectiveTocNumbering;
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: TextField(
-                    // 独立控制器：关闭弹层即销毁，重开时回到未过滤状态
-                    controller: _tocFilterController,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      suffixIcon: _tocFilter.isEmpty
-                          ? null
-                          : IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () {
-                                setSheetState(() => _tocFilter = '');
-                                _tocFilterController.clear();
-                              },
-                            ),
-                      hintText: '筛选章节',
-                      border: const OutlineInputBorder(),
-                    ),
-                    onChanged: (v) =>
-                        setSheetState(() => _tocFilter = v),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          // 独立控制器：关闭弹层即销毁，重开时回到未过滤状态
+                          controller: _tocFilterController,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            suffixIcon: _tocFilter.isEmpty
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.close, size: 18),
+                                    onPressed: () {
+                                      setSheetState(() => _tocFilter = '');
+                                      _tocFilterController.clear();
+                                    },
+                                  ),
+                            hintText: '筛选章节',
+                            border: const OutlineInputBorder(),
+                          ),
+                          onChanged: (v) =>
+                              setSheetState(() => _tocFilter = v),
+                        ),
+                      ),
+                      // 单页覆盖：只改本文的编号显示，不动全局设置
+                      IconButton(
+                        tooltip: numbering ? '关闭本文目录编号' : '开启本文目录编号',
+                        icon: Icon(
+                          numbering
+                              ? Icons.format_list_numbered
+                              : Icons.format_list_bulleted,
+                          size: 22,
+                        ),
+                        onPressed: () => _toggleTocNumbering(
+                          onChanged: () => setSheetState(() {}),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
