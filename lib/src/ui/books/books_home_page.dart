@@ -29,6 +29,11 @@ class _BooksHomePageState extends State<BooksHomePage> {
     }
     return Scaffold(
       backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _create(),
+        tooltip: '创建电子书',
+        child: const Icon(Icons.add),
+      ),
       body: books.isEmpty
           ? Center(
               child: Column(
@@ -82,6 +87,16 @@ class _BooksHomePageState extends State<BooksHomePage> {
               },
             ),
     );
+  }
+
+  Future<void> _create() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => BookEditorPage(sources: widget.sources),
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   Future<void> _open(Directory source, UserBook book) async {

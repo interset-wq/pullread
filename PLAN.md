@@ -42,9 +42,9 @@
 | --- | --- | --- |
 | M0 | 阅读内核抽取（`ReaderController` / `ReaderPane`），无用户可见变化 | 已完成：`ReaderController` / `ReaderPane` 均已拆出；待真机回归 |
 | M1 | 书单与书根：大纲解析、自动推断、书单缓存 | 已完成：解析/发现/推断/`.meta` 书单缓存均已落地；待真机验收 |
-| M2 | 电子书阅读 MVP：入口、书级目录、章间衔接、书级进度 | MVP 已完成：入口/书单/书根切换/章节翻页/书级进度/宽屏书目录 + 窄屏弹层；待真机验收 |
+| M2 | 电子书阅读 MVP：入口、书级目录、章间衔接、书级进度 | 已完成：入口/书单/书根切换/章节翻页/书级进度/宽屏书目录 + 窄屏弹层/用户书单创建与排序（`docs/`+`doc/` 扫描、手动添加、拖动排序）/首页电子书 tab；待真机验收 |
 | M3 | 多开阅读：双栏壳、手机切换器、跨来源会话 | 已完成：双栏壳/窄屏切换器/跨来源选择/手动分屏开关/书单章节入栏均已落地；待旋转缩放与真机手势验收 |
-| M4 | 联调、设置项、文档与 `2.0.0-rc1` 发布 | 未开始 |
+| M4 | 联调、设置项、文档与 `2.0.0-rc1` 发布 | 进行中：`2.0.0-rc1` 已发布（含 M0–M3）；缺失章节容错、用户书单创建、footer tab 已落地；设置项接入与文档收尾待做 |
 
 ## 4. 进行中（主责 agent 占用文件）
 
@@ -52,7 +52,7 @@ v2 阅读内核 / 电子书 MVP 正在本分支推进；以下文件暂由本任
 
 | 任务 | 状态 | 涉及文件 |
 | --- | --- | --- |
-| M0 阅读内核 + M2 电子书 + M3 多开 | 进行中 | `lib/src/ui/reader/reader_pane.dart`、`lib/src/ui/reader/book_reader_page.dart`、`lib/src/ui/reader/split_reader_page.dart`、`lib/src/ui/reader/reader_session.dart`、`lib/src/ui/home_page.dart`、`lib/src/ui/markdown_viewer.dart`、`lib/src/books/`、`lib/src/git/repo_meta.dart`、`lib/src/ui/repo_page.dart` |
+| M0 阅读内核 + M2 电子书 + M3 多开 | 进行中 | `lib/src/ui/reader/reader_pane.dart`、`lib/src/ui/reader/book_reader_page.dart`、`lib/src/ui/reader/split_reader_page.dart`、`lib/src/ui/reader/reader_session.dart`、`lib/src/ui/home_page.dart`、`lib/src/ui/markdown_viewer.dart`、`lib/src/books/`、`lib/src/ui/books/`、`lib/src/git/repo_meta.dart`、`lib/src/ui/repo_page.dart` |
 
 ## 5. 真机验收清单（v1 收尾，不阻塞 v2）
 

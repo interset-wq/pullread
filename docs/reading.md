@@ -24,6 +24,30 @@
 - Tokens (paper/card/divider/green tint/pin/red) are defined once in
   `HomeTokens` inside `home_feed.dart`, with paired light/dark values.
 
+## Ebook mode (`ui/books/`, `reader/book_reader_page.dart`, `books/`)
+
+- **Entry**: home footer NavigationBar with 阅读/电子书 tabs. The ebook tab
+  (`BooksHomePage`) lists user-created books across all repos and local mirrors;
+  the FAB opens the editor. Repo pages keep the AppBar ebook button as a
+  manifest/SUMMARY-driven entry, and split reading accepts book chapters as
+  pane entries.
+- **Outline priority**: user-created books (`.meta/user_books/<来源名>.json`,
+  never written back to the repo) win over `.pullread-book.json` manifest,
+  mdBook `SUMMARY.md`, docsify `_sidebar.md`, then directory inference. Only the
+  user can guarantee stable chapter order, so auto-inferred outlines are a
+  fallback for reading, never the source of an "official" book.
+- **Creation** (`BookEditorPage`): pick a source, then either one-tap scan of
+  `docs/` / `doc/` Markdown (natural-sorted) or manual multi-select from the
+  file list; chapters reorder by drag and are stored in `.meta`.
+- **Reading**: book-level TOC sidebar (wide) / bottom sheet (narrow), chapter
+  prev/next, book progress ("which chapter last") in `.meta` `bookProgress`,
+  derived from per-file scroll progress. Discovered roots are cached in
+  `.meta` `bookRoots` for instant switcher display, recomputed from real files
+  on every open so stale entries never win.
+- **Missing chapters**: outlines may reference files deleted by a later pull
+  while the note index is stale; opening validates the file first, shows a
+  snackbar and rescans in the background instead of crashing.
+
 ## Reading flow (`markdown_viewer.dart`, `reader/reader_pane.dart`)
 
 - **Core and shell**: `MarkdownViewerPage` is a thin public shell; the reading
