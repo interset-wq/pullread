@@ -24,13 +24,11 @@ import '../../local/local_folder_service.dart';
 import '../../notes/code_outline.dart';
 import '../../notes/details_syntax.dart';
 import '../../notes/gfm_alerts.dart';
-import '../../notes/ipynb.dart';
 import '../../notes/markdown_source.dart';
 import '../../notes/math_render.dart';
 import '../../notes/note_index.dart';
 import '../../notes/note_scanner.dart';
 import '../../utils/markdown_plain_text.dart';
-import '../../utils/text_encoding.dart';
 import '../../notes/toc.dart';
 import '../../search/text_search.dart';
 import '../../theme/app_prefs.dart';
@@ -47,6 +45,7 @@ import '../markdown_editor.dart';
 import '../open_note.dart';
 import '../repo_image.dart';
 import '../tag_page.dart';
+import 'reader_controller.dart';
 
 /// 笔记阅读页：Markdown 渲染 + 代码高亮 + 相对路径图片。
 /// 移动端优先：舒适边距、字号调节、顶栏菜单。
@@ -92,18 +91,17 @@ class ReaderPaneState extends State<ReaderPane> {
   List<double> get _fontSizes => AppPrefs.kReadingFontSizes;
   int get _fontIndex => AppPrefs.instance?.readingFontIndex ?? 1;
 
-  String? _title;
-  List<String> _tags = const [];
-  List<TocEntry> _toc = const [];
+  late final ReaderController _controller;
+
+  String? get _title => _controller.title;
+  List<String> get _tags => _controller.tags;
+  List<TocEntry> get _toc => _controller.toc;
+  int get _readingMinutes => _controller.readingMinutes;
+  String? get _bodySource => _controller.bodySource;
+  String get _rawLanguage => _controller.rawLanguage;
 
   /// 本仓库全部书签（含其他文章）；本文书签用 [_noteBookmarks] 过滤。
   List<Bookmark> _bookmarks = const [];
-
-  /// 剩余阅读时间（分钟，_load 时估算一次）。
-  int _readingMinutes = 0;
-
-  /// 渲染用正文（front-matter/ipynb 转换之后），与 [_toc] 的行号同一坐标系。
-  String? _bodySource;
 
   // ---- 文内查找 ----
   bool _findOpen = false;
@@ -116,13 +114,13 @@ class ReaderPaneState extends State<ReaderPane> {
   int _lastHeadingIndex = -1;
 
   // ---- 视图状态 ----
-  List<String> _imageUrls = const [];
-  String? _rawSource;
+  List<String> get _imageUrls => _controller.imageUrls;
+  String? get _rawSource => _controller.rawSource;
   bool _showRaw = false;
   // Raw 模式与代码查看器共用 CodeView：独立滚动控制器，不占用阅读进度
   // 的 _scrollController（否则切视图会串位置、raw 滚动还会写坏进度）。
   final _codeController = CodeViewController();
-  List<CodeSymbol> _rawOutline = const [];
+  List<CodeSymbol> get _rawOutline => _controller.rawOutline;
   // 表格档位（按表存储）：key = 表格在文档中的序号（解析顺序，重建稳定），
   // value = 是否换行档。缺省 = 跟随设置页默认（wideTable 开 → 平铺；关 →
   // 测量驱动自动切档：该表自然宽度 > 2 倍屏宽时单独切为换行档）。
@@ -250,6 +248,10 @@ class ReaderPaneState extends State<ReaderPane> {
   @override
   void initState() {
     super.initState();
+    _controller = ReaderController(
+      note: widget.note,
+      repoRoot: widget.repoRoot,
+    );
     // 同目录文章列表同步算好：footer 翻页条在 FutureBuilder 之外，
     // 若等 _load 里赋值，没有 setState 触发它重建——pushReplacement
     // 过来的新页面会停在空状态，翻页按钮消失
@@ -805,43 +807,10 @@ class ReaderPaneState extends State<ReaderPane> {
   }
 
   Future<String> _load() async {
-    // 字号在 AppPrefs 启动加载时已就绪，同步读取即可，正文首建即用正确字号
-    // 文本可能是 GBK/GB2312 等编码，统一走字节解码（UTF-8 优先，GBK 兜底）
-    var raw = decodeTextBytes(
-      await File(widget.note.absolutePath).readAsBytes(),
-    );
-    _rawSource = raw;
-    _rawOutline = _buildRawOutline(raw);
-    RepoMeta.touchLastOpened(widget.repoRoot, widget.note.relativePath);
-    RepoMeta.pushRecent(
-      widget.repoRoot,
-      widget.note.relativePath,
-      limit: AppPrefs.instance?.recentsLimit ?? 5,
-      // 本地镜像没有 .git，显式让所有镜像共用 <docs>/local 的全局记录，
-      // 否则每个镜像各写一份，首页无法跨来源按时间排序。
-      recentsRoot: LocalFolderService.isLocalMirror(widget.repoRoot)
-          ? File(widget.repoRoot).parent.path
-          : null,
-    );
-    final isMdx = widget.note.absolutePath.toLowerCase().endsWith('.mdx');
-    var body = raw;
-    if (widget.note.absolutePath.toLowerCase().endsWith('.ipynb')) {
-      body = IpynbConverter.toMarkdown(raw);
-    } else {
-      final fm = FrontMatter.parse(raw);
-      _title = fm.title;
-      _tags = fm.tags;
-      body = fm.body;
-      // .mdx 的顶层 import/export 与 MDX 注释不参与阅读排版，
-      // 但原始源码视图（_rawSource）仍保留完整内容。
-      if (isMdx) body = stripMdxModuleSyntax(body);
-    }
-    body = normalizeHtmlImages(body);
-    _bodySource = body;
-    _toc = extractToc(body);
+    final body = await _controller.load();
     _headingKeys
       ..clear()
-      ..addAll(List.generate(_toc.length, (_) => GlobalKey()));
+      ..addAll(List.generate(_controller.toc.length, (_) => GlobalKey()));
     // FutureBuilder 只重建正文子树，不会重建 body 外的 TOC 侧栏；
     // 目录解析完成后主动整页刷新，否则平板侧栏一直「暂无目录」
     if (mounted) setState(() {});
@@ -873,8 +842,6 @@ class ReaderPaneState extends State<ReaderPane> {
       });
     }
 
-    _imageUrls = collectImageUrls(body);
-    _readingMinutes = estimateReadingMinutes(body);
     // 首帧布局完成后恢复位置：不依赖用户先滚一下才触发
     if (_restorePending) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -885,30 +852,6 @@ class ReaderPaneState extends State<ReaderPane> {
     // 否则会一直显示空内容。
     if (mounted && _showRaw) setState(() {});
     return body;
-  }
-
-  bool get _rawIsNotebook =>
-      widget.note.absolutePath.toLowerCase().endsWith('.ipynb');
-
-  String get _rawLanguage => _rawIsNotebook ? 'json' : 'markdown';
-
-  /// Raw 大纲：Markdown 复用 TOC 的标题解析（跳过围栏代码块），
-  /// notebook 原文是 JSON，按代码启发式解析（通常为空）。
-  List<CodeSymbol> _buildRawOutline(String raw) {
-    if (_rawIsNotebook) {
-      final text = raw.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-      return extractCodeOutline(text, 'json');
-    }
-    return extractToc(raw)
-        .take(maxCodeSymbols)
-        .map(
-          (entry) => CodeSymbol(
-            line: entry.line + 1,
-            name: entry.text,
-            kind: 'section',
-          ),
-        )
-        .toList(growable: false);
   }
 
   @override
