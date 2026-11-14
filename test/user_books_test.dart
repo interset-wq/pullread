@@ -99,4 +99,13 @@ void main() {
     expect(fallback, isNotNull);
     expect(fallback!.title, 'readme.md');
   });
+
+  test('URL-escaped chapter paths (%20) are decoded on read', () {
+    final chapter = UserChapter.fromJson({
+      'p': 'docs/my%20file.md',
+      't': 'my file',
+    });
+    expect(chapter, isNotNull);
+    expect(chapter!.path, 'docs/my file.md');
+  });
 }

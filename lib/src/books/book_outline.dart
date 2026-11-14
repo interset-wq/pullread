@@ -24,19 +24,24 @@ class BookOutlineReader {
     List<NoteFile> files,
   ) {
     final root = normalizeRoot(rootPath);
+    final existing = <String>{
+      for (final file in files) file.relativePath.replaceAll('\\', '/'),
+    };
     for (final userBook in UserBookStore.read(repoRoot)) {
       if (normalizeRoot(userBook.rootPath) != root) continue;
+      // 按真实文件过滤：pull 删文件 / 缓存过期 / %20 转义都不再进入阅读
+      final chapters = <BookChapter>[];
+      for (final chapter in userBook.chapters) {
+        if (!existing.contains(chapter.path)) continue;
+        chapters.add(
+          BookChapter(title: chapter.title, path: chapter.path, depth: 0),
+        );
+      }
+      if (chapters.isEmpty) continue;
       return BookOutline(
         rootPath: root,
         title: userBook.title,
-        chapters: [
-          for (final chapter in userBook.chapters)
-            BookChapter(
-              title: chapter.title,
-              path: chapter.path,
-              depth: 0,
-            ),
-        ],
+        chapters: chapters,
         source: BookOutlineSource.user,
       );
     }

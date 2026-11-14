@@ -38,6 +38,9 @@ class _BookEditorPageState extends State<BookEditorPage> {
   late final TextEditingController _titleController = TextEditingController(
     text: widget.book?.title ?? '',
   );
+
+  /// 用户是否手动改过书名：未改过则跟随来源名自动填充
+  late bool _titleTouched = widget.book != null;
   late String? _editId = widget.book?.id;
   late final List<UserChapter> _chapters = [...?widget.book?.chapters];
   List<NoteFile> _files = const [];
@@ -45,6 +48,9 @@ class _BookEditorPageState extends State<BookEditorPage> {
 
   Directory? _firstSource() =>
       widget.sources.isEmpty ? null : widget.sources.first;
+
+  static String _sourceName(Directory source) =>
+      source.path.split(RegExp(r'[\\/]')).last;
 
   bool get _canSave =>
       _source != null &&
@@ -54,6 +60,9 @@ class _BookEditorPageState extends State<BookEditorPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.book == null && _source != null) {
+      _titleController.text = _sourceName(_source!);
+    }
     _loadFiles();
   }
 
@@ -78,6 +87,14 @@ class _BookEditorPageState extends State<BookEditorPage> {
       _files = files;
       _loadingFiles = false;
     });
+    // 自动扫描为主：新建书单且未添加章节时，直接填充 docs/doc 目录章节，
+    // 用户只需按需调整（自动书名已同步填好）
+    if (widget.book == null && _chapters.isEmpty) {
+      final scanned = _scanDocDirs();
+      if (scanned.isNotEmpty && mounted) {
+        setState(() => _chapters.addAll(scanned));
+      }
+    }
   }
 
   /// 自动扫描文档目录：docs/、doc/ 下的 Markdown，自然排序。
@@ -167,6 +184,39 @@ class _BookEditorPageState extends State<BookEditorPage> {
     });
   }
 
+  /// 删除整本电子书：确认后从 `.meta` 移除并返回列表页。
+  Future<void> _deleteBook() async {
+    final source = _source;
+    final id = _editId;
+    if (source == null || id == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('删除电子书'),
+        content: const Text('只删除书单，不删除仓库里的任何文件。确定删除？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final books = [...UserBookStore.read(source.path)];
+    books.removeWhere((book) => book.id == id);
+    UserBookStore.save(source.path, books);
+    if (mounted) Navigator.pop(context);
+  }
+
   Future<void> _save() async {
     final source = _source;
     if (source == null || !_canSave) return;
@@ -190,6 +240,12 @@ class _BookEditorPageState extends State<BookEditorPage> {
       appBar: AppBar(
         title: Text(editing ? '编辑电子书' : '创建电子书'),
         actions: [
+          if (editing)
+            IconButton(
+              tooltip: '删除电子书',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _deleteBook,
+            ),
           IconButton(
             tooltip: '保存',
             icon: const Icon(Icons.check),
@@ -212,10 +268,13 @@ class _BookEditorPageState extends State<BookEditorPage> {
           child: TextField(
             controller: _titleController,
             decoration: const InputDecoration(
-              labelText: '书名',
+              labelText: '书名（默认取来源名，可修改）',
               border: OutlineInputBorder(),
             ),
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) {
+              _titleTouched = true;
+              setState(() {});
+            },
           ),
         ),
         if (widget.book == null)
@@ -243,6 +302,10 @@ class _BookEditorPageState extends State<BookEditorPage> {
                   _source = value;
                   _files = const [];
                 });
+                // 未手动改过书名时跟随来源名，减少一次输入
+                if (value != null && !_titleTouched) {
+                  _titleController.text = _sourceName(value);
+                }
                 _loadFiles();
               },
             ),
@@ -289,7 +352,8 @@ class _BookEditorPageState extends State<BookEditorPage> {
         ),
         Expanded(
           child: ReorderableListView.builder(
-            buildDefaultDragHandles: false,
+            // 只通过默认拖拽柄拖动，列表本身保留滚动（整行拖拽会吃掉滑动）
+            buildDefaultDragHandles: true,
             padding: const EdgeInsets.only(bottom: 24),
             itemCount: _chapters.length,
             onReorderItem: (oldIndex, newIndex) {
@@ -300,28 +364,23 @@ class _BookEditorPageState extends State<BookEditorPage> {
             },
             itemBuilder: (context, i) {
               final chapter = _chapters[i];
-              return ReorderableDragStartListener(
+              return ListTile(
                 key: ValueKey('chapter-${chapter.path}-$i'),
-                index: i,
-                child: ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.drag_indicator),
-                  title: Text(
-                    chapter.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(
-                    chapter.path,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: IconButton(
-                    tooltip: '移除',
-                    icon: const Icon(Icons.close),
-                    onPressed: () =>
-                        setState(() => _chapters.removeAt(i)),
-                  ),
+                dense: true,
+                title: Text(
+                  chapter.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  chapter.path,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: IconButton(
+                  tooltip: '移除',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => setState(() => _chapters.removeAt(i)),
                 ),
               );
             },

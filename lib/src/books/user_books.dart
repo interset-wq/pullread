@@ -15,9 +15,19 @@ class UserChapter {
     final p = raw['p'];
     final t = raw['t'];
     if (p is! String || p.isEmpty) return null;
+    var path = p.replaceAll('\\', '/');
+    // 兼容历史数据：链接里的空格可能被存成 %20 等转义，真实文件名不含
+    if (path.contains('%')) {
+      try {
+        final decoded = Uri.decodeFull(path);
+        if (decoded != path) path = decoded;
+      } on ArgumentError {
+        // 保持原文
+      }
+    }
     return UserChapter(
-      path: p.replaceAll('\\', '/'),
-      title: t is String && t.isNotEmpty ? t : p.split('/').last,
+      path: path,
+      title: t is String && t.isNotEmpty ? t : path.split('/').last,
     );
   }
 }

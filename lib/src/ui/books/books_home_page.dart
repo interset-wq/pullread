@@ -34,58 +34,61 @@ class _BooksHomePageState extends State<BooksHomePage> {
         tooltip: '创建电子书',
         child: const Icon(Icons.add),
       ),
-      body: books.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.auto_stories_outlined,
-                    size: 44,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('还没有电子书'),
-                  const SizedBox(height: 4),
-                  Text(
-                    '手动创建，或扫描 docs/doc 目录生成章节后调整顺序',
-                    style: theme.textTheme.bodySmall?.copyWith(
+      body: SafeArea(
+        bottom: false,
+        child: books.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.auto_stories_outlined,
+                      size: 44,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    const Text('还没有电子书'),
+                    const SizedBox(height: 4),
+                    Text(
+                      '自动扫描 docs/doc 目录生成章节，再按需调整顺序',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                itemCount: books.length,
+                itemBuilder: (context, i) {
+                  final (source, book) = books[i];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: ListTile(
+                      leading: const Icon(Icons.menu_book_outlined),
+                      title: Text(
+                        book.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${book.chapters.length} 章 · '
+                        '${source.path.split(RegExp(r'[\\/]')).last}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        tooltip: '编辑',
+                        icon: const Icon(Icons.edit_outlined),
+                        onPressed: () => _edit(source, book),
+                      ),
+                      onTap: () => _open(source, book),
+                    ),
+                  );
+                },
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-              itemCount: books.length,
-              itemBuilder: (context, i) {
-                final (source, book) = books[i];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: const Icon(Icons.menu_book_outlined),
-                    title: Text(
-                      book.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      '${book.chapters.length} 章 · '
-                      '${source.path.split(RegExp(r'[\\/]')).last}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: IconButton(
-                      tooltip: '编辑',
-                      icon: const Icon(Icons.edit_outlined),
-                      onPressed: () => _edit(source, book),
-                    ),
-                    onTap: () => _open(source, book),
-                  ),
-                );
-              },
-            ),
+      ),
     );
   }
 
