@@ -21,6 +21,7 @@ import 'brand_splash.dart';
 import 'desktop_shortcuts.dart';
 import 'global_search_page.dart';
 import 'home_feed.dart';
+import 'books/books_home_page.dart';
 import 'open_note.dart';
 import 'pull_progress.dart';
 import 'reader/split_reader_page.dart';
@@ -55,6 +56,9 @@ class _HomePageState extends State<HomePage> {
 
   /// 仓库 / 本地文件夹互斥切换（默认仓库）。
   _HomeTab _tab = _HomeTab.repos;
+
+  /// 底部导航：0 = 阅读（原有首页），1 = 电子书（用户书单）。
+  int _footerTab = 0;
 
   Future<Directory> get _reposRoot async {
     final docs = await getApplicationDocumentsDirectory();
@@ -360,43 +364,67 @@ class _HomePageState extends State<HomePage> {
       },
       child: Scaffold(
         backgroundColor: tokens.paper,
-        appBar: isLandscape ? null : _buildAppBar(tokens, repos, locals),
-        floatingActionButton: _tab == _HomeTab.repos
-            ? FloatingActionButton(
-                backgroundColor: tokens.green,
-                foregroundColor: tokens.paper,
-                onPressed: _cloning ? null : _showCloneDialog,
-                child: _cloning
-                    ? SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: tokens.paper,
-                        ),
-                      )
-                    : const Icon(Icons.add),
+        appBar: _footerTab == 1 || isLandscape
+            ? null
+            : _buildAppBar(tokens, repos, locals),
+        floatingActionButton:
+            _footerTab == 0 && _tab == _HomeTab.repos
+                ? FloatingActionButton(
+                    backgroundColor: tokens.green,
+                    foregroundColor: tokens.paper,
+                    onPressed: _cloning ? null : _showCloneDialog,
+                    child: _cloning
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: tokens.paper,
+                            ),
+                          )
+                        : const Icon(Icons.add),
+                  )
+                : null,
+        body: _footerTab == 1
+            ? BooksHomePage(
+                sources: [...repos, ..._localMirrors],
               )
-            : null,
-        body: isLandscape
-            ? _buildLandscape(
-                context,
-                tokens,
-                repos,
-                locals,
-                resume,
-                recents,
-                recentsAll,
-              )
-            : _buildPortrait(
-                context,
-                tokens,
-                repos,
-                locals,
-                resume,
-                recents,
-                recentsAll,
-              ),
+            : isLandscape
+                ? _buildLandscape(
+                    context,
+                    tokens,
+                    repos,
+                    locals,
+                    resume,
+                    recents,
+                    recentsAll,
+                  )
+                : _buildPortrait(
+                    context,
+                    tokens,
+                    repos,
+                    locals,
+                    resume,
+                    recents,
+                    recentsAll,
+                  ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _footerTab,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.menu_book_outlined),
+              selectedIcon: Icon(Icons.menu_book),
+              label: '阅读',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.auto_stories_outlined),
+              selectedIcon: Icon(Icons.auto_stories),
+              label: '电子书',
+            ),
+          ],
+          onDestinationSelected: (index) =>
+              setState(() => _footerTab = index),
+        ),
       ),
     );
   }
