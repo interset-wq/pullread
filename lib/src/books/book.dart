@@ -24,8 +24,8 @@ class BookChapter {
   String toString() => 'BookChapter($path, depth: $depth)';
 }
 
-/// 章节来源：显式清单 > SUMMARY.md > _sidebar.md > 自动推断。
-enum BookOutlineSource { manifest, summary, sidebar, inferred }
+/// 章节来源：用户创建 > 显式清单 > SUMMARY.md > _sidebar.md > 自动推断。
+enum BookOutlineSource { user, manifest, summary, sidebar, inferred }
 
 /// 一本书的章节大纲。
 class BookOutline {

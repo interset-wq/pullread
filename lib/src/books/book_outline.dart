@@ -4,6 +4,7 @@ import 'dart:io';
 import '../git/repo_meta.dart';
 import '../notes/note_scanner.dart';
 import 'book.dart';
+import 'user_books.dart';
 
 /// 书单发现与解析：显式清单优先，其次 SUMMARY.md / _sidebar.md，
 /// 最后按目录里的 Markdown 文件自动推断。
@@ -15,12 +16,30 @@ class BookOutlineReader {
   /// 读取指定书根的大纲；没有任何章节时返回 null。
   ///
   /// [files] 来自 [NoteIndexCache]，避免在 UI 线程递归扫描磁盘。
+  /// 用户创建的书单（[UserBookStore]）优先级最高：章节顺序由用户确定，
+  /// 自动推断无法保证稳定顺序。
   static BookOutline? read(
     String repoRoot,
     String rootPath,
     List<NoteFile> files,
   ) {
     final root = normalizeRoot(rootPath);
+    for (final userBook in UserBookStore.read(repoRoot)) {
+      if (normalizeRoot(userBook.rootPath) != root) continue;
+      return BookOutline(
+        rootPath: root,
+        title: userBook.title,
+        chapters: [
+          for (final chapter in userBook.chapters)
+            BookChapter(
+              title: chapter.title,
+              path: chapter.path,
+              depth: 0,
+            ),
+        ],
+        source: BookOutlineSource.user,
+      );
+    }
     final manifest = _readFile(repoRoot, root, manifestFileName);
     if (manifest != null) {
       final outline = parseManifest(
@@ -185,12 +204,16 @@ class BookOutlineReader {
     );
   }
 
-  /// 发现所有可切换的书根（含仓库根）。
+  /// 发现所有可切换的书根（含仓库根与用户创建的书单）。
   static List<BookRoot> discover(
     String repoRoot,
     List<NoteFile> files,
   ) {
     final candidates = <String>{''};
+    // 用户创建的书单永远可见，即使书根下没有任何清单/目录文件
+    for (final userBook in UserBookStore.read(repoRoot)) {
+      candidates.add(normalizeRoot(userBook.rootPath));
+    }
     for (final file in files) {
       final path = file.relativePath.replaceAll('\\', '/');
       final name = path.split('/').last;

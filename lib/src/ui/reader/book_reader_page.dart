@@ -497,6 +497,7 @@ class _BookReaderPageState extends State<BookReaderPage> {
   }
 
   static String _sourceLabel(BookOutlineSource source) => switch (source) {
+        BookOutlineSource.user => '用户创建',
         BookOutlineSource.manifest => '显式书单',
         BookOutlineSource.summary => 'SUMMARY.md',
         BookOutlineSource.sidebar => '_sidebar.md',
