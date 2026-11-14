@@ -395,6 +395,11 @@ class _BookReaderPageState extends State<BookReaderPage> {
   ) {
     final chapter = outline.chapters[index];
     final current = chapter.path == progressPath;
+    // 缺失文件灰显标记：pull 删文件或缓存过期时用户一眼可辨，点击仍有提示
+    final sep = Platform.pathSeparator;
+    final missing = !File(
+      '${widget.repoRoot}$sep${chapter.path.replaceAll('/', sep)}',
+    ).existsSync();
     return InkWell(
       onTap: () => _openChapter(outline, index),
       borderRadius: BorderRadius.circular(16),
@@ -434,16 +439,28 @@ class _BookReaderPageState extends State<BookReaderPage> {
                   fontSize: 14,
                   height: 1.35,
                   fontWeight: current ? FontWeight.w600 : FontWeight.w400,
-                  color: current ? tokens.green : tokens.secondary,
+                  color: missing
+                      ? tokens.meta
+                      : current
+                          ? tokens.green
+                          : tokens.secondary,
+                  decoration:
+                      missing ? TextDecoration.lineThrough : null,
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            Icon(
-              current ? Icons.play_arrow_rounded : Icons.chevron_right,
-              size: 19,
-              color: current ? tokens.green : tokens.chevron,
-            ),
+            if (missing)
+              Text(
+                '文件缺失',
+                style: TextStyle(fontSize: 11.5, color: tokens.meta),
+              )
+            else
+              Icon(
+                current ? Icons.play_arrow_rounded : Icons.chevron_right,
+                size: 19,
+                color: current ? tokens.green : tokens.chevron,
+              ),
           ],
         ),
       ),
