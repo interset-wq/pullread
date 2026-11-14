@@ -46,6 +46,13 @@ class _BookReaderPageState extends State<BookReaderPage> {
   }
 
   Future<void> _load() async {
+    // 书单切换器先用 .meta 缓存即时显示（若文件扫描较慢，用户已能看到候选）
+    if (_roots.isEmpty) {
+      final cached = BookOutlineReader.readCachedRoots(widget.repoRoot);
+      if (cached.isNotEmpty && mounted) {
+        setState(() => _roots = cached);
+      }
+    }
     setState(() => _loading = true);
     var files = widget.files;
     if (files == null) {
@@ -61,6 +68,7 @@ class _BookReaderPageState extends State<BookReaderPage> {
     }
     if (!mounted) return;
     final state = _resolve(files, _rootPath);
+    BookOutlineReader.cacheRoots(widget.repoRoot, state.roots);
     if (!mounted) return;
     setState(() {
       _files = files;

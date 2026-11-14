@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../git/repo_meta.dart';
 import '../notes/note_scanner.dart';
 import 'book.dart';
 
@@ -224,6 +225,52 @@ class BookOutlineReader {
       return compareNatural(a.path, b.path);
     });
     return roots;
+  }
+
+  /// 读取 `.meta` 里缓存的书根列表；无缓存返回空列表。
+  /// 仅作打开电子书页时的即时初值，真实发现结果随后重算覆盖。
+  static List<BookRoot> readCachedRoots(String repoRoot) {
+    final cached = RepoMeta.readBookRootsCache(repoRoot);
+    if (cached == null) return const [];
+    final roots = <BookRoot>[];
+    for (final entry in cached) {
+      final path = entry['path'];
+      final sourceIndex = entry['source'];
+      if (path is! String || sourceIndex is! int) continue;
+      if (sourceIndex < 0 || sourceIndex >= BookOutlineSource.values.length) {
+        continue;
+      }
+      roots.add(
+        BookRoot(
+          path: path,
+          title: entry['title'] is String ? entry['title'] as String : path,
+          source: BookOutlineSource.values[sourceIndex],
+          chapterCount:
+              entry['chapterCount'] is int ? entry['chapterCount'] as int : 0,
+        ),
+      );
+    }
+    return roots;
+  }
+
+  /// 把发现结果写回 `.meta` 书单缓存；写失败不影响功能。
+  static void cacheRoots(String repoRoot, List<BookRoot> roots) {
+    try {
+      RepoMeta.saveBookRootsCache(
+        repoRoot,
+        [
+          for (final root in roots)
+            {
+              'path': root.path,
+              'title': root.title,
+              'source': root.source.index,
+              'chapterCount': root.chapterCount,
+            },
+        ],
+      );
+    } on Object {
+      // 缓存仅用于展示加速
+    }
   }
 
   static bool isBookDocument(String path) {

@@ -366,6 +366,26 @@ class RepoMeta {
     return normalized;
   }
 
+  /// 书单缓存：最近一次发现的书根列表（电子书模式切换器的即时初值）。
+  /// 只作展示加速，发现逻辑每次仍以真实文件为准重算并回写。
+  static List<Map<String, dynamic>>? readBookRootsCache(String repoRoot) {
+    final list = _readRaw(repoRoot)['bookRoots'];
+    if (list is! List) return null;
+    return list
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  static void saveBookRootsCache(
+    String repoRoot,
+    List<Map<String, dynamic>> roots,
+  ) {
+    final raw = _readRaw(repoRoot);
+    raw['bookRoots'] = roots;
+    _write(repoRoot, raw);
+  }
+
   /// 读取文章的已保存滚动进度（0~1 的比例位置），无记录返回 null。
   static double? readProgress(String repoRoot, String relativePath) {
     final (f, _) = readProgressInfo(repoRoot, relativePath);
