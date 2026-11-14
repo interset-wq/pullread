@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../books/book.dart';
+import '../../books/book_outline.dart';
+import '../../notes/note_index.dart';
 import '../../notes/note_scanner.dart';
 import '../home_feed.dart';
 import 'reader_pane.dart';
@@ -30,49 +33,10 @@ class _SplitReaderPageState extends State<SplitReaderPage> {
   Future<void> _pickFor(int index) async {
     final entry = await showDialog<HomeRecentEntry>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('选择${index == 0 ? '左' : '右'}栏文档'),
-        content: SizedBox(
-          width: 520,
-          height: 420,
-          child: ListView.builder(
-            itemCount: widget.candidates.length,
-            itemBuilder: (context, i) {
-              final candidate = widget.candidates[i];
-              final entry = _resolve(candidate);
-              final disabled =
-                  entry == null ||
-                  _session.isOpenElsewhere(index, entry.key);
-              return ListTile(
-                enabled: !disabled,
-                leading: Icon(
-                  candidate.isLocal
-                      ? Icons.folder_outlined
-                      : Icons.folder_copy_outlined,
-                ),
-                title: Text(
-                  candidate.fileName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  candidate.source.path,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                onTap: disabled
-                    ? null
-                    : () => Navigator.pop(dialogContext, candidate),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
-          ),
-        ],
+      builder: (dialogContext) => _PanePickerDialog(
+        candidates: widget.candidates,
+        paneIndex: index,
+        isOpenElsewhere: (key) => _session.isOpenElsewhere(index, key),
       ),
     );
     if (!mounted || entry == null) return;
@@ -231,6 +195,227 @@ class _EmptyPane extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 栏内容选择器：「最近」来自跨来源最近阅读，「书单」从 `.meta` 缓存的
+/// 书根展开章节列表；两者都返回 [HomeRecentEntry] 供外层解析打开。
+class _PanePickerDialog extends StatefulWidget {
+  const _PanePickerDialog({
+    required this.candidates,
+    required this.paneIndex,
+    required this.isOpenElsewhere,
+  });
+
+  final List<HomeRecentEntry> candidates;
+  final int paneIndex;
+  final bool Function(String key) isOpenElsewhere;
+
+  @override
+  State<_PanePickerDialog> createState() => _PanePickerDialogState();
+}
+
+class _PanePickerDialogState extends State<_PanePickerDialog> {
+  // 书单模式状态：选中的来源根、展开的书根、每来源的章节大纲缓存
+  int _mode = 0; // 0 = 最近，1 = 书单
+  String? _bookSource;
+  String? _expandedRoot;
+  final Map<String, BookOutline?> _outlineCache = {};
+
+  List<String> get _sources => <String>{
+    for (final entry in widget.candidates) entry.source.path,
+  }.toList()..sort(compareNatural);
+
+  List<BookRoot> _rootsFor(String source) =>
+      BookOutlineReader.readCachedRoots(source);
+
+  BookOutline? _outlineFor(String source, BookRoot root) {
+    final key = '$source|${root.path}';
+    if (_outlineCache.containsKey(key)) return _outlineCache[key];
+    final files = NoteIndexCache.read(source);
+    final outline = files == null
+        ? null
+        : BookOutlineReader.read(source, root.path, files);
+    _outlineCache[key] = outline;
+    return outline;
+  }
+
+  void _openChapter(String source, BookChapter chapter) {
+    final key = '$source|${chapter.path}';
+    if (widget.isOpenElsewhere(key)) return;
+    Navigator.pop(
+      context,
+      HomeRecentEntry(
+        source: Directory(source),
+        relativePath: chapter.path,
+        isLocal: false,
+      ),
+    );
+  }
+
+  Widget _buildRecentsList(BuildContext context) {
+    return ListView.builder(
+      itemCount: widget.candidates.length,
+      itemBuilder: (context, i) {
+        final candidate = widget.candidates[i];
+        final key = '${candidate.source.path}|${candidate.relativePath}';
+        final disabled = widget.isOpenElsewhere(key);
+        return ListTile(
+          enabled: !disabled,
+          leading: Icon(
+            candidate.isLocal
+                ? Icons.folder_outlined
+                : Icons.folder_copy_outlined,
+          ),
+          title: Text(
+            candidate.fileName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            candidate.source.path,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          onTap: disabled ? null : () => Navigator.pop(context, candidate),
+        );
+      },
+    );
+  }
+
+  Widget _buildBooksList(BuildContext context) {
+    final sources = _sources;
+    if (_bookSource == null || !sources.contains(_bookSource)) {
+      _bookSource = sources.isEmpty ? null : sources.first;
+    }
+    final source = _bookSource;
+    if (source == null) {
+      return const Center(child: Text('暂无可用来源'));
+    }
+    final roots = _rootsFor(source);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (sources.length > 1)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: DropdownButtonFormField<String>(
+              initialValue: source,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                isDense: true,
+                labelText: '来源',
+              ),
+              items: [
+                for (final s in sources)
+                  DropdownMenuItem(value: s, child: Text(_baseName(s))),
+              ],
+              onChanged: (value) => setState(() {
+                _bookSource = value;
+                _expandedRoot = null;
+              }),
+            ),
+          ),
+        Expanded(
+          child: roots.isEmpty
+              ? const Center(child: Text('暂无书单缓存，先在仓库页打开一次电子书模式'))
+              : ListView.builder(
+                  itemCount: roots.length,
+                  itemBuilder: (context, i) {
+                    final root = roots[i];
+                    final expanded = _expandedRoot == root.path;
+                    final outline = expanded
+                        ? _outlineFor(source, root)
+                        : null;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            expanded
+                                ? Icons.folder_open_outlined
+                                : Icons.menu_book_outlined,
+                          ),
+                          title: Text(
+                            root.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text('${root.chapterCount} 章'),
+                          onTap: () => setState(() {
+                            _expandedRoot = expanded ? null : root.path;
+                          }),
+                        ),
+                        if (expanded && outline == null)
+                          const ListTile(
+                            enabled: false,
+                            title: Text('章节缓存不可用'),
+                          ),
+                        if (expanded && outline != null)
+                          for (final chapter in outline.chapters)
+                            ListTile(
+                              contentPadding:
+                                  EdgeInsets.only(left: 24 + chapter.depth * 20),
+                              dense: true,
+                              enabled: !widget.isOpenElsewhere(
+                                '$source|${chapter.path}',
+                              ),
+                              title: Text(
+                                chapter.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () => _openChapter(source, chapter),
+                            ),
+                      ],
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  static String _baseName(String path) {
+    final name = path.split(RegExp(r'[\\/]')).last;
+    return name.isEmpty ? path : name;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('选择${widget.paneIndex == 0 ? '左' : '右'}栏文档'),
+      content: SizedBox(
+        width: 520,
+        height: 420,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('最近')),
+                ButtonSegment(value: 1, label: Text('书单')),
+              ],
+              selected: {_mode},
+              onSelectionChanged: (selection) =>
+                  setState(() => _mode = selection.first),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _mode == 0
+                  ? _buildRecentsList(context)
+                  : _buildBooksList(context),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+      ],
     );
   }
 }
