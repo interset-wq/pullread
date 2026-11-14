@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../books/book.dart';
@@ -121,10 +124,12 @@ class _BookReaderPageState extends State<BookReaderPage> {
     if (index < 0 || index >= outline.chapters.length) return;
     final chapter = outline.chapters[index];
     final note = _noteFor(chapter.path);
-    if (note == null) {
+    if (note == null || !File(note.absolutePath).existsSync()) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('章节文件不存在：${chapter.path}')),
       );
+      // 缓存可能过期（pull 删文件等），后台重扫刷新书单来源
+      unawaited(_rescanAfterMissingChapter());
       return;
     }
     RepoMeta.saveBookProgress(widget.repoRoot, outline.rootPath, chapter.path);
@@ -139,6 +144,23 @@ class _BookReaderPageState extends State<BookReaderPage> {
       ),
     );
     if (mounted) setState(() {});
+  }
+
+  Future<void> _rescanAfterMissingChapter() async {
+    try {
+      final files = await scanNotesInBackground(widget.repoRoot);
+      await NoteIndexCache.write(widget.repoRoot, files);
+      if (!mounted) return;
+      final state = _resolve(files, _rootPath);
+      BookOutlineReader.cacheRoots(widget.repoRoot, state.roots);
+      setState(() {
+        _files = files;
+        _outline = state.outline;
+        _roots = state.roots;
+      });
+    } on Object {
+      // 重扫失败保持现状，下一次打开会再触发
+    }
   }
 
   int _continueIndex(BookOutline outline) {

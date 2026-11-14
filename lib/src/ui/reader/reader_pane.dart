@@ -2508,6 +2508,23 @@ class ReaderPaneState extends State<ReaderPane> {
 
   /// 同目录内切换文章：替换当前路由，保持返回栈不变。
   void _openSibling(NoteFile note) {
+    // 书单章节可能因 pull 删文件或索引缓存过期而不存在，
+    // 打开前校验，缺失时提示并刷新，避免 FileReader 直接抛异常
+    if (!File(note.absolutePath).existsSync()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('章节文件不存在：${note.relativePath}')),
+      );
+      // 后台重扫刷新缓存，让书单/同目录列表剔除失效章节
+      unawaited(() async {
+        try {
+          final files = await scanNotesInBackground(widget.repoRoot);
+          await NoteIndexCache.write(widget.repoRoot, files);
+        } on Object {
+          // 重扫失败保持现状
+        }
+      }());
+      return;
+    }
     Navigator.pushReplacement(
       context,
       MaterialPageRoute<void>(
