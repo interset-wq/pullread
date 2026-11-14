@@ -152,10 +152,10 @@ rationale live in the docs below; read the matching doc before editing that area
 | Local folders, SAF/bookmark mirroring, editor, pending write-backs | `docs/local-folders.md` |
 | Platform adaptation, startup chain, launcher icons | `docs/platform.md` |
 | Render performance baseline | `docs/perf.md` |
+| Global UI tokens and per-page design specs | `docs/ui/` (start with `global-style.md`) |
 | iOS / iPadOS real-device acceptance | `docs/ios-test-plan.md` |
-| Settings redesign proposal | `docs/settings-redesign.md` |
-| UX audit (reference) | `docs/user-feedback.md` |
-| Roadmap, priorities and file ownership | `PLAN.md` |
+| v2 scope, decisions, milestones and acceptance | `docs/v2-roadmap.md` |
+| Current priorities, queue and file ownership | `PLAN.md` |
 
 Keep this file to rules that change behavior; put feature walkthroughs and rationale in
 the matching doc. When a change alters a doc, update it in the same commit.
@@ -166,8 +166,9 @@ the matching doc. When a change alters a doc, update it in the same commit.
 
 - Commits: English Conventional Commits (`feat/fix/chore/docs/test/…`), atomic.
   **Push requires explicit user approval.**
-- Roadmap, current priorities and file ownership live in `PLAN.md`; read it before
-  starting cross-cutting work and register any overlapping files there.
+- v2 scope lives in `docs/v2-roadmap.md`; current priorities and file ownership live in
+  `PLAN.md`. Read both before starting cross-cutting work and register overlapping files
+  in `PLAN.md`.
 - Temporary files go in `temp/` (git-ignored), not the system temp directory.
 - No TDD/SDD process. When a change touches behavior already covered by tests,
   update or extend those tests in the same commit.
@@ -245,9 +246,9 @@ costly for Actions); a real assemble now happens only in release builds triggere
 - Prefer `pump` with fixed durations over `pumpAndSettle` when pages contain image
   decoding or indefinite animations.
 - Rendering baselines and their definitions live in `docs/perf.md`.
-- The UX audit is reference material, not a binding spec: `docs/user-feedback.md`.
-  Settings redesign phases 1–2 are implemented under `lib/src/ui/settings/`; phase 3
-  items remain optional and are tracked in `docs/settings-redesign.md`.
+- v1 one-off proposals and audit snapshots were removed; remaining v1 backlog lives in
+  `PLAN.md` §6. v2 scope is binding via `docs/v2-roadmap.md`; per-feature designs go to
+  `docs/ui/<topic>.md` before implementation.
 
 ---
 

@@ -263,7 +263,7 @@ class _SettingsCategory {
   final Widget page;
 }
 
-/// 横屏（≥1000dp）左侧类别栏：当前项松绿实底白字（docs/design/settings-redesign.md）
+/// 横屏（≥1000dp）左侧类别栏：当前项松绿实底白字（docs/ui/settings-redesign.md）
 class _CategoryPane extends StatelessWidget {
   const _CategoryPane({
     required this.categories,

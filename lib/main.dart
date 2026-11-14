@@ -96,7 +96,7 @@ class _ReaderAppState extends State<ReaderApp> {
         }
         final prefs = snapshot.data!;
         // 主题切换（App 内菜单）即时生效：随 AppPrefs 重建 MaterialApp
-        // 品牌松绿（docs/design/settings-redesign.md token），全局种子统一
+        // 品牌松绿（docs/ui/settings-redesign.md token），全局种子统一
         const brandPine = Color(0xFF1F6F54);
         return ListenableBuilder(
           listenable: prefs,
@@ -107,7 +107,7 @@ class _ReaderAppState extends State<ReaderApp> {
               // 页面底色统一为纯白（手机应用最常见），M3 种子默认的
               // 灰调 surface 不再使用；深色保持种子默认
               scaffoldBackgroundColor: Colors.white,
-              // Header 以 home 为准（docs/design/README.md 基准）：与屏底
+              // Header 以 home 为准（docs/ui/global-style.md 基准）：与屏底
               // 同色、无 tint，滚动后 3dp 阴影明确「浮在内容之上」
               appBarTheme: const AppBarTheme(
                 backgroundColor: Colors.white,

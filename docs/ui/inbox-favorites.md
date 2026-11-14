@@ -1,8 +1,8 @@
 # 收件箱与收藏页改版设计规范（2026-11 定稿）
 
 来源：真机截图审计（更新收件箱 math 45 项实测 + 书签弹层实测）+ 一轮迭代。
-定稿板（HTML 与 PNG 同时入库）：`docs/design/inbox-favorites/`——
-手机 `phone.html/.png`（收件箱常态 + 书签弹层）、平板 `tablet.html/.png`
+定稿板（HTML 入库）：`docs/ui/inbox-favorites/`——
+手机 `phone.html`（收件箱常态 + 书签弹层）、平板 `tablet.html`
 （横屏双栏 + 竖屏限宽）。过程稿在 `temp/inbox-favorites/`，不入库。
 本文是 Flutter 实现的依据；改版动这里时同步更新。
 

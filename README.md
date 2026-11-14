@@ -245,13 +245,18 @@ lib/
 
 ## 🗺 路线图
 
-- [x] 仓库切换分支（只读 checkout，保留进度/收藏）
-- [x] Mermaid 图表导出为 PNG
-- [x] 设置页信息架构与全站视觉统一
-- [ ] iPad 大屏阅读布局、分屏与手势验收
-- [x] Windows 桌面打包与键鼠体验
-- [ ] Linux / macOS 平台接入（待评估）
-- [ ] 文内查找按章节精确滚动、UTF-16 文本支持
+**v1（已完成）**：仓库切换分支、Mermaid 导出、设置页重构与视觉统一、Windows
+桌面体验、纸感阅读主题、文内查找精确跳转、TOC 筛选与层级编号、更新收件箱。
+
+**v2（阅读体验深化）**：范围与阶段见 [`docs/v2-roadmap.md`](docs/v2-roadmap.md)。
+
+- [ ] M0 阅读内核抽取：单篇 / 电子书 / 分屏共用同一阅读面板
+- [ ] 电子书模式：显式大纲或目录自动成书，章内连续阅读、章间衔接
+- [ ] 多开阅读：平板/桌面左右分屏，手机快速切换，跨仓库与本地文件夹
+- [ ] M4 联调与 `2.0.0` 发布
+
+**非 v2 主线（排队）**：iPad / iOS 真机验收、Linux / macOS 平台接入、搜索分页、
+Front matter 增强、Obsidian 语法兼容。
 
 明确不做：私有仓库鉴权、协作、双链/图谱、TTS、PDF、阅读统计、静态站点生成、
 平台 REST API 依赖。
@@ -261,6 +266,8 @@ lib/
 | 文档 | 内容 |
 | --- | --- |
 | [`AGENTS.md`](AGENTS.md) | 工程契约、红线规则、开发与发布流程 |
+| [`docs/v2-roadmap.md`](docs/v2-roadmap.md) | v2 范围、已定决策、里程碑与验收 |
+| [`docs/ui/global-style.md`](docs/ui/global-style.md) | 全局配色、Header、卡片与新增页面检查清单 |
 | [`PLAN.md`](PLAN.md) | 当前优先级、文件占用与真机验收清单 |
 | [`docs/git-sync.md`](docs/git-sync.md) | Git 层、路径安全、分支切换 |
 | [`docs/rendering.md`](docs/rendering.md) | Markdown / Notebook / 数学 / Mermaid / 代码查看 |

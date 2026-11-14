@@ -6,7 +6,7 @@ const double kSettingsContentMaxWidth = 720;
 Widget _anchored(String? id, Widget child) =>
     id == null ? child : SettingsAnchor(id: id, child: child);
 
-/// 图标章色调（docs/design/settings-redesign.md：深浅色成对）
+/// 图标章色调（docs/ui/settings-redesign.md：深浅色成对）
 enum SettingsTone { pine, neutral, amber }
 
 class SettingsTilePalette {
@@ -62,7 +62,7 @@ class SettingsIconTile extends StatelessWidget {
   }
 }
 
-/// 输入框 token（docs/design/settings-redesign.md：白卡描边、聚焦松绿）
+/// 输入框 token（docs/ui/settings-redesign.md：白卡描边、聚焦松绿）
 InputDecoration settingsInputDecoration(
   BuildContext context, {
   String? hint,

@@ -2,8 +2,8 @@
 
 来源：真机截图审计（设置根页 6 入口 + 「阅读与显示」子页实测）+ 一轮迭代
 （平板版按用户指定改用 iPad 设置范式后定稿）。
-定稿板（HTML 与 PNG 同时入库）：`docs/design/settings-redesign/`——
-手机 `phone.html/.png`（根页 + 阅读与显示）、平板 `tablet.html/.png`
+定稿板（HTML 入库）：`docs/ui/settings-redesign/`——
+手机 `phone.html`（根页 + 阅读与显示）、平板 `tablet.html`
 （横屏 iPad 式双栏 + 竖屏居中限宽）。过程稿在 `temp/settings-redesign/`，不入库。
 本文是 Flutter 实现的依据；改版动这里时同步更新。
 

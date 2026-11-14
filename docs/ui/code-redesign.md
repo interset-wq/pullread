@@ -2,8 +2,8 @@
 
 来源：真机截图审计（hash_table.c · 253 行实测，含长按选中态）+ 三轮迭代设计板。
 **设计基准：模仿 GitHub Mobile 的文件查看（blob）范式**（用户指定）。
-定稿板：`docs/design/code-redesign/`——手机常态与选择态 `boards-gh.png`、
-平板双栏与竖屏 `boards-tablet.png`；过程稿在 `temp/code-redesign/`，不入库。
+定稿板：`docs/ui/code-redesign/`——手机常态与选择态、平板双栏与竖屏 HTML
+（`phone.html` / `tablet.html`）；过程稿在 `temp/code-redesign/`，不入库。
 本文是 Flutter 实现的依据；改版动这里时同步更新。
 
 ## 1. 要修的问题（真机审计）
@@ -43,7 +43,7 @@
   头部大纲钮消失（侧栏即大纲）。
 - **竖屏（600–1000dp）**：同手机结构（chip 行 + blob + 大纲钮）。
 
-## 3. 视觉 token（沿用 `docs/design/home-redesign.md`，新增/覆盖）
+## 3. 视觉 token（沿用 `docs/ui/home-redesign.md`，新增/覆盖）
 
 | Token | 值 |
 |---|---|

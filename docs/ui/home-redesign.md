@@ -1,8 +1,8 @@
 # 首页改版设计规范（2026-11 定稿）
 
 来源：iOS 真机验收期间的首页 UI 审计 + 四轮迭代设计板（定稿板：
-`docs/design/home-redesign/`——三方向对比 `boards.png`、切换式双态 `iter4.png`、
-少内容态定稿 `iter9.png`；过程稿在工作区 `temp/home-redesign/`，不入库）。
+`docs/ui/home-redesign/`——三方向对比、切换式双态与少内容态 HTML
+（`phone.html` / `tablet.html`）；过程稿在工作区 `temp/home-redesign/`，不入库）。
 本文是 Flutter 实现的依据；改版动这里时同步更新。
 
 ## 1. 要修的问题（来自真机审计）

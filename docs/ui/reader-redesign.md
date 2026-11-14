@@ -1,8 +1,8 @@
 # 阅读页改版设计规范（2026-11 定稿）
 
 来源：真机截图审计（安卓 1280×2772 实测）+ 六轮迭代设计板（定稿板：
-`docs/design/reader-redesign/`——手机菜单态与常态 `boards5.png`、平板双栏与竖屏
-`boards6.png`；过程稿在工作区 `temp/reader-redesign/`，不入库）。
+`docs/ui/reader-redesign/`——手机菜单态与常态、平板双栏与竖屏 HTML
+（`phone.html` / `tablet.html`）；过程稿在工作区 `temp/reader-redesign/`，不入库）。
 本文是 Flutter 实现的依据；改版动这里时同步更新。
 
 ## 1. 要修的问题（真机审计）
@@ -53,7 +53,7 @@ toast「已回到上次位置（约 n%）」：半透明胶囊，浮在 pill 上
   TOC 仍为常驻浮动钮 + 上/下副钮（同手机）。底部上一章/下一章 pill 必须保留，
   避免少内容时空洞。
 
-## 3. 视觉 token（沿用 `docs/design/home-redesign.md` 第 3 节，新增）
+## 3. 视觉 token（沿用 `docs/ui/home-redesign.md` 第 3 节，新增）
 
 | Token | 值 |
 |---|---|
