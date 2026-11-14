@@ -34,7 +34,11 @@ class BookOutlineReader {
       for (final chapter in userBook.chapters) {
         if (!existing.contains(chapter.path)) continue;
         chapters.add(
-          BookChapter(title: chapter.title, path: chapter.path, depth: 0),
+          BookChapter(
+            title: chapter.title,
+            path: chapter.path,
+            depth: chapter.depth,
+          ),
         );
       }
       if (chapters.isEmpty) continue;

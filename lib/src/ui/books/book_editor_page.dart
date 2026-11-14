@@ -29,6 +29,66 @@ class BookEditorPage extends StatefulWidget {
   /// 传入则为编辑模式；null 为新建。
   final UserBook? book;
 
+  /// Markdown 文件判定（供扫描与手动添加共用）。
+  static bool isMarkdown(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.md') || lower.endsWith('.markdown');
+  }
+
+  /// 扫描文档目录：按 [scanDir] 过滤（null = 默认 docs/doc；'' = 整个仓库；
+  /// 其他 = 一级目录前缀），保留目录层级——相对扫描根的目录层数写入 depth，
+  /// 同一子目录的章节归入同一缩进层级（如 `chapter1/xxx.md` 与
+  /// `chapter1/yyy.md` 属于同一部分）。
+  static List<UserChapter> scanChapters(List<NoteFile> files, String? scanDir) {
+    final chapters = <UserChapter>[];
+    for (final file in files) {
+      final path = file.relativePath.replaceAll('\\', '/');
+      // 只收 Markdown：整仓库扫描时图片等资源不进章节列表
+      if (!isMarkdown(path)) continue;
+      final lower = path.toLowerCase();
+      String inside;
+      if (scanDir == null) {
+        if (!(lower.startsWith('docs/') || lower.startsWith('doc/'))) continue;
+        inside = lower.startsWith('docs/')
+            ? path.substring(5)
+            : path.substring(4);
+      } else if (scanDir.isEmpty) {
+        inside = path;
+      } else {
+        if (!lower.startsWith('$scanDir/')) continue;
+        inside = path.substring(scanDir.length + 1);
+      }
+      final depth = inside.split('/').length - 1;
+      // README.md 的文件名没有信息量，用父目录名当标题
+      // （如 write-a-hash-table 的 01-introduction/README.md → "01 introduction"）。
+      // 注意 NoteFile.fileName 不含扩展名。
+      final segments = inside.split('/');
+      final baseName = file.fileName.toLowerCase();
+      final title = segments.length >= 2 && (baseName == 'readme' || baseName == 'readme.md')
+          ? _titleFromFileName(segments[segments.length - 2])
+          : _titleFromFileName(file.fileName);
+      chapters.add(
+        UserChapter(
+          path: path,
+          title: title,
+          depth: depth,
+        ),
+      );
+    }
+    chapters.sort(
+      (a, b) => compareNatural(a.path.toLowerCase(), b.path.toLowerCase()),
+    );
+    return chapters;
+  }
+
+  static String _titleFromFileName(String fileName) {
+    final dot = fileName.lastIndexOf('.');
+    var name = dot > 0 ? fileName.substring(0, dot) : fileName;
+    name = name.replaceFirst(RegExp(r'^\d+[._\-\s]+'), '');
+    name = name.replaceAll(RegExp(r'[_-]+'), ' ').trim();
+    return name.isEmpty ? fileName : name;
+  }
+
   @override
   State<BookEditorPage> createState() => _BookEditorPageState();
 }
@@ -87,39 +147,43 @@ class _BookEditorPageState extends State<BookEditorPage> {
       _files = files;
       _loadingFiles = false;
     });
-    // 自动扫描为主：新建书单且未添加章节时，直接填充 docs/doc 目录章节，
-    // 用户只需按需调整（自动书名已同步填好）
+    // 自动扫描为主：新建书单且未添加章节时，先扫 docs/doc；笔记类仓库
+    // （md 不在文档目录）自动回退整仓库，用户零操作即可建书
     if (widget.book == null && _chapters.isEmpty) {
-      final scanned = _scanDocDirs();
+      var scanned = _scanDocDirs();
+      if (scanned.isEmpty && _hasAnyMarkdown) {
+        _scanDir = '';
+        scanned = _scanDocDirs();
+      }
       if (scanned.isNotEmpty && mounted) {
         setState(() => _chapters.addAll(scanned));
       }
     }
   }
 
-  /// 自动扫描文档目录：docs/、doc/ 下的 Markdown，自然排序。
-  List<UserChapter> _scanDocDirs() {
-    final chapters = <UserChapter>[];
+  bool get _hasAnyMarkdown =>
+      _files.any((file) => BookEditorPage.isMarkdown(file.relativePath));
+
+  /// 扫描范围：null = 默认 docs/doc；'' = 整个仓库；其他 = 一级目录前缀。
+  String? _scanDir;
+
+  List<UserChapter> _scanDocDirs() =>
+      BookEditorPage.scanChapters(_files, _scanDir);
+
+  /// 可选的扫描范围：一级目录（含 Markdown 文件的），去掉 docs/doc
+  /// 单列（它们属于默认范围）。
+  List<String> _scanDirOptions() {
+    final dirs = <String>{};
     for (final file in _files) {
       final path = file.relativePath.replaceAll('\\', '/');
-      final lower = path.toLowerCase();
-      if (!(lower.startsWith('docs/') || lower.startsWith('doc/'))) continue;
-      chapters.add(
-        UserChapter(path: path, title: _titleFromFileName(file.fileName)),
-      );
+      final slash = path.indexOf('/');
+      if (slash <= 0) continue;
+      final top = path.substring(0, slash);
+      final lower = top.toLowerCase();
+      if (lower == 'docs' || lower == 'doc') continue;
+      dirs.add(top);
     }
-    chapters.sort(
-      (a, b) => compareNatural(a.path.toLowerCase(), b.path.toLowerCase()),
-    );
-    return chapters;
-  }
-
-  static String _titleFromFileName(String fileName) {
-    final dot = fileName.lastIndexOf('.');
-    var name = dot > 0 ? fileName.substring(0, dot) : fileName;
-    name = name.replaceFirst(RegExp(r'^\d+[._\-\s]+'), '');
-    name = name.replaceAll(RegExp(r'[_-]+'), ' ').trim();
-    return name.isEmpty ? fileName : name;
+    return dirs.toList()..sort(compareNatural);
   }
 
   Future<void> _addChaptersManually() async {
@@ -178,7 +242,10 @@ class _BookEditorPageState extends State<BookEditorPage> {
     setState(() {
       for (final path in selected) {
         _chapters.add(
-          UserChapter(path: path, title: _titleFromFileName(path)),
+          UserChapter(
+            path: path,
+            title: BookEditorPage._titleFromFileName(path),
+          ),
         );
       }
     });
@@ -315,7 +382,25 @@ class _BookEditorPageState extends State<BookEditorPage> {
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              DropdownButton<String?>(
+                value: _scanDir,
+                underline: const SizedBox.shrink(),
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('默认（docs/doc）'),
+                  ),
+                  const DropdownMenuItem(
+                    value: '',
+                    child: Text('整个仓库'),
+                  ),
+                  for (final dir in _scanDirOptions())
+                    DropdownMenuItem(value: dir, child: Text(dir)),
+                ],
+                onChanged: (value) => setState(() => _scanDir = value),
+              ),
               OutlinedButton.icon(
                 onPressed: _loadingFiles || _files.isEmpty
                     ? null
@@ -325,14 +410,14 @@ class _BookEditorPageState extends State<BookEditorPage> {
                             ..addAll(_scanDocDirs());
                         }),
                 icon: const Icon(Icons.auto_stories_outlined),
-                label: const Text('扫描 docs/doc 目录'),
+                label: const Text('按此范围扫描'),
               ),
               OutlinedButton.icon(
                 onPressed: _loadingFiles || _files.isEmpty
                     ? null
                     : _addChaptersManually,
                 icon: const Icon(Icons.playlist_add),
-                label: const Text('手动添加章节'),
+                label: const Text('手动添加'),
               ),
             ],
           ),

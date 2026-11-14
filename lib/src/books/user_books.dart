@@ -2,13 +2,21 @@ import 'dart:convert';
 import 'dart:io';
 
 /// 用户创建的电子书章节：仓库根相对路径 + 手动确认的标题。
+///
+/// [depth] 保留扫描时的目录层级（相对扫描根的目录层数），
+/// 同一子目录的章节在同一缩进层级，如 `chapter1/` 下的文件同组。
 class UserChapter {
-  const UserChapter({required this.path, required this.title});
+  const UserChapter({
+    required this.path,
+    required this.title,
+    this.depth = 0,
+  });
 
   final String path;
   final String title;
+  final int depth;
 
-  Map<String, dynamic> toJson() => {'p': path, 't': title};
+  Map<String, dynamic> toJson() => {'p': path, 't': title, 'd': depth};
 
   static UserChapter? fromJson(Object? raw) {
     if (raw is! Map) return null;
@@ -25,9 +33,11 @@ class UserChapter {
         // 保持原文
       }
     }
+    final d = raw['d'];
     return UserChapter(
       path: path,
       title: t is String && t.isNotEmpty ? t : path.split('/').last,
+      depth: d is int && d >= 0 ? d : 0,
     );
   }
 }
