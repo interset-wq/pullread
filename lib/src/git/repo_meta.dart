@@ -328,6 +328,44 @@ class RepoMeta {
     _write(repoRoot, raw);
   }
 
+  /// 书级进度：只记「上次读到哪一章」，章内比例由单篇进度派生。
+  static String? readBookProgress(String repoRoot, String bookRootPath) {
+    final map = _readRaw(repoRoot)['bookProgress'];
+    if (map is! Map) return null;
+    final value = map[_bookKey(bookRootPath)];
+    if (value is String && value.isNotEmpty) {
+      return value.replaceAll('\\', '/');
+    }
+    if (value is Map && value['p'] is String) {
+      final path = value['p'] as String;
+      return path.isEmpty ? null : path.replaceAll('\\', '/');
+    }
+    return null;
+  }
+
+  static void saveBookProgress(
+    String repoRoot,
+    String bookRootPath,
+    String chapterPath,
+  ) {
+    final raw = _readRaw(repoRoot);
+    final map = (raw['bookProgress'] as Map<String, dynamic>?) ?? {};
+    map[_bookKey(bookRootPath)] = {
+      'p': chapterPath.replaceAll('\\', '/'),
+    };
+    raw['bookProgress'] = map;
+    _write(repoRoot, raw);
+  }
+
+  static String _bookKey(String bookRootPath) {
+    final normalized = bookRootPath
+        .replaceAll('\\', '/')
+        .split('/')
+        .where((part) => part.isNotEmpty && part != '.')
+        .join('/');
+    return normalized;
+  }
+
   /// 读取文章的已保存滚动进度（0~1 的比例位置），无记录返回 null。
   static double? readProgress(String repoRoot, String relativePath) {
     final (f, _) = readProgressInfo(repoRoot, relativePath);
