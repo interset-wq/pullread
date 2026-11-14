@@ -23,6 +23,10 @@ class SplitReaderPage extends StatefulWidget {
 class _SplitReaderPageState extends State<SplitReaderPage> {
   final ReaderSession _session = ReaderSession();
 
+  /// 600–900dp 的手动分屏开关：null/false 用底部切换器，true 切为左右分屏。
+  /// ≥900dp 始终分屏，<600dp 不提供开关。
+  bool _splitOverride = false;
+
   Future<void> _pickFor(int index) async {
     final entry = await showDialog<HomeRecentEntry>(
       context: context,
@@ -132,12 +136,24 @@ class _SplitReaderPageState extends State<SplitReaderPage> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final wide = width >= 900;
+    final wide = width >= 900 || (width >= 600 && _splitOverride);
+    final manualToggle = width >= 600 && width < 900;
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('多开阅读'),
         actions: [
+          if (manualToggle)
+            IconButton(
+              tooltip: _splitOverride ? '收起分屏' : '切换分屏',
+              icon: Icon(
+                _splitOverride
+                    ? Icons.splitscreen_outlined
+                    : Icons.splitscreen,
+              ),
+              onPressed:
+                  () => setState(() => _splitOverride = !_splitOverride),
+            ),
           IconButton(
             tooltip: '选择文档',
             icon: const Icon(Icons.add),
