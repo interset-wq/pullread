@@ -24,8 +24,11 @@
 - Tokens (paper/card/divider/green tint/pin/red) are defined once in
   `HomeTokens` inside `home_feed.dart`, with paired light/dark values.
 
-## Reading flow (`markdown_viewer.dart`)
+## Reading flow (`markdown_viewer.dart`, `reader/reader_pane.dart`)
 
+- **Core and shell**: `MarkdownViewerPage` is a thin public shell; the reading
+  implementation lives in `ReaderPane`. Book mode passes `BookOutline` so
+  previous/next follows outline chapters instead of same-directory filenames.
 - **Open and resume**: after the first layout, restore the last position (heading
   anchor first, fraction fallback) and offer "read from start" in a SnackBar. Do not
   show a modal on every open (old behavior).
@@ -67,6 +70,13 @@
   shown); the toolbar's "unread only" filter hides only files that already have
   reading records. Read all records at once with `RepoMeta.readAllProgress` and
   refresh when returning from the reader.
+- **Ebook mode** (`reader/book_reader_page.dart`, `books/`): the repo AppBar opens
+  a book outline for the current directory. Priority is `.pullread-book.json` →
+  `SUMMARY.md` → `_sidebar.md` → inferred Markdown files. Book roots are
+  switchable. `RepoMeta.bookProgress` stores only the last chapter per root;
+  within-chapter position still comes from the single-note progress, so opening
+  the same file from the tree resumes identically. Wide layouts show a 280 dp
+  book TOC sidebar; narrow layouts use an AppBar bottom sheet.
 
 ## Directory index and search
 

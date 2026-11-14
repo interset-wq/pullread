@@ -313,7 +313,10 @@ class ReaderPaneState extends State<ReaderPane> {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildTocSidebar(theme),
+          if (widget.book != null)
+            _buildBookTocSidebar(theme)
+          else
+            _buildTocSidebar(theme),
           const VerticalDivider(width: 1),
           Expanded(child: content),
         ],
@@ -457,6 +460,207 @@ class ReaderPaneState extends State<ReaderPane> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildBookTocSidebar(ThemeData theme) {
+    final book = widget.book!;
+    final scheme = theme.colorScheme;
+    final paper = ReadingPaper.resolve(context, AppPrefs.instance);
+    final current = _siblingIndex < 0 ? 0 : _siblingIndex;
+    return Container(
+      width: 280,
+      color: paper.background,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        book.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${current + 1} / ${book.chapters.length} 章',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.menu_book_outlined,
+                  size: 18,
+                  color: scheme.primary,
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: scheme.outlineVariant),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: book.chapters.length,
+              itemBuilder: (context, index) => _bookChapterTile(
+                theme,
+                index,
+                onTap: () => _openSibling(_bookNote(book.chapters[index])),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBookTocSheet() {
+    final book = widget.book;
+    if (book == null) return;
+    final theme = Theme.of(context);
+    final paper = ReadingPaper.resolve(context, AppPrefs.instance);
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: paper.background,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.75,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        book.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${book.chapters.length} 章',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(
+                height: 1,
+                color: theme.colorScheme.outlineVariant,
+              ),
+              Flexible(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: book.chapters.length,
+                  itemBuilder: (_, index) => _bookChapterTile(
+                    theme,
+                    index,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _openSibling(_bookNote(book.chapters[index]));
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bookChapterTile(
+    ThemeData theme,
+    int index, {
+    required VoidCallback onTap,
+  }) {
+    final book = widget.book!;
+    final chapter = book.chapters[index];
+    final selected = index == _siblingIndex;
+    final scheme = theme.colorScheme;
+    final green = scheme.primary;
+    return Material(
+      color: selected ? green.withAlpha(18) : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: selected ? green : Colors.transparent,
+                width: 3,
+              ),
+            ),
+          ),
+          padding: EdgeInsets.only(
+            left: 12.0 + chapter.depth * 14,
+            right: 12,
+            top: 10,
+            bottom: 10,
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 28,
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: selected ? green : scheme.onSurfaceVariant,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  chapter.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.35,
+                    color: selected ? green : scheme.onSurface,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+              if (selected)
+                Icon(
+                  Icons.play_arrow_rounded,
+                  size: 17,
+                  color: green,
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -745,6 +949,13 @@ class ReaderPaneState extends State<ReaderPane> {
           ),
         ),
         actions: [
+          // 窄屏书内阅读：书级目录走底部弹层；宽屏已常驻左栏。
+          if (widget.book != null && !wideLayout)
+            IconButton(
+              tooltip: '书目录',
+              icon: const Icon(Icons.library_books_outlined),
+              onPressed: _showBookTocSheet,
+            ),
           // Raw 模式复用代码查看器的工具条：查找/大纲/换行都在源码坐标系里；
           // 渲染视图仍用阅读页自己的正文查找（按章节定位）。
           if (_showRaw) ...[
