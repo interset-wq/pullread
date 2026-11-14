@@ -364,7 +364,7 @@ class _HomePageState extends State<HomePage> {
       },
       child: Scaffold(
         backgroundColor: tokens.paper,
-        appBar: _footerTab == 1 || isLandscape
+        appBar: _footerTab != 0 || isLandscape
             ? null
             : _buildAppBar(tokens, repos, locals),
         floatingActionButton:
@@ -385,29 +385,33 @@ class _HomePageState extends State<HomePage> {
                         : const Icon(Icons.add),
                   )
                 : null,
-        body: _footerTab == 1
+        body: _footerTab == 2
+            ? AppPrefs.instance != null
+                  ? SettingsPage(prefs: AppPrefs.instance!)
+                  : const SizedBox.shrink()
+            : _footerTab == 1
             ? BooksHomePage(
                 sources: [...repos, ..._localMirrors],
               )
             : isLandscape
-                ? _buildLandscape(
-                    context,
-                    tokens,
-                    repos,
-                    locals,
-                    resume,
-                    recents,
-                    recentsAll,
-                  )
-                : _buildPortrait(
-                    context,
-                    tokens,
-                    repos,
-                    locals,
-                    resume,
-                    recents,
-                    recentsAll,
-                  ),
+            ? _buildLandscape(
+                context,
+                tokens,
+                repos,
+                locals,
+                resume,
+                recents,
+                recentsAll,
+              )
+            : _buildPortrait(
+                context,
+                tokens,
+                repos,
+                locals,
+                resume,
+                recents,
+                recentsAll,
+              ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _footerTab,
           destinations: const [
@@ -420,6 +424,11 @@ class _HomePageState extends State<HomePage> {
               icon: Icon(Icons.auto_stories_outlined),
               selectedIcon: Icon(Icons.auto_stories),
               label: '电子书',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: '设置',
             ),
           ],
           onDestinationSelected: (index) =>
