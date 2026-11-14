@@ -18,6 +18,7 @@ import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../books/book.dart';
 import '../../git/repo_meta.dart';
 import '../../local/local_folder_service.dart';
 import '../../notes/code_outline.dart';
@@ -55,11 +56,15 @@ class ReaderPane extends StatefulWidget {
     required this.repoRoot,
     this.initialFindQuery,
     this.initialFraction,
+    this.book,
     super.key,
   });
 
   final NoteFile note;
   final String repoRoot;
+
+  /// 电子书上下文：上一篇/下一篇按书单章节走，而不是同目录文件名。
+  final BookOutline? book;
 
   /// 从正文搜索结果进入时携带的检索词：加载完成后自动打开查找条并
   /// 定位到第一处命中（否则用户得自己再滚到命中位置）。
@@ -161,8 +166,21 @@ class ReaderPaneState extends State<ReaderPane> {
   final ValueNotifier<double> _progressNotifier = ValueNotifier(0);
 
   /// 同目录下的文章列表（供上一篇/下一篇切换），按文件名排序。
+  /// 书内阅读时改为书单章节顺序，标题取大纲标题。
   List<NoteFile> _siblings = const [];
+  List<String> _siblingTitles = const [];
   int _siblingIndex = -1;
+
+  NoteFile _bookNote(BookChapter chapter) {
+    final sep = Platform.pathSeparator;
+    return NoteFile(
+      relativePath: chapter.path,
+      absolutePath:
+          '${widget.repoRoot}$sep${chapter.path.replaceAll('/', sep)}',
+      modified: DateTime.fromMillisecondsSinceEpoch(0),
+      sizeBytes: 0,
+    );
+  }
 
   /// 计算同目录文章列表与当前位置（供 上一篇/下一篇）。
   ///
@@ -170,6 +188,22 @@ class ReaderPaneState extends State<ReaderPane> {
   /// 卡顿（与仓库页的后台扫描重复）。缓存缺失才后台扫描并回写缓存。
   Future<void> _loadSiblings() async {
     final rel = widget.note.relativePath.replaceAll('\\', '/');
+    final book = widget.book;
+    if (book != null) {
+      final titles = [for (final chapter in book.chapters) chapter.title];
+      final notes = [
+        for (final chapter in book.chapters) _bookNote(chapter),
+      ];
+      if (!mounted) return;
+      setState(() {
+        _siblings = notes;
+        _siblingTitles = titles;
+        _siblingIndex = book.chapters.indexWhere(
+          (chapter) => chapter.path == rel,
+        );
+      });
+      return;
+    }
     final dirPart = rel.contains('/')
         ? rel.substring(0, rel.lastIndexOf('/') + 1)
         : '';
@@ -199,6 +233,7 @@ class ReaderPaneState extends State<ReaderPane> {
           ..sort((a, b) => compareNatural(a.fileName, b.fileName));
     setState(() {
       _siblings = siblings;
+      _siblingTitles = [for (final note in siblings) note.fileName];
       _siblingIndex = siblings.indexWhere((n) => n.relativePath == rel);
     });
   }
@@ -211,6 +246,14 @@ class ReaderPaneState extends State<ReaderPane> {
     // 过来的新页面会停在空状态，翻页按钮消失
     _loadSiblings();
     _content = _load();
+    final book = widget.book;
+    if (book != null) {
+      RepoMeta.saveBookProgress(
+        widget.repoRoot,
+        book.rootPath,
+        widget.note.relativePath,
+      );
+    }
     _starred = RepoMeta.isStarred(widget.repoRoot, widget.note.relativePath);
     _bookmarks = RepoMeta.readBookmarks(widget.repoRoot);
     _scrollController.addListener(_onScroll);
@@ -1627,6 +1670,7 @@ class ReaderPaneState extends State<ReaderPane> {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         child: _PrevNextNav(
           siblings: _siblings,
+          labels: _siblingTitles,
           index: _siblingIndex,
           onOpen: _openSibling,
         ),
@@ -2062,8 +2106,11 @@ class ReaderPaneState extends State<ReaderPane> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute<void>(
-        builder: (_) =>
-            ReaderPane(note: note, repoRoot: widget.repoRoot),
+        builder: (_) => ReaderPane(
+          note: note,
+          repoRoot: widget.repoRoot,
+          book: widget.book,
+        ),
       ),
     );
   }
@@ -3137,13 +3184,21 @@ class _ReaderFabSmall extends StatelessWidget {
 class _PrevNextNav extends StatelessWidget {
   const _PrevNextNav({
     required this.siblings,
+    this.labels,
     required this.index,
     required this.onOpen,
   });
 
   final List<NoteFile> siblings;
+  final List<String>? labels;
   final int index;
   final ValueChanged<NoteFile> onOpen;
+
+  String _label(int i) {
+    final custom = labels;
+    if (custom != null && i >= 0 && i < custom.length) return custom[i];
+    return siblings[i].fileName;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3156,7 +3211,7 @@ class _PrevNextNav extends StatelessWidget {
             onPressed: prev == null ? null : () => onOpen(prev),
             icon: const Icon(Icons.chevron_left),
             label: Text(
-              prev?.fileName ?? '已是第一篇',
+              prev == null ? '已是第一篇' : _label(index - 1),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -3168,7 +3223,7 @@ class _PrevNextNav extends StatelessWidget {
             onPressed: next == null ? null : () => onOpen(next),
             icon: const Icon(Icons.chevron_right),
             label: Text(
-              next?.fileName ?? '已是最后一篇',
+              next == null ? '已是最后一篇' : _label(index + 1),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

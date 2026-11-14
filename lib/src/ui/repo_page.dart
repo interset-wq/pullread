@@ -17,6 +17,7 @@ import '../search/text_search.dart';
 import '../theme/app_prefs.dart';
 import 'desktop_shortcuts.dart';
 import 'open_note.dart';
+import 'reader/book_reader_page.dart';
 import 'pull_progress.dart';
 import 'search_snippet_text.dart';
 class RepoPage extends StatefulWidget {
@@ -466,6 +467,22 @@ class _RepoPageState extends State<RepoPage> {
         appBar: AppBar(
           title: Text(title, style: theme.textTheme.titleLarge),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push<void>(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => BookReaderPage(
+                    repoRoot: widget.repoDir.path,
+                    rootPath: widget.subPath,
+                    files: _allNotes,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.menu_book_outlined),
+            tooltip: '电子书模式',
+          ),
           IconButton(
             onPressed: _pull,
             icon: const Icon(Icons.sync),

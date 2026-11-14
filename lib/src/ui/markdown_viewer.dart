@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../books/book.dart';
 import '../notes/note_scanner.dart';
 import 'reader/reader_pane.dart';
 
@@ -14,11 +15,15 @@ class MarkdownViewerPage extends StatelessWidget {
     required this.repoRoot,
     this.initialFindQuery,
     this.initialFraction,
+    this.book,
     super.key,
   });
 
   final NoteFile note;
   final String repoRoot;
+
+  /// 电子书上下文：章节翻页与书级进度复用同一阅读内核。
+  final BookOutline? book;
 
   /// 从正文搜索结果进入时携带的检索词：加载完成后自动打开查找条并
   /// 定位到第一处命中（否则用户得自己再滚到命中位置）。
@@ -35,6 +40,7 @@ class MarkdownViewerPage extends StatelessWidget {
       repoRoot: repoRoot,
       initialFindQuery: initialFindQuery,
       initialFraction: initialFraction,
+      book: book,
     );
   }
 }
