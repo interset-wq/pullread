@@ -81,23 +81,23 @@ v2 只做一件事：**让长文档的阅读方式更接近书，让多篇笔记
 
 ```text
 lib/src/books/                 新增：书单与书根
-├── book_outline.dart          BookOutline / BookChapter 模型
-├── outline_parsers.dart       .pullread-book.json / SUMMARY.md / _sidebar.md / 自动推断
-├── book_discovery.dart        候选书根探测与章节扫描
-└── book_progress.dart         书级位置读写（按来源根 + 书根路径寻址）
+├── book.dart                  BookOutline / BookChapter / BookRoot 模型
+└── book_outline.dart          三种显式大纲、自动推断、书根探测
+                               （书级进度落在 RepoMeta.bookProgress，暂不单文件）
 
 lib/src/ui/reader/             新增：阅读内核
-├── reader_controller.dart     从 _MarkdownViewerPageState 抽出的加载/查找/进度状态
-├── reader_pane.dart           正文 + TOC + 查找 + 进度条，不含 Scaffold/AppBar
-├── book_reader_page.dart      电子书薄壳
-└── split_reader_page.dart     分屏薄壳 + 会话状态
+├── reader_controller.dart     从 _MarkdownViewerPageState 抽出的加载/查找/进度状态（待拆）
+├── reader_pane.dart           正文 + TOC + 查找 + 进度条（过渡期仍含 Scaffold/AppBar）
+├── book_reader_page.dart      电子书入口：书单、书根切换、继续阅读
+└── split_reader_page.dart     分屏薄壳 + 会话状态（M3）
 
-markdown_viewer.dart           公开 API 不变，内部改为 Scaffold/AppBar + ReaderPane
+markdown_viewer.dart           公开 API 不变，内部转为 ReaderPane 薄壳
 ```
 
 约束：
 
-- `ReaderPane` 不持有 `Scaffold`/`AppBar`；页面壳负责标题栏、菜单、返回。
+- `ReaderPane` 最终不持有 `Scaffold`/`AppBar`；页面壳负责标题栏、菜单、返回。
+  过渡期单篇/电子书都走完整页面，M3 前拆出无 chrome 形态。
 - 懒布局、`AutoScrollTag`、标题槽位、用户滚动才写进度、`protectTableMathPipes()`
   等不变量原样保留，只换承载位置。
 - `MarkdownViewerPage` 的构造参数与调用方保持兼容，先重构后加功能。

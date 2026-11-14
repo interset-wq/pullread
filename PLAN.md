@@ -40,19 +40,19 @@
 
 | 里程碑 | 内容 | 状态 |
 | --- | --- | --- |
-| M0 | 阅读内核抽取（`ReaderController` / `ReaderPane`），无用户可见变化 | 未开始 |
-| M1 | 书单与书根：大纲解析、自动推断、书单缓存 | 未开始 |
-| M2 | 电子书阅读 MVP：入口、书级目录、章间衔接、书级进度 | 未开始 |
+| M0 | 阅读内核抽取（`ReaderController` / `ReaderPane`），无用户可见变化 | 进行中：已拆出 `ReaderPane` 文件边界；controller 与无 AppBar 壳待拆 |
+| M1 | 书单与书根：大纲解析、自动推断、书单缓存 | 进行中：解析/发现/推断已完成；`.meta` 书单缓存待补 |
+| M2 | 电子书阅读 MVP：入口、书级目录、章间衔接、书级进度 | 进行中：入口/书单/章节翻页/书级进度已通；宽屏侧栏待补 |
 | M3 | 多开阅读：双栏壳、手机切换器、跨来源会话 | 未开始 |
 | M4 | 联调、设置项、文档与 `2.0.0-rc1` 发布 | 未开始 |
 
 ## 4. 进行中（主责 agent 占用文件）
 
-当前无进行中任务。其他 agent 可接手第 6 节队列；开始前先在本节登记任务与文件。
+v2 阅读内核 / 电子书 MVP 正在本分支推进；以下文件暂由本任务占用。
 
 | 任务 | 状态 | 涉及文件 |
 | --- | --- | --- |
-| — | — | — |
+| M0 阅读内核 + M1 书单 + M2 电子书入口 | 进行中 | `lib/src/ui/reader/reader_pane.dart`、`lib/src/ui/reader/book_reader_page.dart`、`lib/src/ui/markdown_viewer.dart`、`lib/src/books/`、`lib/src/git/repo_meta.dart`、`lib/src/ui/repo_page.dart` |
 
 ## 5. 真机验收清单（v1 收尾，不阻塞 v2）
 

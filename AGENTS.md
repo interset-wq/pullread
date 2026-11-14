@@ -71,7 +71,9 @@ with the code in the same commit (see "Maintenance").
 | `lib/src/notes/` | Note scanning/index, Markdown source, notebook conversion, TOC, tags, link check, code outline |
 | `lib/src/search/` | Filename/full-text search, snippets, search models |
 | `lib/src/local/` | SAF/iOS-bookmark/desktop folder authorization and incremental mirroring |
+| `lib/src/books/` | Book outline models, `.pullread-book.json` / `SUMMARY.md` / `_sidebar.md` parsing, root discovery |
 | `lib/src/ui/` | Pages and shared widgets (reader, code view, image cache/actions, settings, …) |
+| `lib/src/ui/reader/` | Reading core (`ReaderPane`) and ebook entry (`BookReaderPage`) |
 | `lib/src/theme/` | `AppPrefs`, app theme |
 | `lib/src/utils/` | Text encoding, directory size, small helpers |
 | `test/`, `integration_test/` | Unit/widget tests, real-device render baseline |
