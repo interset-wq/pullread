@@ -67,6 +67,10 @@ class _BookReaderPageState extends State<BookReaderPage> {
         } on Object {
           files = const [];
         }
+      } else {
+        // 缓存命中也后台重扫校正（stale-while-revalidate）：pull 之后
+        // 新增的章节靠缓存永远看不到，重扫完成后刷新书目录
+        unawaited(_rescanInBackground());
       }
     }
     if (!mounted) return;
@@ -79,6 +83,25 @@ class _BookReaderPageState extends State<BookReaderPage> {
       _roots = state.roots;
       _loading = false;
     });
+  }
+
+  /// 后台重扫并刷新书目录；失败保持现状，不影响已渲染内容。
+  Future<void> _rescanInBackground() async {
+    try {
+      final files = await scanNotesInBackground(widget.repoRoot);
+      await NoteIndexCache.write(widget.repoRoot, files);
+      if (!mounted) return;
+      final state = _resolve(files, _rootPath);
+      BookOutlineReader.cacheRoots(widget.repoRoot, state.roots);
+      if (!mounted) return;
+      setState(() {
+        _files = files;
+        _outline = state.outline;
+        _roots = state.roots;
+      });
+    } on Object {
+      // 重扫失败保持现状
+    }
   }
 
   ({BookOutline? outline, List<BookRoot> roots}) _resolve(

@@ -230,15 +230,35 @@ class _PanePickerDialogState extends State<_PanePickerDialog> {
   List<BookRoot> _rootsFor(String source) =>
       BookOutlineReader.readCachedRoots(source);
 
+  /// 正在后台扫描的来源（缓存缺失时补一次扫描，完成后刷新章节列表）。
+  final Set<String> _scanningSources = {};
+
   BookOutline? _outlineFor(String source, BookRoot root) {
     final key = '$source|${root.path}';
     if (_outlineCache.containsKey(key)) return _outlineCache[key];
     final files = NoteIndexCache.read(source);
-    final outline = files == null
-        ? null
-        : BookOutlineReader.read(source, root.path, files);
+    if (files == null) {
+      // 缓存缺失：后台补扫一次，写回缓存后刷新章节列表
+      _scanSourceInBackground(source);
+      return null;
+    }
+    final outline = BookOutlineReader.read(source, root.path, files);
     _outlineCache[key] = outline;
     return outline;
+  }
+
+  Future<void> _scanSourceInBackground(String source) async {
+    if (!_scanningSources.add(source)) return;
+    try {
+      final files = await scanNotesInBackground(source);
+      await NoteIndexCache.write(source, files);
+      _outlineCache.clear();
+      if (mounted) setState(() {});
+    } on Object {
+      // 扫描失败保持「章节缓存不可用」提示
+    } finally {
+      _scanningSources.remove(source);
+    }
   }
 
   void _openChapter(String source, BookChapter chapter) {

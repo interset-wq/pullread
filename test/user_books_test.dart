@@ -108,4 +108,22 @@ void main() {
     expect(chapter, isNotNull);
     expect(chapter!.path, 'docs/my file.md');
   });
+
+  test('chapter depth survives the JSON round-trip', () {
+    final root = sourceRoot('repo');
+    final book = UserBook(id: '1', title: '书', chapters: [
+      const UserChapter(path: 'docs/a.md', title: 'A', depth: 1),
+      const UserChapter(path: 'docs/b/c.md', title: 'C', depth: 2),
+    ]);
+    UserBookStore.save(root, [book]);
+
+    final chapters = UserBookStore.read(root).first.chapters;
+    expect(chapters[0].depth, 1);
+    expect(chapters[1].depth, 2);
+  });
+
+  test('legacy chapters without depth read as depth 0', () {
+    final chapter = UserChapter.fromJson({'p': 'docs/a.md', 't': 'A'});
+    expect(chapter!.depth, 0);
+  });
 }

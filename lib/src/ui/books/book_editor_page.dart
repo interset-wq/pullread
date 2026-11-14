@@ -368,6 +368,9 @@ class _BookEditorPageState extends State<BookEditorPage> {
                 setState(() {
                   _source = value;
                   _files = const [];
+                  // 新建时切换来源必须清空已扫章节：章节路径相对来源根，
+                  // 混入其他来源的路径会在读取时被当缺失章节全部过滤
+                  if (widget.book == null) _chapters.clear();
                 });
                 // 未手动改过书名时跟随来源名，减少一次输入
                 if (value != null && !_titleTouched) {
@@ -450,7 +453,9 @@ class _BookEditorPageState extends State<BookEditorPage> {
             itemBuilder: (context, i) {
               final chapter = _chapters[i];
               return ListTile(
-                key: ValueKey('chapter-${chapter.path}-$i'),
+                // key 只挂路径：混入下标会让拖拽排序时 key 随位置变化，
+                // Element 复用错乱导致拖动跳行
+                key: ValueKey('chapter-${chapter.path}'),
                 dense: true,
                 title: Text(
                   chapter.title,
