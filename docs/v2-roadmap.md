@@ -115,6 +115,10 @@ markdown_viewer.dart           公开 API 不变，内部转为 ReaderPane 薄�
   Mermaid 渲染、长文懒加载、导出长图。
 - 出口：`flutter analyze --fatal-infos` + `flutter test` 通过；真机阅读回归无差异。
 
+**当前状态**：`ReaderPane` 已独立成文件，并新增 `embedded` 无
+`Scaffold`/`AppBar` 形态（紧凑栏：标题、查找、收藏、更多弹层），供分屏宿主
+复用；`ReaderController` 仍未抽出，完整页面继续由 `ReaderPane` 自带壳。
+
 ### M1 书单与书根（数据层）
 
 - 实现三种显式大纲解析与自动推断、书根探测、章节模型。

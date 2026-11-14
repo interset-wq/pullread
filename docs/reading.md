@@ -29,6 +29,9 @@
 - **Core and shell**: `MarkdownViewerPage` is a thin public shell; the reading
   implementation lives in `ReaderPane`. Book mode passes `BookOutline` so
   previous/next follows outline chapters instead of same-directory filenames.
+  `ReaderPane(embedded: true)` drops the page `Scaffold`/`AppBar` and renders a
+  compact pane bar (title, find, star, more sheet) so split reading can host two
+  independent readers under one route.
 - **Open and resume**: after the first layout, restore the last position (heading
   anchor first, fraction fallback) and offer "read from start" in a SnackBar. Do not
   show a modal on every open (old behavior).

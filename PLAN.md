@@ -40,7 +40,7 @@
 
 | 里程碑 | 内容 | 状态 |
 | --- | --- | --- |
-| M0 | 阅读内核抽取（`ReaderController` / `ReaderPane`），无用户可见变化 | 进行中：已拆出 `ReaderPane` 文件边界；controller 与无 AppBar 壳待拆 |
+| M0 | 阅读内核抽取（`ReaderController` / `ReaderPane`），无用户可见变化 | 进行中：已拆出 `ReaderPane` 文件边界与 `embedded` 无 chrome 形态；`ReaderController` 仍待拆 |
 | M1 | 书单与书根：大纲解析、自动推断、书单缓存 | 进行中：解析/发现/推断已完成；`.meta` 书单缓存待补 |
 | M2 | 电子书阅读 MVP：入口、书级目录、章间衔接、书级进度 | MVP 已完成：入口/书单/书根切换/章节翻页/书级进度/宽屏书目录 + 窄屏弹层；待真机验收 |
 | M3 | 多开阅读：双栏壳、手机切换器、跨来源会话 | 未开始 |

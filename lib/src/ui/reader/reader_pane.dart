@@ -57,11 +57,20 @@ class ReaderPane extends StatefulWidget {
     this.initialFindQuery,
     this.initialFraction,
     this.book,
+    this.embedded = false,
+    this.leading,
     super.key,
   });
 
   final NoteFile note;
   final String repoRoot;
+
+  /// 无页面壳形态：不创建 [Scaffold]/[AppBar]，由宿主提供标题栏与返回。
+  /// 供分屏阅读把同一个阅读内核嵌入左右栏。
+  final bool embedded;
+
+  /// 嵌入形态下的前导按钮（关闭/返回），由宿主传入。
+  final Widget? leading;
 
   /// 电子书上下文：上一篇/下一篇按书单章节走，而不是同目录文件名。
   final BookOutline? book;
@@ -908,8 +917,10 @@ class ReaderPaneState extends State<ReaderPane> {
     // 平板形态（规范 2.3）：>=1000dp 横屏 TOC 常驻侧栏双栏；
     // 600–1000dp 竖屏居中限宽阅读带。窗口尺寸变化会触发重建。
     final windowWidth = MediaQuery.sizeOf(context).width;
-    final wideLayout = windowWidth >= 1000;
-    final tabletPortrait = windowWidth >= 600 && windowWidth < 1000;
+    // 嵌入栏宽通常只有半屏，不能按整窗宽度启用侧栏/限宽带。
+    final wideLayout = !widget.embedded && windowWidth >= 1000;
+    final tabletPortrait =
+        !widget.embedded && windowWidth >= 600 && windowWidth < 1000;
     final dark = theme.brightness == Brightness.dark;
     // 阅读纸色（白纸/sepia、柔和暗/OLED 纯黑）：仅覆盖阅读面背景体系
     final paper = ReadingPaper.resolve(context, AppPrefs.instance);
@@ -928,7 +939,9 @@ class ReaderPaneState extends State<ReaderPane> {
         const SingleActivator(LogicalKeyboardKey.home): _keyboardTop,
         const SingleActivator(LogicalKeyboardKey.end): _keyboardBottom,
       },
-      child: Scaffold(
+      child: widget.embedded
+          ? _buildEmbeddedPane(theme, paper, wideLayout)
+          : Scaffold(
         backgroundColor: paper.background,
         appBar: AppBar(
           backgroundColor: paper.appBar,
@@ -1253,47 +1266,285 @@ class ReaderPaneState extends State<ReaderPane> {
         theme,
         wideLayout,
         tabletPortrait,
-        Column(
-        children: [
-          if (!_showRaw && _findOpen) _buildFindBar(theme),
-          Expanded(
-            child: _showRaw
-                ? _buildRawView()
-                : FutureBuilder<String>(
-                    future: _content,
-                    builder: (context, snapshot) {
-                      // 加载失败（文件损坏/ipynb JSON 无效等）明确提示，
-                      // 不能落到 !hasData 分支永远转圈
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Text(
-                              '加载失败：${snapshot.error}',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final fontSize = _fontSizes[_fontIndex];
-                      final isDark = theme.brightness == Brightness.dark;
-                      final config = _markdownConfig(theme, isDark, fontSize);
-                      return _renderBody(snapshot.data!, theme, config);
-                    },
-                  ),
-          ),
-        ],
+        _buildBodyContent(theme),
       ),
-        ),
         bottomNavigationBar: _buildFooterNav(theme),
       ),
     );
+  }
+
+  /// 正文区（查找条 + 渲染/源码视图），由完整页面与嵌入栏共用。
+  Widget _buildBodyContent(ThemeData theme) {
+    return Column(
+      children: [
+        if (!_showRaw && _findOpen) _buildFindBar(theme),
+        Expanded(
+          child: _showRaw
+              ? _buildRawView()
+              : FutureBuilder<String>(
+                  future: _content,
+                  builder: (context, snapshot) {
+                    // 加载失败（文件损坏/ipynb JSON 无效等）明确提示，
+                    // 不能落到 !hasData 分支永远转圈
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Text(
+                            '加载失败：${snapshot.error}',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final fontSize = _fontSizes[_fontIndex];
+                    final isDark = theme.brightness == Brightness.dark;
+                    final config = _markdownConfig(theme, isDark, fontSize);
+                    return _renderBody(snapshot.data!, theme, config);
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmbeddedPane(
+    ThemeData theme,
+    ReadingPaper paper,
+    bool wideLayout,
+  ) {
+    return Stack(
+      children: [
+        Column(
+          children: [
+            _buildEmbeddedBar(theme, paper),
+            Expanded(
+              child: _wrapBody(
+                theme,
+                false,
+                false,
+                _buildBodyContent(theme),
+              ),
+            ),
+            _buildFooterNav(theme),
+          ],
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_exportingImage) ...[
+                const FloatingActionButton.small(
+                  heroTag: 'embedded-exporting',
+                  tooltip: '正在生成图片',
+                  onPressed: null,
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              _ReaderFabSmall(
+                tooltip: '回到顶部',
+                onPressed: _showRaw
+                    ? _codeController.scrollToTop
+                    : _scrollToTop,
+                icon: Icons.keyboard_arrow_up,
+              ),
+              const SizedBox(height: 8),
+              _ReaderFabSmall(
+                tooltip: '跳到文末',
+                onPressed: _showRaw
+                    ? _codeController.scrollToBottom
+                    : _scrollToBottom,
+                icon: Icons.keyboard_arrow_down,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmbeddedBar(ThemeData theme, ReadingPaper paper) {
+    final titleStyle = theme.textTheme.titleMedium?.copyWith(
+      color: paper.onAppBar,
+      fontWeight: FontWeight.w600,
+    );
+    return Material(
+      color: paper.appBar,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconTheme.merge(
+            data: IconThemeData(color: paper.onAppBar),
+            child: SizedBox(
+              height: 56,
+              child: Row(
+                children: [
+                  if (widget.leading != null) widget.leading!,
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: widget.leading == null ? 16 : 4,
+                        right: 8,
+                      ),
+                      child: Text(
+                        _title ?? widget.note.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: titleStyle,
+                      ),
+                    ),
+                  ),
+                  if (widget.book != null)
+                    IconButton(
+                      tooltip: '书目录',
+                      icon: const Icon(Icons.library_books_outlined),
+                      onPressed: _showBookTocSheet,
+                    ),
+                  IconButton(
+                    tooltip: _findOpen ? '关闭查找' : '查找',
+                    icon: Icon(_findOpen ? Icons.search_off : Icons.search),
+                    onPressed: _toggleFind,
+                  ),
+                  IconButton(
+                    tooltip: _starred ? '取消收藏' : '收藏',
+                    icon: Icon(
+                      _starred ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: _starred ? const Color(0xFFF5B301) : null,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _starred = RepoMeta.toggleStar(
+                          widget.repoRoot,
+                          widget.note.relativePath,
+                        );
+                      });
+                    },
+                  ),
+                  IconButton(
+                    tooltip: '更多',
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: _showEmbeddedMenu,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ValueListenableBuilder<double>(
+            valueListenable: _progressNotifier,
+            builder: (context, value, _) => _showRaw
+                ? const SizedBox(height: 2)
+                : LinearProgressIndicator(value: value, minHeight: 2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showEmbeddedMenu() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        Widget tile(
+          String value,
+          IconData icon,
+          String label, {
+          String? detail,
+        }) {
+          return ListTile(
+            leading: Icon(icon, size: 20),
+            title: Text(label),
+            trailing: detail == null
+                ? null
+                : Text(
+                    detail,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+            onTap: () => Navigator.pop(sheetContext, value),
+          );
+        }
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.book != null)
+                  tile('bookToc', Icons.library_books_outlined, '书目录'),
+                if (!_showRaw)
+                  tile('toc', Icons.article_outlined, '目录'),
+                tile(
+                  'raw',
+                  Icons.code,
+                  _showRaw ? '渲染视图' : 'Raw 模式',
+                  detail: _showRaw ? '开' : '关',
+                ),
+                if (!_showRaw)
+                  tile('font', Icons.format_size, '字号', detail: '标准'),
+                if (!_showRaw)
+                  tile('bookmark', Icons.bookmark_add_outlined, '在此处加书签'),
+                if (!_showRaw)
+                  tile(
+                    'bookmarks',
+                    Icons.bookmark_outline,
+                    '书签列表',
+                    detail: '${_noteBookmarks.length}',
+                  ),
+                tile('copy', Icons.copy_outlined, '复制全文', detail: 'MD / 纯文本'),
+                if (_isLocalMirrorMd)
+                  tile('edit', Icons.edit_outlined, '编辑'),
+                if (!_showRaw)
+                  tile('exportImage', Icons.image_outlined, '导出长图'),
+                if (!_showRaw)
+                  tile('shareCard', Icons.ios_share_outlined, '分享卡片'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case 'bookToc':
+        _showBookTocSheet();
+      case 'toc':
+        _showTocSheet();
+      case 'raw':
+        final enteringRaw = !_showRaw;
+        if (enteringRaw) _closeFind();
+        setState(() => _showRaw = enteringRaw);
+      case 'font':
+        _showFontSheet();
+      case 'bookmark':
+        _addBookmark();
+      case 'bookmarks':
+        _showBookmarksSheet();
+      case 'copy':
+        _copyFullTextWithChoice();
+      case 'edit':
+        _openEditor();
+      case 'exportImage':
+        _exportLongImage();
+      case 'shareCard':
+        _exportShareCard();
+    }
   }
 
   /// 复制全文二级选择（规范 2.2：菜单合并为一项，点击后选 MD 或纯文本）。
